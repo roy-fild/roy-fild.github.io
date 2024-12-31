@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<style type="text/css">
+    .imgs_wrap {
+        width: 600px;
+        margin-top: 50pox;        
+    }
+    /* .imgs_wrap img{
+        max-width: 200px;
+    } */
+</style>
+<head>
+    <script type="text/javascript">
+        var sel_files = [];
+
+        $(document).ready(function(){
+            $('#input_imgs').on('change', handleImgsFilesSelect);        
+        });
+
+
+        function handleImgsFilesSelect(e){
+
+            var sz          = $('#slt_sz').val();  // 사진분할
+            var files       = e.target.files;
+            var filesArr    = Array.prototype.slice.call(files);
+
+            filesArr.forEach(function(f){
+                if(!f.type.match("image.*")){
+                    alert("확장자는 이미지 확장자만 가능합니다");
+                    return;
+                }
+
+                sel_files.push(f);
+
+                var reader = new FileReader();
+                reader.onload = function(e){
+                    var img_html = "";
+                    // 4분할
+                    if(sz == "4"){
+                        img_html = '<img src=' + e.target.result + ' style="max-width:300px"/>';
+                    }else if(sz == "6"){
+                        img_html = '<img src=' + e.target.result + ' style="max-width:200px"/>';
+                    }else if(sz == "8"){
+                        img_html = '<img src=' + e.target.result + ' style="max-width:150px"/>';
+                    }
+                    $(".imgs_wrap").append(img_html);                
+                }
+                reader.readAsDataURL(f);
+            });
+        }
+    </script>
+
+</head>
+
+<body>
+    <div>
+        <h2><b>다중 이미지 정렬</b></h2>
+        <p class=""title> 다중이미지 업로드        
+        <input type="file" id="input_imgs" multiple/>
+        <select id="slt_sz">
+            <option value="4">4분할</option>
+            <option value="6" selected>6분할</option>            
+            <option value="8">8분할</option>
+        </select>
+        </p>
+    </div>
+
+    <div>
+        <div class="imgs_wrap">
+
+    </div>
+
+</body>
+
+</html>
