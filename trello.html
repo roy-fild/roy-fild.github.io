@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.15.5/xlsx.full.min.js"></script>
+<script>
+    $(function () {    
+
+    });
+
+    function isImgFile(file){
+        var ext = file.name.split(".").pop().toLowerCase(); // 파일명 확장자
+        return ($.inArray(ext, ["jpg","jpeg","gif","png"]) === -1) ? false : true;
+    }
+
+    function isExcelFile(file){
+        var ext = file.name.split(".").pop().toLowerCase(); // 파일명 확장자
+        return ($.inArray(ext, ["xlsx","xls"]) === -1) ? false : true;
+    }
+
+    // 엑셀 자료 추출
+    function excelExport(event) {
+
+        var aptArr = [];
+
+        let input = event.target;
+        let reader = new FileReader();
+        reader.onload = function () {
+            let data = reader.result;
+            let workBook = XLSX.read(data, { type: 'binary' });
+            workBook.SheetNames.forEach(function (sheetName) {
+                console.log('SheetName: ' + sheetName);
+                let rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
+                var keys = Object.keys(rows);
+
+                var html = "";
+
+                for (var i = 0; i < keys.length; i++) {
+                    var key = keys[i];
+                    var subKeys = Object.keys(rows[key]);
+
+                    var dong    = rows[key][subKeys[0]];    // 동
+                    var aptNm   = rows[key][subKeys[1]];    // 아파트명
+                    var aptYear = rows[key][subKeys[2]];    // 연식
+                    var aptSize = rows[key][subKeys[3]];    // 세대수
+                    var pyung   = rows[key][subKeys[4]];    // 평
+                    var sell    = rows[key][subKeys[5]];    // 매매가 
+                    var junse   = rows[key][subKeys[6]];    // 전세가
+                    
+                    console.log(dong,aptNm,aptYear,aptSize,pyung,sell,junse);
+
+                    var label   = dong + "/" + aptNm + "/" + aptYear + "/" + aptSize + "/" + pyung + "/" + sell + "/" + junse;
+                    aptArr.push(label);
+                }                 
+                convertAptInfo(aptArr);
+
+            })
+        };
+       reader.readAsBinaryString(input.files[0]);
+    }
+
+    function convertAptInfo(aptArr){
+
+        var aptNmArr = [];
+        var aptCtntArr = new Array();      
+        
+        for(var i=0; i<aptArr.length; i++){
+            var aptInfo = aptArr[i].split("/");
+            var nmInfo  = aptInfo[0] + "/" + aptInfo[1] + "/" + aptInfo[2] + "/" + aptInfo[3] + "/"
+
+            console.log(nmInfo);            
+
+            // 중복체크
+            var idx = aptNmArr.indexOf(nmInfo);
+            if(idx > -1){
+                // 중복
+                console.log("중복::"+ nmInfo);
+            }else{
+                // 중복아님
+                chkDupAptNm(nmInfo, aptArr, aptCtntArr);
+                aptNmArr.push(nmInfo);
+            }                
+        }
+
+        console.log(aptCtntArr);
+
+        downloadCSV(aptCtntArr);
+
+    }
+
+    function chkDupAptNm(nmInfo, aptArr, aptCtntArr){          
+        var ctnt = nmInfo;
+        for(var i=0; i<aptArr.length; i++){            
+            var aptInfo = aptArr[i].split("/");
+            var nmInfo2 = aptInfo[0] + "/" + aptInfo[1] + "/" + aptInfo[2] + "/" + aptInfo[3] + "/"
+
+            // console.log(nmInfo2);
+
+            if(nmInfo == nmInfo2){                            
+                var p = aptInfo[4]; // 평
+                var s = aptInfo[5]; // 매매가
+                var j = aptInfo[6]; // 전세가
+                ctnt += "["+ p + '/' + s + '/' + j + "]";              
+                
+                // console.log(ctnt);
+            }
+        }
+
+        aptCtntArr.push(ctnt);
+        //createLabel(v, aptCtntArr);
+    }
+
+    function downloadCSV(aptCtntArr){
+
+        var result = "";
+
+        result += "List Name,Card Name\n";
+
+        for(var i=0; i<aptCtntArr.length; i++){
+           var dong = aptCtntArr[i].substring(0, aptCtntArr[i].indexOf("/"));
+           var info = aptCtntArr[i].substring(aptCtntArr[i].indexOf("/") + 1, aptCtntArr[i].length);
+
+           console.log(dong, info);
+
+           result += dong + ",";
+           result += info + ",\n";
+        }
+
+        const csv = result;
+        const fileName = "userList.csv";
+        
+        var link = document.createElement("a");
+        var blob = new Blob(["\uFEFF"+csv], {type: 'text/csv; charset=utf-8'});
+        var url = URL.createObjectURL(blob);
+        $(link).attr({"download" : fileName , "href" : url});
+        link.click();
+    }
+
+
+
+</script>
+
+<head>
+
+</head>
+
+<body>
+    <div>
+        엑셀 파일선택 <input type="file" id="excelFile" onchange="excelExport(event)" />
+    </div>   
+    <br/>
+    동/아파트명/연식/세대수/평/매매가/전세가 
+</body>
+
+</html>
