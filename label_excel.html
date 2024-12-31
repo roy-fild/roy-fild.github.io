@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<link href="./style2.css" rel="stylesheet" type="text/css" />
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.15.5/xlsx.full.min.js"></script>
+<script type="text/javascript" src="./common-function.js"></script>
+<script>
+
+    $(function () {
+      
+    });
+
+    function isImgFile(file){
+        var ext = file.name.split(".").pop().toLowerCase(); // 파일명 확장자
+        return ($.inArray(ext, ["jpg","jpeg","gif","png"]) === -1) ? false : true;
+    }
+
+    function isExcelFile(file){
+        var ext = file.name.split(".").pop().toLowerCase(); // 파일명 확장자
+        return ($.inArray(ext, ["xlsx","xls"]) === -1) ? false : true;
+    }
+
+    // 엑셀 자료 추출
+    function excelExport(event) {
+
+        var aptArr = [];
+
+        let input = event.target;
+        let reader = new FileReader();
+        reader.onload = function () {
+            let data = reader.result;
+            let workBook = XLSX.read(data, { type: 'binary' });
+            workBook.SheetNames.forEach(function (sheetName) {
+                console.log('SheetName: ' + sheetName);
+                let rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
+                var keys = Object.keys(rows);
+
+                var html = "";
+
+                for (var i = 0; i < keys.length; i++) {
+                    var key = keys[i];
+                    var subKeys = Object.keys(rows[key]);
+
+                    var dong    = rows[key][subKeys[0]];    // 동
+                    var aptNm   = rows[key][subKeys[1]];    // 아파트명
+                    var aptYear = rows[key][subKeys[2]];    // 연식
+                    var aptSize = rows[key][subKeys[3]];    // 세대수
+                    var pyung   = rows[key][subKeys[4]];    // 평
+                    var sell    = rows[key][subKeys[5]];    // 매매가 
+                    var junse   = rows[key][subKeys[6]];    // 전세가
+                    
+                    console.log(dong,aptNm,aptYear,aptSize,pyung,sell,junse);
+
+                    var label   = dong + "/" + aptNm + "/" + aptYear + "/" + aptSize + "/" + pyung + "/" + sell + "/" + junse;
+                    aptArr.push(label);
+                }                 
+                labelCreate(aptArr);
+
+            })
+        };
+       reader.readAsBinaryString(input.files[0]);  
+    }
+
+    function labelCreate(aptArr){   
+        
+        var aptChkArr = [];
+
+        for(var i=0; i<aptArr.length; i++){
+            
+            // 한줄씩 추출
+            var line = aptArr[i].split('/');
+            // 단지 TITLE 만들기
+            var aptNm = line[0] + "/" + line[1] + "y/" + line[2] + "^"
+            
+            // 중복체크
+            var idx = aptChkArr.indexOf(aptNm);
+            if(idx > -1){
+                // 중복
+                console.log("중복::"+ aptNm);
+            }else{
+                // 중복아님
+                chkDupAptNm(aptNm, aptArr);
+                aptChkArr.push(aptNm);
+            }                
+        }
+    }
+
+
+    function chkDupAptNm(v, aptArr){
+
+        var aptCtntArr = new Array();
+ 
+        for(var i=0; i<aptArr.length; i++){            
+            var line = aptArr[i].split('/');
+            var aptNm = line[0] + "/" + line[1] + "y/" + line[2] + "^"
+            // console.log(aptNm);
+
+            if(v == aptNm){            
+                var p = line[3]; // 평수
+                var s = line[4]; // 매매가
+                var j = line[5]; // 전세가
+                var ctnt = p + '/' + s + '/' + j;
+                aptCtntArr.push(ctnt);
+            }
+        }
+
+        createLabel(v, aptCtntArr);
+    }   
+
+    function createLabel(v, aptCtntArr) {      
+
+        // console.log(v);
+        // console.log(aptCtntArr);
+
+        var aptInfos = v.split('/');
+        var aptNm = aptInfos[0];
+        var aptInfo = aptInfos[1] + '/' + aptInfos[2];
+        
+        
+        var html = "";
+
+        html += '<table>';
+            html += '<thead>';
+                html += '<tr><th>' + aptNm + '<br/>'+ aptInfo+ '</td></tr>';                
+            html += '</thead>';    
+            html += '<tbody>';
+        
+        for(var i=0; i< aptCtntArr.length; i++){
+            html += selectColor(aptCtntArr[i]);
+        }
+            html += '</tbody>';
+        html += '</table>';
+        html += '<br/>'
+        html += '<br/>'
+        
+        $('body').append(html);
+
+        var cnt = $('table').length;
+
+       $('#apt_cnt').text(cnt);
+    }
+
+    function selectColor(aptCtntArr) {
+        console.log('in');
+
+        var html = "";
+        var infos = aptCtntArr.split('/');
+        var price = Number(infos[1]);
+                
+
+        if(price > 15){            
+            html += '<tr><td bgcolor="#ff0000">';  
+            html += '<font color="#ffffff">' + aptCtntArr + '</font>';
+            html += '</td></tr>';
+        }else if(price >= 10){
+            html += '<tr><td bgcolor="#ffa500">';  
+            html += '<font color="#ffffff">' + aptCtntArr + '</font>';
+            html += '</td></tr>';        
+        }else if(price >= 9){
+            html += '<tr><td bgcolor="#ffff00">';  
+            html += aptCtntArr;
+            html += '</td></tr>';
+        }else if(price >= 8){
+            html += '<tr><td bgcolor="#00ff00">';  
+            html += aptCtntArr;
+            html += '</td></tr>';
+        }else if(price >= 7){
+            html += '<tr><td bgcolor="#008000">';  
+            html += '<font color="#ffffff">' + aptCtntArr + '</font>';
+            html += '</td></tr>';
+        }else if(price >= 6){
+            html += '<tr><td bgcolor="#00ffff">';  
+            html += aptCtntArr;
+            html += '</td></tr>';
+        }else if(price >= 5){
+            html += '<tr><td bgcolor="#0000ff">';  
+            html += '<font color="#ffffff">' + aptCtntArr + '</font>';
+            html += '</td></tr>';
+        }else if(price >= 4){
+            html += '<tr><td bgcolor="#000080">';  
+            html += '<font color="#ffffff">' + aptCtntArr + '</font>';;
+            html += '</td></tr>';
+        }else if(price >= 3){
+            html += '<tr><td bgcolor="#ff00ff">';  
+            html += '<font color="#ffffff">' + aptCtntArr + '</font>';;
+            html += '</td></tr>';
+        }else {        
+            html += '<tr><td>';
+            html += aptCtntArr;
+            html += '</td></tr>';
+        }        
+        return html;
+    }
+
+
+</script>
+
+</head>
+
+<body>
+    <div class="title">
+        <h1>시세라벨생성기</h1>
+    </div>
+    <div>
+        엑셀 파일선택 <input type="file" id="excelFile" onchange="excelExport(event)" />
+    </div>    
+    <div>
+        <div>
+            <span style="background-color: #ff0000;"><font color="#ffffff">15억이상</font></span>
+            <span style="background-color: #ffa500;"><font color="#ffffff">10억대</font></span>
+            <span style="background-color: #ffff00;">9억대</span>
+            <span style="background-color: #00ff00;">8억대</span>
+            <span style="background-color: #008000;"><font color="#ffffff">7억대</font></span>
+            <span style="background-color: #00ffff;">6억대</span>
+            <span style="background-color: #0000ff;"><font color="#ffffff">5억대</font></span>
+            <span style="background-color: #000080;"><font color="#ffffff">4억대</font></span>
+            <span style="background-color: #ff00ff;"><font color="#ffffff">3억대</font></span>
+            <span style="background-color: #ffffff;">기타</span>
+        </div>         
+    </div>
+    <div id="apt_cnt"></div>    
+</body>
+
+</html>
