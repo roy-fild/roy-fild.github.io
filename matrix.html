@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.15.5/xlsx.full.min.js"></script>
+<script>
+    $(function () {    
+        $('#txt_region').val('S,A,B,C');
+    });
+
+   
+    // 엑셀 자료 추출
+    function excelExport(event) {
+
+        var aptArr = [];
+        let fileName = event.target.files[0].name.split(".").shift();
+        let input = event.target;
+        let reader = new FileReader();
+        reader.onload = function () {
+            let data = reader.result;
+            let workBook = XLSX.read(data, { type: 'binary' });
+            workBook.SheetNames.forEach(function (sheetName) {
+                console.log('SheetName: ' + sheetName);
+                let rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
+                var keys = Object.keys(rows);
+
+                var html = "";
+
+                for (var i = 0; i < keys.length; i++) {
+                    var key = keys[i];
+                    var subKeys = Object.keys(rows[key]);
+
+                    var region  = rows[key][subKeys[0]];    // 지역명
+                    var price   = rows[key][subKeys[1]];    // 가격
+                    var label   = rows[key][subKeys[2]];    // 라벨
+                    
+                    
+                    //console.log(region,price,label);
+
+                    var txt   = region + "|" + price + "|" + label;
+                    aptArr.push(txt);
+                }                 
+                convertAptInfo(aptArr, fileName);
+
+            })
+        };
+       reader.readAsBinaryString(input.files[0]);
+    }
+
+    function convertAptInfo(aptArr, fileName){
+       
+        var price       = 20;    // 가격
+        var contentsArr = [];
+
+        var titSplit = $('#txt_region').val().split(",");
+        var titArr   = [];
+        titArr.push(" ");
+        titArr.push(titSplit[0]);
+        titArr.push(titSplit[1]);
+        titArr.push(titSplit[2]);
+        titArr.push(titSplit[3]);
+
+        contentsArr.push(titArr);
+        
+        while(price > 2.9){
+
+            var rowArr      = [];
+            rowArr.push(price);
+   
+            if(price == 20){
+                rowArr = chkHighPrice(aptArr, rowArr);                 
+            }else{                                    
+                rowArr = chkPrice(price, aptArr, rowArr);
+            }   
+
+            price = price - 0.1;
+            price = price.toFixed(1);
+        
+            contentsArr.push(rowArr);
+
+        }
+
+        console.log(contentsArr);
+
+        downloadCSV(contentsArr, fileName);
+
+    }
+    // 고가
+    function chkHighPrice(aptArr, rowArr){
+
+        var region  = $('#txt_region').val();
+        var sv      = region.split(',');        // 지역명
+
+        for(var j=0; j<sv.length; j++ ){
+            var label = ""; 
+            for(var i=0; i<aptArr.length; i++){            
+                var info = aptArr[i].split('|');
+
+                var r = info[0]; // 지역명
+                var p = info[1]; // 가격
+                var l = info[2]; // 라벨            
+
+                // 지역명 일치 가격이 높을경우
+                if(sv[j] == r && Number(p) > 19.9){
+                    if(label != ''){
+                        label += "\n"
+                    }
+                    label += l;
+                }
+            }
+            rowArr.push(label);
+            //rowArr.push(",");
+        }
+        //console.log(labelRow);
+        return rowArr;
+    }
+
+    function chkPrice(price, aptArr, rowArr){
+
+        var region  = $('#txt_region').val();
+        var sv      = region.split(',');        // 지역명
+        
+        
+
+        for(var j=0; j<sv.length; j++ ){
+            var label   = "";       
+            for(var i=0; i<aptArr.length; i++){            
+                var info = aptArr[i].split('|');
+
+                var r = info[0]; // 지역명
+                var p = info[1]; // 가격
+                var l = info[2]; // 라벨
+
+                //console.log(r,p,l);
+
+                // 지역명 일치 가격이 같을경우
+                if(sv[j] == r && Number(p).toFixed(1) == Number(price)){
+                    if(label != ''){
+                        label += "\n"
+                    }
+                    label += l;
+                }
+            }
+            rowArr.push(label);
+            //rowArr.push(",");
+        }
+        //.log(labelRow);
+        return rowArr;
+    }
+
+
+    function downloadCSV(contentsArr, f){
+
+        const worksheet = XLSX.utils.aoa_to_sheet(contentsArr);
+
+        // CSV 생성
+        const csvOutput = XLSX.utils.sheet_to_csv(worksheet);
+        const fileName = f +".csv";
+        
+        var link = document.createElement("a");
+        var blob = new Blob(["\uFEFF"+csvOutput], {type: 'text/csv; charset=utf-8'});
+        var url = URL.createObjectURL(blob);
+        $(link).attr({"download" : fileName , "href" : url});
+        link.click();
+    }
+
+
+
+</script>
+
+<head>
+
+</head>
+
+<body>
+    계단식 시세 Matrix 생성기 <br/>
+    지역입력<br/>
+    <textarea id="txt_region" row="3" cols="60" value=""></textarea>
+    <div>
+        동/매매가/라벨 엑셀 파일선택 <input type="file" id="excelFile" onchange="excelExport(event)" />
+    </div>   
+    <br/>
+    2024.12.22 version
+    <br/>
+    
+     
+</body>
+
+</html>
