@@ -37,7 +37,7 @@
                         html.push('<tr>');
                         html.push('<td>' + item.address + '</td>'); // 주소
                         html.push('<td>' + item.name + '</td>'); // 학교명
-                        html.push('<td>' + item.grade + '</td>'); // 등급
+                        html.push(chkGrade(item.grade)); // 등급
                         html.push('<td>' + item.avg + '</td>');  // 평균                           
                         html.push('<td>' + item.spec + '</td>');  // 특목고 진학률
                         html.push('<td>' + item.spec2 + '</td>');  // 특목고 진학수
