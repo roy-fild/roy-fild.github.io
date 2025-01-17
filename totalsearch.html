@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<link href="./style2.css" rel="stylesheet" type="text/css" />
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<script>
+
+    $(function () {
+
+        //버튼 색 제거,추가
+        $('.tab_menu_btn').on('click', function () {
+            $('.tab_menu_btn').removeClass('on');
+            $(this).addClass('on')
+        });
+
+        $('.tab_menu_btn_s').on('click', function () {
+            $('.tab_box').hide();
+            $('.tab_s').show();
+        });
+
+        $('.tab_menu_btn_t').on('click', function () {
+            $('.tab_box').hide();
+            $('.tab_t').show();
+        });
+
+        $('#tb_btnSearch').on('click', function () {
+
+            if ($('#txt_snm').val() === '') {
+                alert('학교명을 입력하세요');
+                return;
+            }
+
+            $.getJSON('https://roy-fild.github.io/school-data.json', function (data) {
+                var html = [];
+                $.each(data, function (i, item) {
+                    if (item.name.match($('#txt_snm').val())) {                        
+                        html.push('<tr>');
+                        html.push('<td>' + item.address + '</td>'); // 주소
+                        html.push('<td>' + item.name + '</td>'); // 학교명
+                        html.push('<td>' + item.grade + '</td>'); // 등급
+                        html.push('<td>' + item.avg + '</td>');  // 평균                           
+                        html.push('<td>' + item.spec + '</td>');  // 특목고 진학률
+                        html.push('<td>' + item.spec2 + '</td>');  // 특목고 진학수
+                        html.push('<td>' + item.gradu + '</td>');  // 졸업자수
+                        html.push('</tr>');
+                    }
+
+                });
+
+                $('#tbl_school tbody').empty()
+                $('#tbl_school tbody').append(html);
+
+            });
+        });
+
+        $('#tb_btnTSearch').on('click', function () {
+
+            if ($('#txt_anm').val() === '') {
+                alert('단지명을 입력하세요');
+                return;
+            }
+
+            $.getJSON('https://roy-fild.github.io/traffic-data.json', function (data) {
+                var html = [];
+                $.each(data, function (i, item) {
+                    if (item.name.match($('#txt_anm').val())) {
+                        
+                        html.push('<tr>');
+                        html.push('<td>' + item.address + '</td>'); // 주소
+                        html.push('<td>' + item.name + '</td>'); // 학교명
+                        html.push(chkGrade(item.rank)); // 등급
+                        html.push(chkTime(item.ganam));  // 강남                           
+                        html.push(chkTime(item.dosim));  // 도심
+                        html.push(chkTime(item.yeido));  // 여의도
+                        html.push(chkTime(item.fan));  // 판교
+                        html.push(chkTime(item.gbelly));  // G밸리
+                        html.push(chkTime(item.maguk));  // 마곡
+                        html.push(chkTime(item.dmc));  // DMC
+                        html.push('</tr>');
+                    }
+
+                });
+
+                $('#tbl_traffic tbody').empty()
+                $('#tbl_traffic tbody').append(html);
+
+            });
+        });
+    });
+    function chkGrade(g){
+        var html = "";
+
+        if(g.match('S')){
+            html = "<td style='text-align: center; background-color:red; color:white' >" + g + "</td>"
+        }else if(g.match('A')){
+            html = "<td style='text-align: center; background-color:green; color:white' >" + g + "</td>"
+        }else if(g.match('B')){
+            html = "<td style='text-align: center; background-color:blue; color:white' >" + g + "</td>"
+        }else{
+            html = "<td style='text-align: center; background-color:grey; color:white' >" + g + "</td>"
+        }
+        return html;
+    }
+
+    function chkTime(t){
+
+        var num  = parseInt(t);
+        var html = "";
+        if(31 > num){
+            html = "<td style='text-align: center;color:blue'>"+ num +"</td>"
+        }else if( 60 < num){
+            html = "<td style='text-align: center;color:red'>"+ num +"</td>"
+        }else{
+            html = "<td style='text-align: center;'>"+ num +"</td>"
+        }
+        return html;
+    }
+</script>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        table,
+        td,
+        th {
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            padding: 15px;
+        }
+
+        .black_overlay {
+            display: none;
+            position: absolute;
+            top: 0%;
+            left: 0%;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            z-index: 1001;
+            -moz-opacity: 0.8;
+            opacity: .80;
+            filter: alpha(opacity=80);
+        }
+
+        .white_content {
+            display: none;
+            position: absolute;
+            top: 25%;
+            left: 25%;
+            width: 50%;
+            height: 50%;
+            padding: 16px;
+            border: 16px solid orange;
+            background-color: white;
+            z-index: 1002;
+            overflow: auto;
+        }
+
+        button {
+            background: none;
+            border: 0;
+            outline: 0;
+            cursor: pointer;
+        }
+
+        .tab_menu_container {
+            display: flex;
+        }
+
+        .tab_menu_btn {
+            width: 80px;
+            height: 40px;
+            transition: 0.3s all;
+        }
+
+        .tab_menu_btn.on {
+            border-bottom: 2px solid #df0000;
+            font-weight: 700;
+            color: #df0000;
+        }
+
+        .tab_menu_btn:hover {
+            color: #df0000;
+        }
+
+        .tab_box {
+            display: none;
+            padding: 20px;
+        }
+
+        .tab_box.on {
+            display: block;
+        }
+
+        .my_btn {
+
+            background-color: skyblue;
+            color: white;
+            border: none;
+            padding: 10px 30px;
+
+        }
+    </style>
+</head>
+
+<body>
+    <div class="tab_wrap">
+        <div class="tab_menu_container">
+            <button class="tab_menu_btn_t tab_menu_btn on" type="button">교통</button>
+            <button class="tab_menu_btn_s tab_menu_btn" type="button">중학교</button>
+        </div>
+    </div>
+    <!--교통-->
+    <div class="tab_mtp tab_box on">
+        <h2>교통 검색</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>단지명</th>
+                    <td><input type="text" id="txt_anm"></td>
+                    <td id="tb_btnTSearch" style="text-align: center; background-color: slategrey; color:white">검색</td>
+                </tr>
+            </thead>
+        </table>
+
+        <table id="tbl_traffic">
+            <thead>
+                <tr>
+                    <th>주소</th>
+                    <th>단지명</th>
+                    <th>등급</th>
+                    <th>강남</th>
+                    <th>도심</th>
+                    <th>여의도</th>
+                    <th>판교</th>
+                    <th>G밸리</th>
+                    <th>마곡</th>
+                    <th>DMC</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+
+    </div>
+
+    <!--중학교-->
+    <div class="tab_s tab_box">
+        <h2>중학교 검색</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>학교명</th>
+                    <td><input type="text" id="txt_snm"></td>
+                    <td id="tb_btnSearch" style="text-align: center; background-color: slategrey; color:white">검색</td>
+                </tr>
+            </thead>
+        </table>
+
+        <table id="tbl_school">
+            <thead>
+                <tr>
+                    <th>주소</th>
+                    <th>학교명</th>
+                    <th>등급</th>
+                    <th>평균</th>
+                    <th>특목고진학률</th>
+                    <th>특목고진학수</th>
+                    <th>졸업자수</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+
+
+</body>
+
+</html>
