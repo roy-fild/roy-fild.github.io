@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<script>
+
+    $(function () {
+
+        // 중학교 검색
+        $('#tb_btnSearch').on('click', function () {
+
+            if ($('#txt_nm').val() === '') {
+                alert('단지명을 입력하세요');
+                return;
+            }
+
+            $.getJSON('https://roy-fild.github.io/assign-school.json', function (data) {
+                var html = [];
+                $.each(data, function (i, item) {
+                    if (item.아파트명.match($('#txt_nm').val())) {
+                        html.push('<tr>');
+                        html.push('<td>' + item.아파트명 + '</td>');
+                        html.push('<td>' + item.주소 + '</td>');
+                        html.push('<td>' + item.초등학교.replaceAll('|', '<br/>')+ '</td>');
+                        html.push('<td>' + item.중학교.replaceAll('|', '<br/>') + '</td>');
+                        html.push('<td>' + item.고등학교.replaceAll('|', '<br/>') + '</td>');
+                        html.push('</tr>');
+                    }
+
+                });
+
+                $('#tbl_school tbody').empty()
+                $('#tbl_school tbody').append(html);
+
+            });
+        
+        });
+    });
+
+
+</script>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        table,
+        td,
+        th {
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            padding: 15px;
+        }
+
+        .black_overlay {
+            display: none;
+            position: absolute;
+            top: 0%;
+            left: 0%;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            z-index: 1001;
+            -moz-opacity: 0.8;
+            opacity: .80;
+            filter: alpha(opacity=80);
+        }
+
+        .white_content {
+            display: none;
+            position: absolute;
+            top: 25%;
+            left: 25%;
+            width: 50%;
+            height: 50%;
+            padding: 16px;
+            border: 16px solid orange;
+            background-color: white;
+            z-index: 1002;
+            overflow: auto;
+        }
+
+        button {
+            background: none;
+            border: 0;
+            outline: 0;
+            cursor: pointer;
+        }
+
+        .tab_menu_container {
+            display: flex;
+        }
+
+        .tab_menu_btn {
+            width: 80px;
+            height: 40px;
+            transition: 0.3s all;
+        }
+
+        .tab_menu_btn.on {
+            border-bottom: 2px solid #df0000;
+            font-weight: 700;
+            color: #df0000;
+        }
+
+        .tab_menu_btn:hover {
+            color: #df0000;
+        }
+
+        .tab_box {
+            display: none;
+            padding: 20px;
+        }
+
+        .tab_box.on {
+            display: block;
+        }
+
+        .my_btn {
+
+            background-color: skyblue;
+            color: white;
+            border: none;
+            padding: 10px 30px;
+
+        }
+    </style>
+</head>
+
+<body>
+    <h2>배정 학군 조회</h2>
+
+    <!--교통-->
+    <div class="tab_t tab_box on">
+        <h2>교통 검색</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>단지명</th>
+                    <td><input type="text" id="txt_nm"></td>
+                    <td id="tb_btnSearch" style="text-align: center; background-color: slategrey; color:white">검색</td>
+                </tr>
+            </thead>
+        </table>
+
+        <table id="tbl_school">
+            <thead>
+                <tr>
+                    <th>단지명</th>
+                    <th>주소</th>
+                    <th>초등학교</th>
+                    <th>중학교</th>
+                    <th>고등학교</th>`
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+
+    </div>
+
+</body>
+
+</html>
