@@ -61,32 +61,22 @@
         // 교통 검색
         $('#tb_btnTSearch').on('click', function () {
 
-            if ($('#txt_anm').val() === '') {
-                alert('단지명을 입력하세요');
+            if ($('#txt_aAddr').val() === '' && $('#txt_anm').val() === '') {
+                alert('정보를 입력하세요');
                 return;
             }
 
             $.getJSON('https://roy-fild.github.io/traffic-data.json', function (data) {
                 var html = [];
                 $.each(data, function (i, item) {
-                    if (item.name.match($('#txt_anm').val())) {
-
-                        html.push('<tr>');
-                        html.push('<td>' + item.address + '</td>'); // 주소
-                        html.push('<td>' + item.name + '</td>'); // 학교명
-                        html.push(chkGrade(item.rank)); // 등급
-                        html.push(chkTime(item.ganam));  // 강남                           
-                        html.push(chkTime(item.dosim));  // 도심
-                        html.push(chkTime(item.yeido));  // 여의도
-                        html.push(chkTime(item.fan));  // 판교
-                        html.push(chkTime(item.gbelly));  // G밸리
-                        html.push(chkTime(item.maguk));  // 마곡
-                        html.push(chkTime(item.dmc));  // DMC
-                        html.push('</tr>');
+                    if($('#txt_aAddr').val() !== ''){
+                        if (item.address.match($('#txt_aAddr').val())) {                               
+                            createTraffic(html, item);
+                        }
+                    }else{
+                        createTraffic(html, item);
                     }
-
                 });
-
                 $('#tbl_traffic tbody').empty()
                 $('#tbl_traffic tbody').append(html);
 
@@ -152,6 +142,40 @@
 
 
     });
+    function createTraffic(html, item){   
+        if($('#txt_anm').val() !== ''){    
+            if(item.name.match($('#txt_anm').val())){
+                html.push('<tr>');
+                html.push('<td>' + item.address + '</td>'); // 주소
+                html.push('<td>' + item.name + '</td>'); // 학교명
+                html.push(chkGrade(item.rank)); // 등급
+                html.push(chkTime(item.ganam));  // 강남                           
+                html.push(chkTime(item.dosim));  // 도심
+                html.push(chkTime(item.yeido));  // 여의도
+                html.push(chkTime(item.fan));  // 판교
+                html.push(chkTime(item.gbelly));  // G밸리
+                html.push(chkTime(item.maguk));  // 마곡
+                html.push(chkTime(item.dmc));  // DMC
+                html.push('</tr>');       
+            }
+        }else{
+            html.push('<tr>');
+            html.push('<td>' + item.address + '</td>'); // 주소
+            html.push('<td>' + item.name + '</td>'); // 학교명
+            html.push(chkGrade(item.rank)); // 등급
+            html.push(chkTime(item.ganam));  // 강남                           
+            html.push(chkTime(item.dosim));  // 도심
+            html.push(chkTime(item.yeido));  // 여의도
+            html.push(chkTime(item.fan));  // 판교
+            html.push(chkTime(item.gbelly));  // G밸리
+            html.push(chkTime(item.maguk));  // 마곡
+            html.push(chkTime(item.dmc));  // DMC
+            html.push('</tr>');  
+        }
+
+    }
+
+
     function chkGrade(g) {
         var html = "";
 
@@ -292,6 +316,8 @@
         <table>
             <thead>
                 <tr>
+                    <th>주소</th>
+                    <td><input type="text" id="txt_aAddr"></td>
                     <th>단지명</th>
                     <td><input type="text" id="txt_anm"></td>
                     <td id="tb_btnTSearch" style="text-align: center; background-color: slategrey; color:white">검색</td>
