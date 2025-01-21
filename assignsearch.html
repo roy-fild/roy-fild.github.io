@@ -10,24 +10,22 @@
         // 중학교 검색
         $('#tb_btnSearch').on('click', function () {
 
-            if ($('#txt_nm').val() === '') {
-                alert('단지명을 입력하세요');
+            if ($('#txt_addr').val()=== '' && $('#txt_nm').val() === '') {
+                alert('정보를 입력하세요');
                 return;
             }
 
             $.getJSON('https://roy-fild.github.io/assign-school.json', function (data) {
                 var html = [];
                 $.each(data, function (i, item) {
-                    if (item.아파트명.match($('#txt_nm').val())) {
-                        html.push('<tr>');
-                        html.push('<td>' + item.아파트명 + '</td>');
-                        html.push('<td>' + item.주소 + '</td>');
-                        html.push('<td>' + item.초등학교.replaceAll('|', '<br/>')+ '</td>');
-                        html.push('<td>' + item.중학교.replaceAll('|', '<br/>') + '</td>');
-                        html.push('<td>' + item.고등학교.replaceAll('|', '<br/>') + '</td>');
-                        html.push('</tr>');
+                    if ($('#txt_addr').val() !== ''){
+                        if (item.주소.match($('#txt_addr').val())) {
+                            crateHtml(html, item);
+                        }
+                    }else{
+                        crateHtml(html, item);
                     }
-
+                   
                 });
 
                 $('#tbl_school tbody').empty()
@@ -37,6 +35,28 @@
         
         });
     });
+
+    function crateHtml(html, item){
+        if ($('#txt_nm').val() !== ''){
+            if (item.아파트명.match($('#txt_nm').val())) {
+                html.push('<tr>');
+                html.push('<td>' + item.주소 + '</td>');
+                html.push('<td>' + item.아파트명 + '</td>');
+                html.push('<td>' + item.초등학교.replaceAll('|', '<br/>')+ '</td>');
+                html.push('<td>' + item.중학교.replaceAll('|', '<br/>') + '</td>');
+                html.push('<td>' + item.고등학교.replaceAll('|', '<br/>') + '</td>');
+                html.push('</tr>');
+            }
+        }else{
+            html.push('<tr>');
+            html.push('<td>' + item.주소 + '</td>');
+            html.push('<td>' + item.아파트명 + '</td>');
+            html.push('<td>' + item.초등학교.replaceAll('|', '<br/>')+ '</td>');
+            html.push('<td>' + item.중학교.replaceAll('|', '<br/>') + '</td>');
+            html.push('<td>' + item.고등학교.replaceAll('|', '<br/>') + '</td>');
+            html.push('</tr>');
+        }
+    }
 
 
 </script>
@@ -143,6 +163,8 @@
         <table>
             <thead>
                 <tr>
+                    <th>주소</th>
+                    <td><input type="text" id="txt_addr"></td>
                     <th>단지명</th>
                     <td><input type="text" id="txt_nm"></td>
                     <td id="tb_btnSearch" style="text-align: center; background-color: slategrey; color:white">검색</td>
@@ -153,8 +175,8 @@
         <table id="tbl_school">
             <thead>
                 <tr>
-                    <th>단지명</th>
                     <th>주소</th>
+                    <th>단지명</th>
                     <th>초등학교</th>
                     <th>중학교</th>
                     <th>고등학교</th>`
