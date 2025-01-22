@@ -10,7 +10,7 @@
         // 중학교 검색
         $('#tb_btnSearch').on('click', function () {
 
-            if ($('#txt_addr').val()=== '' && $('#txt_nm').val() === '') {
+            if ($('#txt_addr').val() === '' && $('#txt_nm').val() === '') {
                 alert('정보를 입력하세요');
                 return;
             }
@@ -18,146 +18,293 @@
             $.getJSON('https://roy-fild.github.io/assign-school.json', function (data) {
                 var html = [];
                 $.each(data, function (i, item) {
-                    if ($('#txt_addr').val() !== ''){
+                    if ($('#txt_addr').val() !== '') {
                         if (item.주소.match($('#txt_addr').val())) {
                             crateHtml(html, item);
                         }
-                    }else{
+                    } else {
                         crateHtml(html, item);
                     }
-                   
+
                 });
 
                 $('#tbl_school tbody').empty()
                 $('#tbl_school tbody').append(html);
 
             });
-        
+
+        });
+
+        $(document).on('click', '#td_junior', function (e) {
+            $("#dialog").fadeIn();
+
+            var tArr = [];
+            var t = "";
+            t = this.textContent.replaceAll('통학', '');
+            t = t.replaceAll('공동', '');
+            t = t.replaceAll('구역', '');
+
+            while(t.match('초')){
+                tArr.push(t.substr(0, t.indexOf('초')+1,));
+                t = t.substr(t.indexOf('초')+1);
+            }           
+            
+            $('#dialog .ct').empty();
+
+            for(var j=0; j<tArr.length; j++){
+                console.log(tArr[j]);
+
+                createSchoolInfo(tArr[j]);
+            }
+
+            // $('#dialog .ct').text(tArr);
+        });
+
+        //모달 닫기
+        $('.modal-close').on('click', function (e) {
+            e.preventDefault();
+            const modal = $(this).parents('.dialog');
+            modal.fadeOut();
         });
     });
 
-    function crateHtml(html, item){
-        if ($('#txt_nm').val() !== ''){
+    function crateHtml(html, item) {
+        if ($('#txt_nm').val() !== '') {
             if (item.아파트명.match($('#txt_nm').val())) {
                 html.push('<tr>');
                 html.push('<td>' + item.주소 + '</td>');
                 html.push('<td>' + item.아파트명 + '</td>');
-                html.push('<td>' + item.초등학교.replaceAll('|', '<br/>')+ '</td>');
+                html.push('<td id="td_junior" style="cursor: pointer;">' + item.초등학교.replaceAll('|', '<br/>') + '</td>');
                 html.push('<td>' + item.중학교.replaceAll('|', '<br/>') + '</td>');
                 html.push('<td>' + item.고등학교.replaceAll('|', '<br/>') + '</td>');
                 html.push('</tr>');
             }
-        }else{
+        } else {
             html.push('<tr>');
             html.push('<td>' + item.주소 + '</td>');
             html.push('<td>' + item.아파트명 + '</td>');
-            html.push('<td>' + item.초등학교.replaceAll('|', '<br/>')+ '</td>');
+            html.push('<td id="td_junior" style="cursor: pointer;">' + item.초등학교.replaceAll('|', '<br/>') + '</td>');
             html.push('<td>' + item.중학교.replaceAll('|', '<br/>') + '</td>');
             html.push('<td>' + item.고등학교.replaceAll('|', '<br/>') + '</td>');
             html.push('</tr>');
         }
+    }    
+
+    function createSchoolInfo(t){        
+        var html = [];
+        $.getJSON('https://roy-fild.github.io/junior-data.json', function (data) {                
+           
+            $.each(data, function (i, item) {
+
+                if (item.name.match(t)) {
+
+                    html.push('<table>');
+                    html.push('<thead>');
+                    html.push('<tr>');
+                    html.push('<th>' + item.region + '</th>'); // 주소
+                    html.push('<th>' + item.name + '</th>'); // 학교명
+                    html.push('<th>' + item.gb + '</th>'); // 구분
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th>' + "학년" + '</th>'); // 주소
+                    html.push('<th>' + "학급수" + '</th>'); // 학교명
+                    html.push('<th>' + "학생수" + '</th>'); // 구분
+                    html.push('</tr>');
+                    html.push('</thead>');
+                    html.push('<tbody>');
+                    html.push('<tr>');
+                    html.push('<th>' + "1"+"학년" + '</th>'); // 주소
+                    html.push('<th>' + item.class1  + '</th>'); // 학교명
+                    html.push('<th>' + item.cnt1 + '</th>'); // 구분
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th>' + "2"+"학년" + '</th>'); // 주소
+                    html.push('<th>' + item.class2  + '</th>'); // 학교명
+                    html.push('<th>' + item.cnt2 + '</th>'); // 구분
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th>' + "3"+"학년" + '</th>'); // 주소
+                    html.push('<th>' + item.class3  + '</th>'); // 학교명
+                    html.push('<th>' + item.cnt3 + '</th>'); // 구분
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th>' + "4"+"학년" + '</th>'); // 주소
+                    html.push('<th>' + item.class4  + '</th>'); // 학교명
+                    html.push('<th>' + item.cnt4 + '</th>'); // 구분
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th>' + "5"+"학년" + '</th>'); // 주소
+                    html.push('<th>' + item.class5  + '</th>'); // 학교명
+                    html.push('<th>' + item.cnt5 + '</th>'); // 구분
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th>' + "6"+"학년" + '</th>'); // 주소
+                    html.push('<th>' + item.class6  + '</th>'); // 학교명
+                    html.push('<th>' + item.cnt6 + '</th>'); // 구분
+                    html.push('</tr>');
+                    html.push('</tbody>');
+                    html.push('</table>');
+
+                    $('#dialog .ct').append(html);
+                }
+            });
+            
+        });
+
+            
+
+        
     }
 
-
 </script>
-
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        table,
-        td,
-        th {
-            border: 1px solid #ddd;
-            text-align: left;
+        .dialog {
+            display: none;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        .dialog>.tb {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .dialog>.tb .inner {
+            width: 100%;
+            padding: 20px;
+            background: #fff;
+            border-radius: 16px;
+        }
+
+        .dialog .top {
+            display: flex;
+            align-item: center;
+            border-bottom: 1px solid #ddd;
+            justify-content: space-between;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+
+        .dialog .title {
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .dialog .ct {
+            max-height: 60vh;
+            height: 60vh;
+            overflow-y: auto;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+            background-color: #fff;
+        }
+
+        body {
+            padding: 1.5em;
+            background: #f5f5f5
         }
 
         table {
+            border: 1px #a39485 solid;
+            font-size: .9em;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, .25);
+            width: 100%;
             border-collapse: collapse;
-            width: 100%;
+            border-radius: 5px;
+            overflow: hidden;
         }
 
-        th,
+        th {
+            text-align: left;
+        }
+
+        thead {
+            font-weight: bold;
+            color: #fff;
+            background: #73685d;
+        }
+
+        td,
+        th {
+            padding: 1em .5em;
+            vertical-align: middle;
+        }
+
         td {
-            padding: 15px;
+            border-bottom: 1px solid rgba(0, 0, 0, .1);
+            background: #fff;
         }
 
-        .black_overlay {
-            display: none;
-            position: absolute;
-            top: 0%;
-            left: 0%;
-            width: 100%;
-            height: 100%;
-            background-color: black;
-            z-index: 1001;
-            -moz-opacity: 0.8;
-            opacity: .80;
-            filter: alpha(opacity=80);
+        a {
+            color: #73685d;
         }
 
-        .white_content {
-            display: none;
-            position: absolute;
-            top: 25%;
-            left: 25%;
-            width: 50%;
-            height: 50%;
-            padding: 16px;
-            border: 16px solid orange;
-            background-color: white;
-            z-index: 1002;
-            overflow: auto;
-        }
+        @media all and (max-width: 768px) {
 
-        button {
-            background: none;
-            border: 0;
-            outline: 0;
-            cursor: pointer;
-        }
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
+                display: block;
+            }
 
-        .tab_menu_container {
-            display: flex;
-        }
+            th {
+                text-align: right;
+            }
 
-        .tab_menu_btn {
-            width: 80px;
-            height: 40px;
-            transition: 0.3s all;
-        }
+            table {
+                position: relative;
+                padding-bottom: 0;
+                border: none;
+                box-shadow: 0 0 10px rgba(0, 0, 0, .2);
+            }
 
-        .tab_menu_btn.on {
-            border-bottom: 2px solid #df0000;
-            font-weight: 700;
-            color: #df0000;
-        }
+            thead {
+                float: left;
+                white-space: nowrap;
+            }
 
-        .tab_menu_btn:hover {
-            color: #df0000;
-        }
+            tbody {
+                overflow-x: auto;
+                overflow-y: hidden;
+                position: relative;
+                white-space: nowrap;
+            }
 
-        .tab_box {
-            display: none;
-            padding: 20px;
-        }
+            tr {
+                display: inline-block;
+                vertical-align: top;
+            }
 
-        .tab_box.on {
-            display: block;
-        }
+            th {
+                border-bottom: 1px solid #a39485;
+            }
 
-        .my_btn {
+            td {
+                border-bottom: 1px solid #e5e5e5;
+            }
 
-            background-color: skyblue;
-            color: white;
-            border: none;
-            padding: 10px 30px;
 
         }
     </style>
 </head>
 
 <body>
-    <h2>배정 학군 조회<small><i><font size=1>by 필디</font></i></small></h2>
+    <h2>배정 학군 조회<small><i>
+                <font size=1>by 필디</font>
+            </i></small></h2>
 
     <div class="tab_t tab_box on">
         <table>
@@ -167,7 +314,9 @@
                     <td><input type="text" id="txt_addr"></td>
                     <th>단지명</th>
                     <td><input type="text" id="txt_nm"></td>
-                    <td id="tb_btnSearch" style="text-align: center; background-color: slategrey; color:white">검색</td>
+                    <td id="tb_btnSearch" style="text-align: center; background-color: slategrey; color:white;">
+                        <div style="cursor: pointer;">검색</div>
+                    </td>
                 </tr>
             </thead>
         </table>
@@ -186,6 +335,20 @@
             </tbody>
         </table>
 
+    </div>
+
+    <!--Layer popup-->
+    <div id="dialog" class="dialog">
+        <div class="tb">
+            <div class="inner" style="max-width:800px;">
+                <div class=" top">
+                    <div class="title">학군상세</div>
+                    <div class="modal-close" style="cursor: pointer;">[닫기]</div>
+                </div>
+                <div class="ct">                    
+                </div>
+            </div>
+        </div>
     </div>
 
 </body>
