@@ -7,40 +7,10 @@
 
     $(function () {
 
-        // 중학교 검색
+        // 검색
         $('#tb_btnSearch').on('click', function () {
-
-            if ($('#txt_addr').val() === '' && $('#txt_nm').val() === '') {
-                alert('정보를 입력하세요');
-                return;
-            }
-
-            $.getJSON('https://roy-fild.github.io/assign-school.json', function (data) {
-                var html = [];
-                $.each(data, function (i, item) {
-                    if ($('#txt_addr').val() !== '') {
-                        if (item.주소.match($('#txt_addr').val())) {
-                            crateHtml(html, item);
-                        }
-                    } else {
-                        crateHtml(html, item);
-                    }
-
-                });
-
-                $('#tbl_school tbody').empty()
-                $('#tbl_school tbody').append(html);
-
-            });
-
+            onSearch();
         });
-
-        // 학군상세
-        // $(document).on('click', '#td_junior', function (e) {
-            
-
-        //     // $('#dialog .ct').text(tArr);
-        // });
 
         //모달 닫기
         $('.modal-close').on('click', function (e) {
@@ -48,11 +18,48 @@
             const modal = $(this).parents('.dialog');
             modal.fadeOut();
         });
+
+        // 엔터키 이벤트
+        $("input").on("keyup",function(key){
+             if(key.keyCode==13) {
+                onSearch();
+             }
+        });
+
     });
 
+    function onSearch(){
+        var add = $.trim($('#txt_addr').val());
+        var nm  = $.trim($('#txt_nm').val());
+
+        if (add === '' && nm === '') {
+            alert('정보를 입력하세요');
+            return;
+        }
+
+        $.getJSON('https://roy-fild.github.io/assign-school.json', function (data) {
+            var html = [];
+            $.each(data, function (i, item) {
+                if (add !== '') {
+                    if (item.주소.match(add)) {
+                        crateHtml(html, item);
+                    }
+                } else {
+                    crateHtml(html, item);
+                }
+
+            });
+
+            $('#tbl_school tbody').empty()
+            $('#tbl_school tbody').append(html);
+
+        });
+    }
+
     function crateHtml(html, item) {
-        if ($('#txt_nm').val() !== '') {
-            if (item.아파트명.match($('#txt_nm').val())) {
+        var nm  = $.trim($('#txt_nm').val());
+        if (nm !== '') {
+            if (item.아파트명.match(nm)) {
                 createSchoolList(html, item);    
             }
         } else {
