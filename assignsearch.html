@@ -22,7 +22,7 @@
         // 엔터키 이벤트
         $("input").on("keyup",function(key){
              if(key.keyCode==13) {
-                onSearch();
+                onSearch();              
              }
         });
 
@@ -38,7 +38,7 @@
         }
 
         $.getJSON('https://roy-fild.github.io/assign-school.json', function (data) {
-            var html = [];
+            var html = [];                       
             $.each(data, function (i, item) {
                 if (add !== '') {
                     if (item.주소.match(add)) {
@@ -54,6 +54,8 @@
             $('#tbl_school tbody').append(html);
 
         });
+
+        
     }
 
     function crateHtml(html, item) {
@@ -115,16 +117,16 @@
                     html.push('<table>');
                     html.push('<thead>');
                     html.push('<tr>');
-                    html.push('<th colspan="3" bgcolor="#CD853F" style="color:#fff;text-align:center">' + item.region + '</th>'); // 주소
+                    html.push('<th colspan="3" bgcolor="#CD853F" style="color:#fff;text-align:center;padding-bottom: 2px;padding-top: 2px;"><small><font size=2>' + item.region + '</font></small></th>'); // 주소
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<th colspan="2" bgcolor="#73685d" style="color:#fff;text-align:center">' + item.name + '</th>'); // 학교명
-                    html.push('<th bgcolor="#73685d" style="color:#fff;text-align:center">' + item.gb + '</th>'); // 구분
+                    html.push('<th colspan="2" bgcolor="#73685d" style="color:#fff;text-align:center;padding-bottom: 2px;padding-top: 2px;"><small><font size=2>' + item.name + '</font></small></th>'); // 학교명
+                    html.push('<th bgcolor="#73685d" style="color:#fff;text-align:center;padding-bottom: 2px;padding-top: 2px;"><small><font size=2>' + item.gb + '</font></small></th>'); // 구분
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<th style="text-align:center">학생수</th>'); 
-                    html.push('<th style="text-align:center">학급당<br/>학생수</th>'); 
-                    html.push('<th style="text-align:center">저학년대비<br/>고학년비율</th>'); 
+                    html.push('<th style="text-align:center;padding-bottom: 2px;padding-top: 2px;"><small><font size=1>학생수</font></small></th>'); 
+                    html.push('<th style="text-align:center;padding-bottom: 2px;padding-top: 2px;"><small><font size=1>학급당<br/>학생수</font></small></th>');                     
+                    html.push('<th style="text-align:center;padding-bottom: 2px;padding-top: 2px;"><small><font size=1>저학년대비<br/>고학년비율</font></small></th>'); 
                     html.push('</tr>');
                     html.push('<tr>');
                     html.push('<td style="text-align:center">' + item.cntT +'</td>'); 
