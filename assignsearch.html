@@ -35,30 +35,12 @@
 
         });
 
-        $(document).on('click', '#td_junior', function (e) {
-            $("#dialog").fadeIn();
-
-            var tArr = [];
-            var t = "";
-            t = this.textContent.replaceAll('통학', '');
-            t = t.replaceAll('공동', '');
-            t = t.replaceAll('구역', '');
-
-            while(t.match('초')){
-                tArr.push(t.substr(0, t.indexOf('초')+1,));
-                t = t.substr(t.indexOf('초')+1);
-            }           
+        // 학군상세
+        // $(document).on('click', '#td_junior', function (e) {
             
-            $('#dialog .ct').empty();
 
-            for(var j=0; j<tArr.length; j++){
-                console.log(tArr[j]);
-
-                createSchoolInfo(tArr[j]);
-            }
-
-            // $('#dialog .ct').text(tArr);
-        });
+        //     // $('#dialog .ct').text(tArr);
+        // });
 
         //모달 닫기
         $('.modal-close').on('click', function (e) {
@@ -71,32 +53,55 @@
     function crateHtml(html, item) {
         if ($('#txt_nm').val() !== '') {
             if (item.아파트명.match($('#txt_nm').val())) {
-                html.push('<tr>');
-                html.push('<td>' + item.주소 + '</td>');
-                html.push('<td>' + item.아파트명 + '</td>');
-                html.push('<td id="td_junior" style="color:#0000ff;cursor: pointer;">' + item.초등학교.replaceAll('|', '<br/>') + '</td>');
-                html.push('<td>' + item.중학교.replaceAll('|', '<br/>') + '</td>');
-                html.push('<td>' + item.고등학교.replaceAll('|', '<br/>') + '</td>');
-                html.push('</tr>');
+                createSchoolList(html, item);    
             }
         } else {
-            html.push('<tr>');
-            html.push('<td>' + item.주소 + '</td>');
-            html.push('<td>' + item.아파트명 + '</td>');
-            html.push('<td id="td_junior" style="color:#0000ff;cursor: pointer;">' + item.초등학교.replaceAll('|', '<br/>') + '</td>');
-            html.push('<td>' + item.중학교.replaceAll('|', '<br/>') + '</td>');
-            html.push('<td>' + item.고등학교.replaceAll('|', '<br/>') + '</td>');
-            html.push('</tr>');
+            createSchoolList(html, item);
         }
     }    
 
-    function createSchoolInfo(t){        
+    function createSchoolList(html, item){
+        html.push('<tr>');
+        html.push('<td>' + item.주소 + '</td>');
+        html.push('<td>' + item.아파트명 + '</td>');
+        html.push('<td id="td_junior" style="color:#0000ff;cursor: pointer;" onClick=\'openDtl(' + JSON.stringify(item) + ')\'>'
+        + item.초등학교.replaceAll('|', '<br/>') + '</td>');
+        html.push('<td>' + item.중학교.replaceAll('|', '<br/>') + '</td>');
+        html.push('<td>' + item.고등학교.replaceAll('|', '<br/>') + '</td>');
+        html.push('</tr>');
+    }
+
+    function openDtl(item){
+        $("#dialog").fadeIn();             
+        var tArr = [];
+        var t = "";
+        var a = item.주소.substr(0, item.주소.indexOf('시'));
+
+        t = item.초등학교.replaceAll('통학', '');
+        t = t.replaceAll('공동', '');
+        t = t.replaceAll('구역', '');
+        t = t.replaceAll('|', '');
+        
+        while(t.match('초')){
+            tArr.push(t.substr(0, t.indexOf('초')+1,));
+            t = t.substr(t.indexOf('초')+1);
+        }           
+        
+        $('#dialog .ct').empty();
+
+        var dupArr = [...new Set(tArr)];    // 중복제거
+                
+        for(var j=0; j<dupArr.length; j++){             
+            createSchoolInfo(a, dupArr[j]);
+        }        
+    }
+
+    function createSchoolInfo(a, t){        
         var html = [];
         $.getJSON('https://roy-fild.github.io/junior-data.json', function (data) {                
            
             $.each(data, function (i, item) {
-
-                if (item.name.match(t)) {
+                if (item.region.match(a) && item.name.match(t)) {
 
                     var rate = (Number(item.cnt1) / Number(item.cnt6)) * 100 ;
 
