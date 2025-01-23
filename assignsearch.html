@@ -20,17 +20,17 @@
         });
 
         // 엔터키 이벤트
-        $("input").on("keyup",function(key){
-             if(key.keyCode==13) {
-                onSearch();              
-             }
+        $("input").on("keyup", function (key) {
+            if (key.keyCode == 13) {
+                onSearch();
+            }
         });
 
     });
 
-    function onSearch(){
+    function onSearch() {
         var add = $.trim($('#txt_addr').val());
-        var nm  = $.trim($('#txt_nm').val());
+        var nm = $.trim($('#txt_nm').val());
 
         if (add === '' && nm === '') {
             alert('정보를 입력하세요');
@@ -38,7 +38,7 @@
         }
 
         $.getJSON('https://roy-fild.github.io/assign-school.json', function (data) {
-            var html = [];                       
+            var html = [];
             $.each(data, function (i, item) {
                 if (add !== '') {
                     if (item.주소.match(add)) {
@@ -55,33 +55,39 @@
 
         });
 
-        
+        setTimeout(function () {
+            if($('#tbl_school tbody tr').length === 0){
+                alert('검색된 내역이 없습니다')
+            }
+        }, 1000);
+
+
     }
 
     function crateHtml(html, item) {
-        var nm  = $.trim($('#txt_nm').val());
+        var nm = $.trim($('#txt_nm').val());
         if (nm !== '') {
             if (item.아파트명.match(nm)) {
-                createSchoolList(html, item);    
+                createSchoolList(html, item);
             }
         } else {
             createSchoolList(html, item);
         }
-    }    
+    }
 
-    function createSchoolList(html, item){
+    function createSchoolList(html, item) {
         html.push('<tr>');
         html.push('<td>' + item.주소 + '</td>');
         html.push('<td>' + item.아파트명 + '</td>');
         html.push('<td id="td_junior" style="color:#0000ff;cursor: pointer;" onClick=\'openDtl(' + JSON.stringify(item) + ')\'>'
-        + item.초등학교.replaceAll('|', '<br/>') + '</td>');
+            + item.초등학교.replaceAll('|', '<br/>') + '</td>');
         html.push('<td>' + item.중학교.replaceAll('|', '<br/>') + '</td>');
         html.push('<td>' + item.고등학교.replaceAll('|', '<br/>') + '</td>');
         html.push('</tr>');
     }
 
-    function openDtl(item){
-        $("#dialog").fadeIn();             
+    function openDtl(item) {
+        $("#dialog").fadeIn();
         var tArr = [];
         var t = "";
         var a = item.주소.substr(0, item.주소.indexOf('시'));
@@ -90,29 +96,29 @@
         t = t.replaceAll('공동', '');
         t = t.replaceAll('구역', '');
         t = t.replaceAll('|', '');
-        
-        while(t.match('초')){
-            tArr.push(t.substr(0, t.indexOf('초')+1,));
-            t = t.substr(t.indexOf('초')+1);
-        }           
-        
+
+        while (t.match('초')) {
+            tArr.push(t.substr(0, t.indexOf('초') + 1,));
+            t = t.substr(t.indexOf('초') + 1);
+        }
+
         $('#dialog .ct').empty();
 
         var dupArr = [...new Set(tArr)];    // 중복제거
-                
-        for(var j=0; j<dupArr.length; j++){             
+
+        for (var j = 0; j < dupArr.length; j++) {
             createSchoolInfo(a, dupArr[j]);
-        }        
+        }
     }
 
-    function createSchoolInfo(a, t){        
+    function createSchoolInfo(a, t) {
         var html = [];
-        $.getJSON('https://roy-fild.github.io/junior-data.json', function (data) {                
-           
+        $.getJSON('https://roy-fild.github.io/junior-data.json', function (data) {
+
             $.each(data, function (i, item) {
                 if (item.region.match(a) && item.name.match(t)) {
 
-                    var rate = (Number(item.cnt1) / Number(item.cnt6)) * 100 ;
+                    var rate = (Number(item.cnt1) / Number(item.cnt6)) * 100;
 
                     html.push('<table>');
                     html.push('<thead>');
@@ -124,53 +130,53 @@
                     html.push('<th bgcolor="#73685d" style="color:#fff;text-align:center;padding-bottom: 2px;padding-top: 2px;">' + item.gb + '</th>'); // 구분
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<th style="text-align:center;padding-bottom: 2px;padding-top: 2px;" bgcolor="#dcdcdc"><small><font size=1>학생수</font></small></th>'); 
-                    html.push('<th style="text-align:center;padding-bottom: 2px;padding-top: 2px;" bgcolor="#dcdcdc"><small><font size=1>학급당<br/>학생수</font></small></th>');                     
-                    html.push('<th style="text-align:center;padding-bottom: 2px;padding-top: 2px;" bgcolor="#dcdcdc"><small><font size=1>저학년대비<br/>고학년비율</font></small></th>'); 
+                    html.push('<th style="text-align:center;padding-bottom: 2px;padding-top: 2px;" bgcolor="#dcdcdc"><small><font size=1>학생수</font></small></th>');
+                    html.push('<th style="text-align:center;padding-bottom: 2px;padding-top: 2px;" bgcolor="#dcdcdc"><small><font size=1>학급당<br/>학생수</font></small></th>');
+                    html.push('<th style="text-align:center;padding-bottom: 2px;padding-top: 2px;" bgcolor="#dcdcdc"><small><font size=1>저학년대비<br/>고학년비율</font></small></th>');
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<td style="text-align:center">' + item.cntT +'</td>'); 
-                    html.push('<td style="text-align:center">' + item.avgT  + '</td>'); 
-                    html.push('<td style="text-align:center">' + rate.toFixed(2)+'%</td>'); 
+                    html.push('<td style="text-align:center">' + item.cntT + '</td>');
+                    html.push('<td style="text-align:center">' + item.avgT + '</td>');
+                    html.push('<td style="text-align:center">' + rate.toFixed(2) + '%</td>');
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<th bgcolor="#e27979" style="color:#fff;text-align:center;padding-bottom: 2px;padding-top: 2px;">' + "학년" + '</th>'); 
-                    html.push('<th bgcolor="#e27979" style="color:#fff;text-align:center;padding-bottom: 2px;padding-top: 2px;">' + "학급수" + '</th>'); 
-                    html.push('<th bgcolor="#e27979" style="color:#fff;text-align:center;padding-bottom: 2px;padding-top: 2px;">' + "학생수" + '</th>'); 
+                    html.push('<th bgcolor="#e27979" style="color:#fff;text-align:center;padding-bottom: 2px;padding-top: 2px;">' + "학년" + '</th>');
+                    html.push('<th bgcolor="#e27979" style="color:#fff;text-align:center;padding-bottom: 2px;padding-top: 2px;">' + "학급수" + '</th>');
+                    html.push('<th bgcolor="#e27979" style="color:#fff;text-align:center;padding-bottom: 2px;padding-top: 2px;">' + "학생수" + '</th>');
                     html.push('</tr>');
                     html.push('</thead>');
                     html.push('<tbody>');
                     html.push('<tr>');
-                    html.push('<td style="text-align:center">' + "1학년" + '</td>'); 
-                    html.push('<td style="text-align:center">' + item.class1  + '</td>'); 
-                    html.push('<td style="text-align:center">' + item.cnt1 + '</td>'); 
+                    html.push('<td style="text-align:center">' + "1학년" + '</td>');
+                    html.push('<td style="text-align:center">' + item.class1 + '</td>');
+                    html.push('<td style="text-align:center">' + item.cnt1 + '</td>');
                     html.push('</tr>');
                     html.push('<tr>');
                     html.push('<td style="text-align:center">' + "2학년" + '</td>');
-                    html.push('<td style="text-align:center">' + item.class2  + '</td>'); 
-                    html.push('<td style="text-align:center">' + item.cnt2 + '</td>'); 
+                    html.push('<td style="text-align:center">' + item.class2 + '</td>');
+                    html.push('<td style="text-align:center">' + item.cnt2 + '</td>');
                     html.push('</tr>');
                     html.push('<tr>');
                     html.push('<td style="text-align:center">' + "3학년" + '</td>');
-                    html.push('<td style="text-align:center">' + item.class3  + '</td>'); 
+                    html.push('<td style="text-align:center">' + item.class3 + '</td>');
                     html.push('<td style="text-align:center">' + item.cnt3 + '</td>');
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<td style="text-align:center">' + "4학년" + '</td>'); 
-                    html.push('<td style="text-align:center">' + item.class4  + '</td>'); 
-                    html.push('<td style="text-align:center">' + item.cnt4 + '</td>'); 
+                    html.push('<td style="text-align:center">' + "4학년" + '</td>');
+                    html.push('<td style="text-align:center">' + item.class4 + '</td>');
+                    html.push('<td style="text-align:center">' + item.cnt4 + '</td>');
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<td style="text-align:center">' + "5학년" + '</td>'); 
-                    html.push('<td style="text-align:center">' + item.class5  + '</td>'); 
-                    html.push('<td style="text-align:center">' + item.cnt5 + '</td>'); 
+                    html.push('<td style="text-align:center">' + "5학년" + '</td>');
+                    html.push('<td style="text-align:center">' + item.class5 + '</td>');
+                    html.push('<td style="text-align:center">' + item.cnt5 + '</td>');
                     html.push('</tr>');
                     html.push('<tr>');
                     html.push('<td style="text-align:center">' + "6학년" + '</td>');
-                    html.push('<td style="text-align:center">' + item.class6  + '</td>');
-                    html.push('<td style="text-align:center">' + item.cnt6 + '</td>'); 
+                    html.push('<td style="text-align:center">' + item.class6 + '</td>');
+                    html.push('<td style="text-align:center">' + item.cnt6 + '</td>');
                     html.push('</tr>');
-                    
+
                     html.push('</tbody>');
                     html.push('</table>');
                     html.push('</br>');
@@ -178,15 +184,16 @@
                     $('#dialog .ct').append(html);
                 }
             });
-            
+
         });
 
-            
 
-        
+
+
     }
 
 </script>
+
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
@@ -212,7 +219,8 @@
         .dialog>.tb .inner {
             width: 60%;
             padding: 20px;
-            background: #fff;;
+            background: #fff;
+            ;
             border-radius: 16px;
         }
 
@@ -238,7 +246,7 @@
             border-bottom-right-radius: 10px;
             background-color: #fff;
         }
-        
+
         body {
             padding: 1.5em;
             background: #f5f5f5
@@ -252,7 +260,7 @@
             border-collapse: collapse;
             border-radius: 5px;
             overflow: hidden;
-            
+
         }
 
         th {
@@ -336,8 +344,10 @@
 </head>
 
 <body>
-    <h2>배정 학군 조회<small><i><font size=1>by 필디</font></i></small></h2>
-    
+    <h2>배정 학군 조회<small><i>
+                <font size=1>by 필디</font>
+            </i></small></h2>
+
     <div class="tab_t tab_box on">
         <table>
             <thead>
@@ -352,7 +362,9 @@
                 </tr>
             </thead>
         </table>
-        <small><i><font size=1>공간데이터 빅데이터 플랫폼 무료데이터 / 학교알리미 2024 기준</font></i></small>
+        <small><i>
+                <font size=1>공간데이터 빅데이터 플랫폼 무료데이터 / 학교알리미 2024 기준</font>
+            </i></small>
         <table id="tbl_school">
             <thead>
                 <tr>
@@ -377,7 +389,7 @@
                     <div class="title">학군상세</div>
                     <div class="modal-close" style="cursor: pointer;">[닫기]</div>
                 </div>
-                <div class="ct" style="margin-left: 20%;">                    
+                <div class="ct" style="margin-left: 20%;">
                 </div>
             </div>
         </div>
