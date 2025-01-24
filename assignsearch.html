@@ -116,7 +116,7 @@
         var v = "";
 
         v += item.name+ '\t' + item.gb + '\r\n';
-        v += item.cntT +'\t' + item.avgT + '\t' + rate.toFixed(2) + '\r\n'
+        v += item.cntT +'\t' + item.avgT + '\t' + rate.toFixed(2) + '%\r\n'
         v += '1학년\t' + item.class1 + '\t' + item.cnt1+ '\r\n';
         v += '2학년\t' + item.class2 + '\t' + item.cnt2+ '\r\n';
         v += '3학년\t' + item.class3 + '\t' + item.cnt3+ '\r\n';
@@ -127,9 +127,6 @@
         $('#data-area').css('display', 'block');
         $('#data-area').val(v);
 
-         // 화면에서 hidden 처리한 input box type을 text로 일시 변환
-        //$('#data-area').attr('type', 'text');
-        
         
         // input에 담긴 데이터를 선택
         $('#data-area').select();
@@ -137,8 +134,6 @@
         //  clipboard에 데이터 복사
         var copy = document.execCommand('copy');
         
-        // input box를 다시 hidden 처리
-        //$('#data-area').attr('type', 'hidden');
         $('#data-area').css('display', 'none');
 
         alert('클립보드 복사완료');
