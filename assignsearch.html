@@ -65,9 +65,10 @@
     }
 
     function crateHtml(html, item) {
-        var nm = $.trim($('#txt_nm').val());
+        var aptNm   = item.아파트명.replace(/\s/gi, "");
+        var nm      = $.trim($('#txt_nm').val());
         if (nm !== '') {
-            if (item.아파트명.match(nm)) {
+            if (aptNm.match(nm)) {
                 createSchoolList(html, item);
             }
         } else {
