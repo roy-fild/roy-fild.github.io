@@ -41,7 +41,9 @@
             var html = [];
             $.each(data, function (i, item) {
                 if (add !== '') {
-                    if (item.주소.match(add)) {
+                    var itemAddr = item.주소.replace(/\s/gi, "");
+                    add = add.replace(/\s/gi, "");
+                    if (itemAddr.match(add)) {
                         crateHtml(html, item);
                     }
                 } else {
