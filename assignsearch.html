@@ -41,8 +41,8 @@
             var html = [];
             $.each(data, function (i, item) {
                 if (add !== '') {
-                    var itemAddr = item.주소.replace(/\s/gi, "");
-                    add = add.replace(/\s/gi, "");
+                    var itemAddr = charTrim(item.주소);
+                    add = charTrim(add);
                     if (itemAddr.match(add)) {
                         crateHtml(html, item);
                     }
@@ -67,7 +67,7 @@
     }
 
     function crateHtml(html, item) {
-        var aptNm   = item.아파트명.replace(/\s/gi, "");
+        var aptNm   = charTrim(item.아파트명);
         var nm      = $.trim($('#txt_nm').val());
         if (nm !== '') {
             if (aptNm.match(nm)) {
@@ -217,10 +217,11 @@
             });
 
         });
+    }
 
-
-
-
+    function charTrim(v){
+        v = v.replace(/\s/gi, "");
+        return v;
     }
 
 </script>
