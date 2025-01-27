@@ -101,7 +101,6 @@
 
         $.getJSON('https://roy-fild.github.io/json/aptBaseInfo.json', function (data) {
             var html = [];
-            console.log(addr, nm);
             $.each(data, function (i, item) {
                 if (removeChar(charTrim(item.lnno_adres)).match(addr) && removeChar(charTrim(item.apt_nm)).match(nm)) {
                      html.push('<table>');         
