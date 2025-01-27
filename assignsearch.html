@@ -92,7 +92,7 @@
     }
     function openAptDtl(item) {
         var addr = item.주소.substr(0, item.주소.indexOf('시'));
-        addr = removeChar(addr);
+        addr = charTrim(removeChar(addr));
         var nm = charTrim(item.아파트명);
         nm = removeChar(nm);
 
@@ -101,6 +101,7 @@
 
         $.getJSON('https://roy-fild.github.io/json/aptBaseInfo.json', function (data) {
             var html = [];
+            console.log(addr, nm);
             $.each(data, function (i, item) {
                 if (removeChar(charTrim(item.lnno_adres)).match(addr) && removeChar(charTrim(item.apt_nm)).match(nm)) {
                      html.push('<table>');         
