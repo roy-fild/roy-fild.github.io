@@ -103,67 +103,66 @@
             var html = [];
             $.each(data, function (i, item) {
                 if (removeChar(charTrim(item.lnno_adres)).match(addr) && removeChar(charTrim(item.apt_nm)).match(nm)) {
-                    console.log(item);
-                    html.push('<table>');         
+                     html.push('<table>');         
                     html.push('<tbody>');
                     html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;">아파트명</th>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>아파트명</font></small></th>');
                     html.push('<td><small><font size=2>'+ item.apt_nm + '</font></small></td>');
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;">연식</th>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>연식</font></small></th>');
                     html.push('<td><small><font size=2>'+item.use_aprv_yr + '</font></small></td>');
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;">세대수</th>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>세대수</font></small></th>');
                     html.push('<td><small><font size=2>'+ item.nmhsh + '</font></small></td>');
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;">동수</th>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>동수</font></small></th>');
                     html.push('<td><small><font size=2>'+ item.dngct + '</font></small></td>');
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;">법정동주소</th>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>법정동주소</font></small></th>');
                     html.push('<td><small><font size=2>'+ item.lnno_adres + '</font></small></td>');
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;">임대주택여부</th>');
-                    html.push('<td><small><font size=2>'+ item.let_hus_yn + '</font></small></td>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>임대주택여부</font></small></th>');
+                    html.push('<td><small><font size=2>'+ replaceYn(item.let_hus_yn) + '</font></small></td>');
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;">복도유형</th>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>복도유형</font></small></th>');
                     html.push('<td><small><font size=2>'+ item.crrdpr_type + '</font></small></td>');
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;">난방유형</th>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>난방유형</font></small></th>');
                     html.push('<td><small><font size=2>'+ item.htng_mthd + '</font></small></td>');
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;">분양유형</th>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>분양유형</font></small></th>');
                     html.push('<td><small><font size=2>'+ item.ltout_type + '</font></small></td>');
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;">총주차대수</th>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>총주차대수</font></small></th>');
                     html.push('<td><small><font size=2>'+ item.totprk_ecct + '</font></small></td>');
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;">지상주차대수</th>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>지상주차</font></small></th>');
                     html.push('<td><small><font size=2>'+ item.grnd_prkg_ecct + '</font></small></td>');
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;">지하주차대수</th>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>지하주차</font></small></th>');
                     html.push('<td><small><font size=2>'+ item.undgr_prkg_ecct + '</font></small></td>');
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;">시공기업</th>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>시공기업</font></small></th>');
                     html.push('<td><small><font size=2>'+ item.cnst_entrprs_nm + '</font></small></td>');
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;">CCTV수</th>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>CCTV수</font></small></th>');
                     html.push('<td><small><font size=2>'+ item.cctv_cnt + '</font></small></td>');
                     html.push('</tr>');
                     html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;">복리시설</th>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>복리시설</font></small></th>');
                     html.push('<td><small><font size=2>'+ item.addi_wlf_fclt.replaceAll('|', ',') + '</font></small></td>');
                     html.push('</tr>');
                     html.push('</tbody>');
@@ -176,6 +175,17 @@
         });
 
     }
+    function replaceYn(v){
+        if(v === 0){
+            return '부'
+        }else if(v === 1){
+            return '여'
+        }else{
+            return '';
+        }
+    }
+
+
     function removeChar(v){
         v = v.replaceAll('(', '');
         v = v.replaceAll(')', '');
