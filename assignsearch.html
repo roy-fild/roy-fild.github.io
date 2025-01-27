@@ -58,7 +58,7 @@
         });
 
         setTimeout(function () {
-            if($('#tbl_school tbody tr').length === 0){
+            if ($('#tbl_school tbody tr').length === 0) {
                 alert('검색된 내역이 없습니다');
             }
         }, 1500);
@@ -67,8 +67,8 @@
     }
 
     function crateHtml(html, item) {
-        var aptNm   = charTrim(item.아파트명);
-        var nm      = $.trim($('#txt_nm').val());
+        var aptNm = charTrim(item.아파트명);
+        var nm = $.trim($('#txt_nm').val());
         if (nm !== '') {
             if (aptNm.match(nm)) {
                 createSchoolList(html, item);
@@ -81,12 +81,105 @@
     function createSchoolList(html, item) {
         html.push('<tr>');
         html.push('<td>' + item.주소 + '</td>');
-        html.push('<td>' + item.아파트명 + '</td>');
+        //html.push('<td>' + item.아파트명 + '</td>');
+        html.push('<td id="td_junior" style="color:#0000ff;cursor: pointer;" onClick=\'openAptDtl(' + JSON.stringify(item) + ')\'>'
+            + item.아파트명.replaceAll('|', '<br/>') + '</td>');
         html.push('<td id="td_junior" style="color:#0000ff;cursor: pointer;" onClick=\'openDtl(' + JSON.stringify(item) + ')\'>'
             + item.초등학교.replaceAll('|', '<br/>') + '</td>');
         html.push('<td>' + item.중학교.replaceAll('|', '<br/>') + '</td>');
         html.push('<td>' + item.고등학교.replaceAll('|', '<br/>') + '</td>');
         html.push('</tr>');
+    }
+    function openAptDtl(item) {
+        var addr = item.주소.substr(0, item.주소.indexOf('시'));
+        addr = removeChar(addr);
+        var nm = charTrim(item.아파트명);
+        nm = removeChar(nm);
+
+        $("#dialog").fadeIn();
+        $('#dialog .ct').empty();
+
+        $.getJSON('https://roy-fild.github.io/json/aptBaseInfo.json', function (data) {
+            var html = [];
+            $.each(data, function (i, item) {
+                if (removeChar(charTrim(item.lnno_adres)).match(addr) && removeChar(charTrim(item.apt_nm)).match(nm)) {
+                    console.log(item);
+                    html.push('<table>');         
+                    html.push('<tbody>');
+                    html.push('<tr>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;">아파트명</th>');
+                    html.push('<td><small><font size=2>'+ item.apt_nm + '</font></small></td>');
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;">연식</th>');
+                    html.push('<td><small><font size=2>'+item.use_aprv_yr + '</font></small></td>');
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;">세대수</th>');
+                    html.push('<td><small><font size=2>'+ item.nmhsh + '</font></small></td>');
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;">동수</th>');
+                    html.push('<td><small><font size=2>'+ item.dngct + '</font></small></td>');
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;">법정동주소</th>');
+                    html.push('<td><small><font size=2>'+ item.lnno_adres + '</font></small></td>');
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;">임대주택여부</th>');
+                    html.push('<td><small><font size=2>'+ item.let_hus_yn + '</font></small></td>');
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;">복도유형</th>');
+                    html.push('<td><small><font size=2>'+ item.crrdpr_type + '</font></small></td>');
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;">난방유형</th>');
+                    html.push('<td><small><font size=2>'+ item.htng_mthd + '</font></small></td>');
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;">분양유형</th>');
+                    html.push('<td><small><font size=2>'+ item.ltout_type + '</font></small></td>');
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;">총주차대수</th>');
+                    html.push('<td><small><font size=2>'+ item.totprk_ecct + '</font></small></td>');
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;">지상주차대수</th>');
+                    html.push('<td><small><font size=2>'+ item.grnd_prkg_ecct + '</font></small></td>');
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;">지하주차대수</th>');
+                    html.push('<td><small><font size=2>'+ item.undgr_prkg_ecct + '</font></small></td>');
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;">시공기업</th>');
+                    html.push('<td><small><font size=2>'+ item.cnst_entrprs_nm + '</font></small></td>');
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;">CCTV수</th>');
+                    html.push('<td><small><font size=2>'+ item.cctv_cnt + '</font></small></td>');
+                    html.push('</tr>');
+                    html.push('<tr>');
+                    html.push('<th bgcolor="#73685d" style="color:#fff;">복리시설</th>');
+                    html.push('<td><small><font size=2>'+ item.addi_wlf_fclt.replaceAll('|', ',') + '</font></small></td>');
+                    html.push('</tr>');
+                    html.push('</tbody>');
+                    html.push('</table>');
+                    html.push('</br>');
+
+                    $('#dialog .ct').append(html);
+                }
+            });
+        });
+
+    }
+    function removeChar(v){
+        v = v.replaceAll('(', '');
+        v = v.replaceAll(')', '');
+        return v;
     }
 
     function openDtl(item) {
@@ -114,29 +207,29 @@
         }
     }
 
-    function copyOnClipboard(item){                  
+    function copyOnClipboard(item) {
         var rate = (Number(item.cnt1) / Number(item.cnt6)) * 100;
         var v = "";
 
-        v += item.name+ '\t' + item.gb + '\r\n';
-        v += item.cntT +'\t' + item.avgT + '\t' + rate.toFixed(2) + '%\r\n'
-        v += '1학년\t' + item.class1 + '\t' + item.cnt1+ '\r\n';
-        v += '2학년\t' + item.class2 + '\t' + item.cnt2+ '\r\n';
-        v += '3학년\t' + item.class3 + '\t' + item.cnt3+ '\r\n';
-        v += '4학년\t' + item.class4 + '\t' + item.cnt4+ '\r\n';
-        v += '5학년\t' + item.class5 + '\t' + item.cnt5+ '\r\n';
-        v += '6학년\t' + item.class6 + '\t' + item.cnt6+ '\r\n';
+        v += item.name + '\t' + item.gb + '\r\n';
+        v += item.cntT + '\t' + item.avgT + '\t' + rate.toFixed(2) + '%\r\n'
+        v += '1학년\t' + item.class1 + '\t' + item.cnt1 + '\r\n';
+        v += '2학년\t' + item.class2 + '\t' + item.cnt2 + '\r\n';
+        v += '3학년\t' + item.class3 + '\t' + item.cnt3 + '\r\n';
+        v += '4학년\t' + item.class4 + '\t' + item.cnt4 + '\r\n';
+        v += '5학년\t' + item.class5 + '\t' + item.cnt5 + '\r\n';
+        v += '6학년\t' + item.class6 + '\t' + item.cnt6 + '\r\n';
 
         $('#data-area').css('display', 'block');
         $('#data-area').val(v);
 
-        
+
         // input에 담긴 데이터를 선택
         $('#data-area').select();
-        
+
         //  clipboard에 데이터 복사
         var copy = document.execCommand('copy');
-        
+
         $('#data-area').css('display', 'none');
 
         alert('클립보드 복사완료');
@@ -219,7 +312,7 @@
         });
     }
 
-    function charTrim(v){
+    function charTrim(v) {
         v = v.replace(/\s/gi, "");
         return v;
     }
@@ -415,11 +508,11 @@
 
     <!--Layer popup-->
     <div id="dialog" class="dialog">
-        <div class="tb">            
-            <textarea id="data-area" class="data-area" style="display: none;"></textarea>            
+        <div class="tb">
+            <textarea id="data-area" class="data-area" style="display: none;"></textarea>
             <div class="inner" style="max-width:800px;">
                 <div class=" top">
-                    <div class="title">학군상세<small><i><font size=1>학교알리미 2024.06 기준</font></i></small></div>
+                    <div class="title">상세정보</div>
                     <div class="modal-close" style="cursor: pointer;">[닫기]</div>
                 </div>
                 <div class="ct" style="margin-left: 20%;">
