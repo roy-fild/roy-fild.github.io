@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+<script>
+
+    $(function () {
+
+        // 검색
+        $('#tb_btnSearch').on('click', function () {
+            onSearch();
+        });
+
+
+
+    });
+
+    function onSearch() {
+        var region = $("#sel_region option:selected").val();
+
+        $.getJSON('https://roy-fild.github.io/json/myAptInfo.json', function (data) {
+            var html = [];
+            $.each(data, function (i, item) {
+                // 수도권
+                if (region == 'S') {
+                    if (item.region == '수도권' || item.region == '경기도') {
+                        chkPrice(html, item);
+                    }
+
+                // 지방
+                } else if (region === 'J') {
+                    if (item.region != '수도권' && item.region != '경기도') {
+                        chkPrice(html, item);
+                    }
+                // 전체
+                } else {
+                    chkPrice(html, item);
+                }
+
+            });
+
+            $('#tbl_aptInfo tbody').empty()
+            $('#tbl_aptInfo tbody').append(html);
+
+        });
+
+        setTimeout(function () {
+            if ($('#tbl_aptInfo tbody tr').length === 0) {
+                alert('검색된 내역이 없습니다');
+            }
+        }, 1500);
+    }
+
+    // 금액 체크
+    function chkPrice(html, item) {
+        var price = Number($("#sel_price option:selected").val());
+        if (price == 11) {
+            if (price <= item.me) {
+                chkPyung(html, item);
+            }
+        } else if (price <= item.me && item.me < price + 1) {
+            chkPyung(html, item);
+        }
+    }
+    // 평형 체크
+    function chkPyung(html, item){
+        var pyung = Number($("#sel_pyung option:selected").val());
+
+        if(pyung == 20){
+            if(item.pyung < 30){
+                crateHtml(html, item);
+            }
+        }else{
+            if(item.pyung >= 30){
+                crateHtml(html, item);
+            }
+        }
+    }
+
+    // 테이블생성
+    function crateHtml(html, item) {
+        html.push('<tr>');
+        html.push('<td>' + item.si + '</td>');
+        html.push('<td>' + item.do + '</td>');
+        html.push('<td>' + item.gun + '</td>');
+        html.push('<td>' + item.nm + '</td>');
+        html.push('<td>' + item.year + '</td>');
+        html.push('<td>' + item.sedae + '</td>');
+        html.push('<td>' + item.pyung + '</td>');
+        html.push('<td>' + item.design + '</td>');
+        html.push('<td>' + item.me + '</td>');
+        html.push('<td>' + item.jun + '</td>');
+        html.push('<td>' + item.env + '</td>');
+        html.push('<td>' + item.junRate + '</td>');
+        html.push('<td>' + item.meCnt + '</td>');
+        html.push('<td>' + item.junCnt + '</td>');
+        html.push('<td>' + item.junWrate + '</td>');
+        html.push('<td>' + item.bfme + '</td>');
+        html.push('<td>' + item.chRate + '</td>');
+        html.push('<td>' + item.rate + '</td>');
+        html.push('<td>' + item.proceeds + '</td>');
+        html.push('</tr>');
+
+    }
+
+
+
+</script>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            color: #666;
+            font: 14px/24px "Open Sans", "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", Sans-Serif;
+        }
+
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+
+        th,
+        td {
+            padding: 6px 15px;
+        }
+
+        th {
+            background: #42444e;
+            color: #fff;
+            text-align: left;
+        }
+
+        tr:first-child th:first-child {
+            border-top-left-radius: 6px;
+        }
+
+        tr:first-child th:last-child {
+            border-top-right-radius: 6px;
+        }
+
+        td {
+            border-right: 1px solid #c6c9cc;
+            border-bottom: 1px solid #c6c9cc;
+        }
+
+        td:first-child {
+            border-left: 1px solid #c6c9cc;
+        }
+
+        tr:nth-child(even) td {
+            background: #eaeaed;
+        }
+
+        tr:last-child td:first-child {
+            border-bottom-left-radius: 6px;
+        }
+
+        tr:last-child td:last-child {
+            border-bottom-right-radius: 6px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="tab_t tab_box on">
+        <table>
+            <thead>
+                <tr>
+                    <th>지역</th>
+                    <td>
+                        <select id="sel_region">
+                            <option value="S">수도권</option>
+                            <option value="J">지방</option>
+                            <option value="A">전체</option>
+                        </select>
+                    </td>
+                    <th>가격대</th>
+                    <td>
+                        <select id="sel_price">
+                            <option value="11">10억+</option>
+                            <option value="10">10억대</option>
+                            <option value="9">9억대</option>
+                            <option value="8" selected>8억대</option>
+                            <option value="7">7억대</option>
+                            <option value="6">6억대</option>
+                            <option value="5">5억대</option>
+                            <option value="4">4억대</option>
+                            <option value="3">3억대</option>
+                            <option value="2">2억대</option>
+                        </select>
+                    </td>
+                    <th>평형</th>
+                    <td>
+                        <select id="sel_pyung">
+                            <option value="20" selected>20평대</option>
+                            <option value="30">30평대</option>
+                        </select>
+                    </td>
+                    <td id="tb_btnSearch" style="text-align: center; background-color: slategrey; color:white;">
+                        <div style="cursor: pointer;">검색</div>
+                    </td>
+                </tr>
+            </thead>
+        </table>
+        <small><i>
+                <font size=1>2025.01</font>
+            </i></small>
+        <table id="tbl_aptInfo">
+            <thead>
+                <tr>
+                    <th>시</th>
+                    <th>도</th>
+                    <th>동</th>
+                    <th>아파트명</th>
+                    <th>연식</th>
+                    <th>세대수</th>
+                    <th>평형</th>
+                    <th>구조</th>
+                    <th>매매</th>
+                    <th>전세</th>
+                    <th>차액</th>
+                    <th>전세가율</th>
+                    <th>매</th>
+                    <th>전</th>
+                    <th>전세비율</th>
+                    <th>전고점</th>
+                    <th>변화율</th>
+                    <th>수익률</th>
+                    <th>수익금</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+
+    </div>
+
+</body>
+
+</html>
