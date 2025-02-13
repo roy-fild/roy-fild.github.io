@@ -109,7 +109,64 @@
                 excelExport(event);
             });
 
+            // 서대문구
+            $('#btn_seodaemun-gu').on('click', function () {       
+                let fileUrl = "https://roy-fild.github.io/file/seodaemun-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);                     
+            });
+
+            // 성북구
+            $('#btn_seong-buk-gu').on('click', function () {                            
+                let fileUrl = "https://roy-fild.github.io/file/seong-buk-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
         });
+
+        function btnExcelExport(fileUrl) {
+            $('#tbl_aptInfo tbody').empty();
+            var aptArr = [];
+            $.ajax({
+                url: fileUrl,
+                method: "GET",
+                xhrFields: {
+                    responseType: "blob" // 바이너리 데이터로 가져오기
+                },
+                success: function (data) {
+                    let reader = new FileReader();
+                    reader.onload = function (e) {
+                        let arrayBuffer = e.target.result;
+                        let workBook = XLSX.read(arrayBuffer, { type: "array" });
+
+                        workBook.SheetNames.forEach(function (sheetName) {
+                            // console.log('SheetName: ' + sheetName);
+                            let rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
+                            var keys = Object.keys(rows);
+
+
+                            for (var i = 0; i < keys.length; i++) {
+                                var key = keys[i];
+                                var subKeys = Object.keys(rows[key]);
+
+                                var id = rows[key][subKeys[0]];    // id
+                                var aptNm = rows[key][subKeys[1]];    // 아파트명                                       
+
+                                aptArr.push(id);
+                            }
+                            // console.log(aptArr);
+                            requestNaver(aptArr);
+                        })
+                        //console.log(aptArr.length);
+                        //requestNaver(aptArr);
+                    };
+                    reader.readAsArrayBuffer(data);
+                },
+                error: function () {
+                    alert("엑셀 파일을 다운로드하는 중 오류가 발생했습니다.");
+                }
+            });
+        }
+
+
         // 엑셀 자료 추출
         function excelExport(event) {
 
@@ -123,11 +180,10 @@
                 let data = reader.result;
                 let workBook = XLSX.read(data, { type: 'binary' });
                 workBook.SheetNames.forEach(function (sheetName) {
-                    console.log('SheetName: ' + sheetName);
+                    // console.log('SheetName: ' + sheetName);
                     let rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
                     var keys = Object.keys(rows);
 
-                    var html = "";
 
                     for (var i = 0; i < keys.length; i++) {
                         var key = keys[i];
@@ -215,7 +271,7 @@
                         html.push('<td>' + aptYear + '</td>');          // 연식
                         html.push('<td>' + aptSedae + '</td>');         // 세대
                         html.push('<td>' + uniqueKeys[i] + '</td>');
-                    
+
                         // 유형
                         if (getSize(uniqueKeys[i], me) === '') {
                             html.push('<td>' + getSize(uniqueKeys[i], ju) + '</td>');
@@ -245,18 +301,18 @@
             });
         }
 
-        function getBalance(mPrice, jPrice){
-            if(mPrice !== '0'){
+        function getBalance(mPrice, jPrice) {
+            if (mPrice !== '0') {
                 return (parseFloat(mPrice) - parseFloat(jPrice)).toFixed(1);
-            }else{
+            } else {
                 return '0';
             }
         }
 
-        function getPersent(mPrice, jPrice){
-            if(mPrice !== '0'){
-                return ((parseFloat(jPrice)/parseFloat(mPrice)) * 100).toFixed(1) + '%';
-            }else{
+        function getPersent(mPrice, jPrice) {
+            if (mPrice !== '0') {
+                return ((parseFloat(jPrice) / parseFloat(mPrice)) * 100).toFixed(1) + '%';
+            } else {
                 return '-';
             }
         }
@@ -424,6 +480,8 @@
     <!-- <button id="loadData">데이터 가져오기</button> -->
     <a href="https://cors-anywhere.herokuapp.com">link</a>
     <a href="https://roy-fild.github.io/file/naver_apt_list_202406.xlsx" download>download</a>
+    <button id="btn_seong-buk-gu">성북구</button>
+    <button id="btn_seodaemun-gu">서대문구</button>
     <div>대형제외<input id="chk" type="checkbox" checked></input></div>
     <div>
         엑셀 파일선택 <input type="file" id="excelFile" onchange="excelExport(event)" />
