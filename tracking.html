@@ -329,19 +329,21 @@
                         var type = chkType($(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(1).text());
                         var size = $(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(1).text();
                         var floor = $(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(2).text();
-                        if (chkAptYn(aptYn)) {
-                            if (chkBigType(size)) {
-                                if (aptInfo !== '') {
-                                    // 저층 제외, 최상층 제외
-                                    if (chkFloor(floor) !== false) {
-                                        // console.log(chkFloor(floor)); // 층 수 가져오기
-                                        // 매매/전세 확인
-                                        if (price.includes('매매')) {
-                                            mePrice = cvrtPrice(price);
-                                            createObj(me, mePrice, type, size, floor);
-                                        } else {
-                                            juPrice = cvrtPrice(price);
-                                            createObj(ju, juPrice, type, size, floor);
+                        if (chkAptYn(aptYn)) {  // 도시형 확인
+                            if(chkCityApt(aptNm)){      //  도시형 확인
+                                if (chkBigType(size)) {
+                                    if (aptInfo !== '') {
+                                        // 저층 제외, 최상층 제외
+                                        if (chkFloor(floor) !== false) {
+                                            // console.log(chkFloor(floor)); // 층 수 가져오기
+                                            // 매매/전세 확인
+                                            if (price.includes('매매')) {
+                                                mePrice = cvrtPrice(price);
+                                                createObj(me, mePrice, type, size, floor);
+                                            } else {
+                                                juPrice = cvrtPrice(price);
+                                                createObj(ju, juPrice, type, size, floor);
+                                            }
                                         }
                                     }
                                 }
@@ -450,6 +452,16 @@
                 return true;
             }
         }
+
+        function chkCityApt(nm){
+            if (nm.match('도시형')) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+
+        
 
         function chkBigType(size) {
             var chk = $('#chk').is(':checked');
