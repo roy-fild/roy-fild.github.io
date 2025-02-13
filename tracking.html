@@ -15,12 +15,12 @@
         $(document).ready(function() {
             $("#loadData").click(function() {
                 $.ajax({
-                    url: "https://fin.land.naver.com/complexes/111396?tab=transaction&tradeType=A1&sortingType=%EB%88%9C&tab=article",
+                    url: "https://cors-anywhere.herokuapp.com/https://fin.land.naver.com/complexes/111396?tradeTypes=A1&sortingType=%EB%82%AE%EC%9D%80%EA%B0%80%EA%B2%A9%EC%88%9C&tab=article",
                     method: "GET",
                     success: function(response) {
                         console.log(response);
                         // 페이지에서 필요한 정보 추출 (예제 코드)
-                        let data = $(response).find(".class-selector").text();
+                        let data = $(response).find(".ComplexArticleList_article__GjagM").text();
                         $("#result").html("<p>아파트 정보: " + data + "</p>");
                     },
                     error: function() {
