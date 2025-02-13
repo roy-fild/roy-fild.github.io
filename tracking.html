@@ -6,73 +6,240 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>네이버 금융 아파트 정보 가져오기</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-</head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.15.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            padding: 1.5em;
+            background: #f5f5f5
+        }
 
-<body>
-    <h1>아파트 정보</h1>
-    <button id="loadData">데이터 가져오기</button>
-    <div id="result"></div>
+        table {
+            border: 1px #a39485 solid;
+            font-size: .9em;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, .25);
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 5px;
+            overflow: hidden;
 
+        }
+
+        th {
+            text-align: left;
+        }
+
+        thead {
+            font-weight: bold;
+            color: #fff;
+            background: #73685d;
+        }
+
+        td,
+        th {
+            padding: 1em .5em;
+            vertical-align: middle;
+            border-spacing: 1px;
+            border-style: none;
+            padding: 5px;
+        }
+
+        td {
+            border-bottom: 1px solid rgba(0, 0, 0, .1);
+            background: #fff;
+        }
+
+        a {
+            color: #73685d;
+        }
+
+        @media all and (max-width: 768px) {
+
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
+                display: block;
+            }
+
+            th {
+                text-align: right;
+            }
+
+            table {
+                position: relative;
+                padding-bottom: 0;
+                border: none;
+                box-shadow: 0 0 10px rgba(0, 0, 0, .2);
+            }
+
+            thead {
+                float: left;
+                white-space: nowrap;
+            }
+
+            tbody {
+                overflow-x: auto;
+                overflow-y: hidden;
+                position: relative;
+                white-space: nowrap;
+            }
+
+            tr {
+                display: inline-block;
+                vertical-align: top;
+            }
+
+            th {
+                border-bottom: 1px solid #a39485;
+            }
+
+            td {
+                border-bottom: 1px solid #e5e5e5;
+            }
+
+
+        }
+    </style>
     <script>
         $(document).ready(function () {
+
+            $('#tbl_school tbody').empty();
+
             $("#loadData").click(function () {
-                $.ajax({
-                    url: "https://cors-anywhere.herokuapp.com/https://fin.land.naver.com/complexes/111396?tradeTypes=A1,B1&tab=article",
-                    method: "GET",
-                    success: function (response) {
 
-                        var aptNm = $(response).find('.ComplexSummary_name__vX3IN').text();
-                        var mePrice = 0;
-                        var juPrice = 0;
-
-                        var me = new Object(); // 매매 하위
-                        var ju = new Object(); // 전세 하위
-
-                        $(response).find(".ComplexArticleList_article__GjagM li").each(function (index, item) {
-
-                            var aptInfo = $(item).find('.ComplexArticleItem_name__4h3AA').text().replace(new RegExp(`^(${aptNm})\\s*`), "");
-                            var price = $(item).find('.ComplexArticleItem_price__DFeIb').text();
-                            var type = chkType($(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(1).text());
-                            var floor = $(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(2).text();
-
-                            if (aptInfo !== '') {
-                                // 저층 제외, 최상층 제외
-                                if (chkFloor(floor) !== false) {
-                                    // console.log(chkFloor(floor)); // 층 수 가져오기
-                                    // 매매/전세 확인
-                                    if (price.includes('매매')) {
-                                        mePrice = cvrtPrice(price);
-                                        createObj(me, mePrice, type, floor);
-                                    } else {
-                                        juPrice = cvrtPrice(price);
-                                        createObj(ju, juPrice, type, floor);
-                                    }
-
-                                    // console.log(aptNm, aptInfo, price, mePrice, juPrice);
-                                    // console.log(type, floor)
-                                }
-                            }
-                        });
-
-                        // console.log(JSON.stringify(me));
-                        // console.log(JSON.stringify(ju));
-
-                        var uniqueKeys = getUniqueKeys(me, ju);
-
-                        console.log(uniqueKeys);
-
-                        // let data = $(response).find(".ComplexArticleList_article__GjagM").text();
-
-                        // console.log(data);
-
-                        //$("#result").html("<p>아파트 정보: " + data + "</p>");
-                    },
-                    error: function () {
-                        $("#result").html("<p>데이터를 가져오는 데 실패했습니다.</p>");
-                    }
-                });
             });
         });
+        // 엑셀 자료 추출
+        function excelExport(event) {
+
+            var aptArr = [];
+
+            let input = event.target;
+            let reader = new FileReader();
+            reader.onload = function () {
+                let data = reader.result;
+                let workBook = XLSX.read(data, { type: 'binary' });
+                workBook.SheetNames.forEach(function (sheetName) {
+                    console.log('SheetName: ' + sheetName);
+                    let rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
+                    var keys = Object.keys(rows);
+
+                    var html = "";
+
+                    for (var i = 0; i < keys.length; i++) {
+                        var key = keys[i];
+                        var subKeys = Object.keys(rows[key]);
+
+                        var id = rows[key][subKeys[0]];    // id
+                        var aptNm = rows[key][subKeys[1]];    // 아파트명                                       
+
+                        aptArr.push(id);
+                    }
+                    // console.log(aptArr);
+                    requestNaver(aptArr);
+                })
+            };
+            reader.readAsBinaryString(input.files[0]);
+        }
+
+        function requestNaver(aptArr) {
+            console.log(aptArr);
+            for (var i = 0; i < aptArr.length; i++) {                
+                console.log(aptArr[i])
+                loadData(aptArr[i]);                
+            }
+
+        }
+
+        function loadData(id) {
+            $.ajax({
+                url: "https://cors-anywhere.herokuapp.com/https://fin.land.naver.com/complexes/" + id + "?tradeTypes=A1,B1&tab=article",
+                method: "GET",
+                success: function (response) {
+
+                    var aptNm = $(response).find('.ComplexSummary_name__vX3IN').text();
+                    var mePrice = 0;
+                    var juPrice = 0;
+
+                    var me = new Object(); // 매매 하위
+                    var ju = new Object(); // 전세 하위
+
+                    $(response).find(".ComplexArticleList_article__GjagM li").each(function (index, item) {
+
+                        var aptInfo = $(item).find('.ComplexArticleItem_name__4h3AA').text().replace(new RegExp(`^(${aptNm})\\s*`), "");
+                        var price = $(item).find('.ComplexArticleItem_price__DFeIb').text();
+                        var type = chkType($(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(1).text());
+                        var floor = $(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(2).text();
+
+                        if (aptInfo !== '') {
+                            // 저층 제외, 최상층 제외
+                            if (chkFloor(floor) !== false) {
+                                // console.log(chkFloor(floor)); // 층 수 가져오기
+                                // 매매/전세 확인
+                                if (price.includes('매매')) {
+                                    mePrice = cvrtPrice(price);
+                                    createObj(me, mePrice, type, floor);
+                                } else {
+                                    juPrice = cvrtPrice(price);
+                                    createObj(ju, juPrice, type, floor);
+                                }
+
+                                // console.log(aptNm, aptInfo, price, mePrice, juPrice);
+                                // console.log(type, floor)
+                            }
+                        }
+                    });
+
+                    // console.log(JSON.stringify(me));
+                    // console.log(JSON.stringify(ju));
+
+                    var uniqueKeys = getUniqueKeys(me, ju);
+
+                    console.log(uniqueKeys);
+                    var html = [];
+                    for (var i = 0; i < uniqueKeys.length; i++) {
+                        html.push('<tr>');
+                        html.push('<td>' + aptNm + '</td>');
+                        html.push('<td>' + uniqueKeys[i] + '</td>');
+                        html.push('<td>' + getPrice(uniqueKeys[i], me) + '</td>');
+                        html.push('<td>' + getPrice(uniqueKeys[i], ju) + '</td>');
+                        html.push('<td>' + getFloor(uniqueKeys[i], me) + '</td>');
+                        html.push('<td>' + getFloor(uniqueKeys[i], ju) + '</td>');
+                        html.push('</tr>');
+                    }
+
+                    $('#tbl_aptInfo tbody').append(html);
+
+                    // let data = $(response).find(".ComplexArticleList_article__GjagM").text();
+                    // console.log(data);
+                    //$("#result").html("<p>아파트 정보: " + data + "</p>");
+
+                },
+                error: function () {
+                    $("#result").html("<p>데이터를 가져오는 데 실패했습니다.</p>");
+                }
+            });
+        }
+
+        function getPrice(key, json) {
+            if (json.hasOwnProperty(key)) {
+                return json[key].price;
+            } else {
+                return '0';
+            }
+        }
+
+        function getFloor(key, json) {
+            if (json.hasOwnProperty(key)) {
+                return json[key].floor;
+            } else {
+                return '';
+            }
+        }
+
+
 
         // 중복되지 않는 키 추출 함수
         function getUniqueKeys(json1, json2) {
@@ -106,7 +273,7 @@
 
             return uniqueKeys;
         }
-    
+
 
 
         // 아파트 정보 입력
@@ -182,6 +349,31 @@
 
 
     </script>
+</head>
+
+<body>
+
+    <h1>아파트 정보</h1>
+    <!-- <button id="loadData">데이터 가져오기</button> -->
+    <div>
+        엑셀 파일선택 <input type="file" id="excelFile" onchange="excelExport(event)" />
+    </div>
+    <div id="result">
+        <table id="tbl_aptInfo">
+            <thead>
+                <tr>
+                    <th>단지명</th>
+                    <th>유형</th>
+                    <th>매매</th>
+                    <th>전세</th>
+                    <th>매/층</th>
+                    <th>전/층</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
 </body>
 
 </html>
