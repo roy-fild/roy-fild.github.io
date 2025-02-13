@@ -17,24 +17,45 @@
         $(document).ready(function () {
             $("#loadData").click(function () {
                 $.ajax({
-                    url: "https://cors-anywhere.herokuapp.com/https://fin.land.naver.com/complexes/111396?tradeTypes=A1,B1&sortingType=%EB%82%AE%EC%9D%80%EA%B0%80%EA%B2%A9%EC%88%9C&tab=article",
+                    url: "https://cors-anywhere.herokuapp.com/https://fin.land.naver.com/complexes/111396?tradeTypes=A1,B1&tab=article",
                     method: "GET",
                     success: function (response) {
-                        console.log(response);
+
+                        var aptNm = $(response).find('.ComplexSummary_name__vX3IN').text();
+                        var mePrice = 0;
+                        var juPrice = 0;
+
+                        var me = new Object(); // 매매 하위
+                        var ju = new Object(); // 전세 하위
 
                         $(response).find(".ComplexArticleList_article__GjagM li").each(function (index, item) {
 
-                            var aptInfo = $(item).find('.ComplexArticleItem_name__4h3AA').text();
+                            var aptInfo = $(item).find('.ComplexArticleItem_name__4h3AA').text().replace(new RegExp(`^(${aptNm})\\s*`), "");
                             var price = $(item).find('.ComplexArticleItem_price__DFeIb').text();
-                            var price2 = cvrtPrice(price);
-                            var size = $(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(1).text();
+                            var type  = chkType($(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(1).text());
                             var floor = $(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(2).text();
 
-                            console.log(aptInfo, price, price2);
-                            console.log(size, floor)
+                            if (aptInfo !== '') {
+                                // 저층 제외, 최상층 제외
+                                if (chkFloor(floor) !== false) {
+                                    // console.log(chkFloor(floor)); // 층 수 가져오기
+                                    // 매매/전세 확인
+                                    if (price.includes('매매')) {
+                                        mePrice = cvrtPrice(price);
+                                        createObj(me,mePrice,type,floor);
+                                    } else {
+                                        juPrice = cvrtPrice(price);
+                                        createObj(ju,juPrice,type,floor);
+                                    }
+
+                                    // console.log(aptNm, aptInfo, price, mePrice, juPrice);
+                                    // console.log(type, floor)
+                                }
+                            }
                         });
 
-                        // console.log(len);
+                        console.log(me);
+                        console.log(ju);
 
                         // let data = $(response).find(".ComplexArticleList_article__GjagM").text();
 
@@ -49,6 +70,50 @@
             });
         });
 
+        // 아파트 정보 입력
+        function createObj(arr, price, type, floor){    
+            
+            if(!arr.hasOwnProperty(type)){
+                setNewInfo(arr, price, type, floor);
+            }else{
+                var bfPrice = arr[type].price;
+                var afPrice = price;
+
+                if(parseFloat(bfPrice) > parseFloat(afPrice)){
+                    console.log('do it');
+                    setNewInfo(arr, price, type, floor);
+                }
+            }
+            // console.log(arr);
+            return arr;
+        }
+
+        function setNewInfo(arr, price, type, floor){
+            var info = new Object();
+            info.price = price;
+            info.floor = floor;
+            arr[type] = (info);
+        }
+
+
+        // 타입 변환
+        function chkType(type){
+            type = type.substring(type.indexOf('㎡')+1, type.length);
+            return type.replace(/[()]/g, "").replace(/(\d+)\.\d+(\w)/g, "$1$2");
+        }
+        
+        // 층 변환
+        function chkFloor(f) {
+            var maxFloor = parseInt(f.substring(f.indexOf('/') + 1, f.indexOf('층')));
+            var nowFloor = f.substring(0, f.indexOf('/'));
+
+            var excludeFloors = [String(maxFloor), String(maxFloor - 1), '1', '2', '3', '저'];
+
+            if (excludeFloors.includes(nowFloor)) return false;
+            return nowFloor;
+        }
+
+        // 가격 변환
         function cvrtPrice(text) {
             // '매매'라는 단어가 포함되어 있으면 제거
             text = text.replace(/^(매매|전세)\s*/, "");
@@ -70,8 +135,10 @@
             let result = (billion + decimalPart).toFixed(1); // 소수점 한 자리까지만 유지
 
             return result;
-
         }
+
+        //function chkCompare(aptData, )
+
 
     </script>
 </body>
