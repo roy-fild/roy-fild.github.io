@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>네이버 금융 아파트 정보 가져오기</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>아파트 정보</h1>
+    <button id="loadData">데이터 가져오기</button>
+    <div id="result"></div>
+
+    <script>
+        $(document).ready(function() {
+            $("#loadData").click(function() {
+                $.ajax({
+                    url: "https://fin.land.naver.com/complexes/111396?tab=transaction&tradeType=A1&sortingType=%EB%88%9C&tab=article",
+                    method: "GET",
+                    success: function(response) {
+                        console.log(response);
+                        // 페이지에서 필요한 정보 추출 (예제 코드)
+                        let data = $(response).find(".class-selector").text();
+                        $("#result").html("<p>아파트 정보: " + data + "</p>");
+                    },
+                    error: function() {
+                        $("#result").html("<p>데이터를 가져오는 데 실패했습니다.</p>");
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
