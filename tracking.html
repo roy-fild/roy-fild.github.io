@@ -32,7 +32,7 @@
 
                             var aptInfo = $(item).find('.ComplexArticleItem_name__4h3AA').text().replace(new RegExp(`^(${aptNm})\\s*`), "");
                             var price = $(item).find('.ComplexArticleItem_price__DFeIb').text();
-                            var type  = chkType($(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(1).text());
+                            var type = chkType($(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(1).text());
                             var floor = $(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(2).text();
 
                             if (aptInfo !== '') {
@@ -42,10 +42,10 @@
                                     // 매매/전세 확인
                                     if (price.includes('매매')) {
                                         mePrice = cvrtPrice(price);
-                                        createObj(me,mePrice,type,floor);
+                                        createObj(me, mePrice, type, floor);
                                     } else {
                                         juPrice = cvrtPrice(price);
-                                        createObj(ju,juPrice,type,floor);
+                                        createObj(ju, juPrice, type, floor);
                                     }
 
                                     // console.log(aptNm, aptInfo, price, mePrice, juPrice);
@@ -54,8 +54,12 @@
                             }
                         });
 
-                        console.log(me);
-                        console.log(ju);
+                        // console.log(JSON.stringify(me));
+                        // console.log(JSON.stringify(ju));
+
+                        var uniqueKeys = getUniqueKeys(me, ju);
+
+                        console.log(uniqueKeys);
 
                         // let data = $(response).find(".ComplexArticleList_article__GjagM").text();
 
@@ -70,16 +74,53 @@
             });
         });
 
+        // 중복되지 않는 키 추출 함수
+        function getUniqueKeys(json1, json2) {
+            var uniqueKeys = [];
+
+            // json1의 키 중 json2에 없는 키 찾기
+            $.each(json1, function (key) {
+                if (!(key in json2)) {
+                    uniqueKeys.push(key);  // json2에 없는 키를 uniqueKeys에 추가
+                }
+            });
+
+            // json2의 키 중 json1에 없는 키 찾기
+            $.each(json2, function (key) {
+                if (!(key in json1)) {
+                    uniqueKeys.push(key);  // json1에 없는 키를 uniqueKeys에 추가
+                }
+            });
+
+            // json1과 json2에 모두 존재하는 공통 키 찾기
+            $.each(json1, function (key) {
+                if (key in json2) {
+                    uniqueKeys.push(key);  // 공통 키를 uniqueKeys에 추가
+                }
+            });
+
+            // 중복된 키를 제거
+            uniqueKeys = [...new Set(uniqueKeys)];
+
+            uniqueKeys.sort();
+
+            return uniqueKeys;
+        }
+    
+
+
         // 아파트 정보 입력
-        function createObj(arr, price, type, floor){    
-            
-            if(!arr.hasOwnProperty(type)){
+        function createObj(arr, price, type, floor) {
+
+            type = type.trim();
+
+            if (!arr.hasOwnProperty(type)) {
                 setNewInfo(arr, price, type, floor);
-            }else{
+            } else {
                 var bfPrice = arr[type].price;
                 var afPrice = price;
 
-                if(parseFloat(bfPrice) > parseFloat(afPrice)){
+                if (parseFloat(bfPrice) > parseFloat(afPrice)) {
                     console.log('do it');
                     setNewInfo(arr, price, type, floor);
                 }
@@ -88,7 +129,7 @@
             return arr;
         }
 
-        function setNewInfo(arr, price, type, floor){
+        function setNewInfo(arr, price, type, floor) {
             var info = new Object();
             info.price = price;
             info.floor = floor;
@@ -97,11 +138,11 @@
 
 
         // 타입 변환
-        function chkType(type){
-            type = type.substring(type.indexOf('㎡')+1, type.length);
+        function chkType(type) {
+            type = type.substring(type.indexOf('㎡') + 1, type.length);
             return type.replace(/[()]/g, "").replace(/(\d+)\.\d+(\w)/g, "$1$2");
         }
-        
+
         // 층 변환
         function chkFloor(f) {
             var maxFloor = parseInt(f.substring(f.indexOf('/') + 1, f.indexOf('층')));
