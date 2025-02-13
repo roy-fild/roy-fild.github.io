@@ -105,14 +105,15 @@
     <script>
         $(document).ready(function () {
 
-            $('#tbl_school tbody').empty();
-
-            $("#loadData").click(function () {
-
+            $('#excelFile').on('change', function (event) {
+                excelExport(event);
             });
+
         });
         // 엑셀 자료 추출
         function excelExport(event) {
+
+            $('#tbl_aptInfo tbody').empty();
 
             var aptArr = [];
 
@@ -263,20 +264,20 @@
 
         function chkBigType(size) {
             var chk = $('#chk').is(':checked');
-            if (chk) {                
+            if (chk) {
                 var match = size.match(/\(([^)]+)\)/); // 가로 안의 내용 찾기
-               
-                if(match){
+
+                if (match) {
                     match = match[1].replace(/[A-Za-z]/g, ""); // 영문 제거 
                 }
 
-                if(parseInt(match) > 84){
+                if (parseInt(match) > 84) {
                     return false;
-                }else{
+                } else {
                     return true;
                 }
 
-            }else{
+            } else {
                 return true;
             }
 
