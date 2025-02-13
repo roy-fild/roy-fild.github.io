@@ -453,7 +453,7 @@
         }
 
         function chkAptYn(aptYn) {
-            if (aptYn.match('도시')) {
+            if (aptYn.includes('도시')) {
                 return false;
             } else {
                 return true;
@@ -461,7 +461,7 @@
         }
 
         function chkCityApt(nm){
-            if (nm.match('도시형')) {
+            if (nm.includes('도시형')) {
                 return false;
             } else {
                 return true;
