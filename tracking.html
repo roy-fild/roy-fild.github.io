@@ -108,27 +108,72 @@
             $('#excelFile').on('change', function (event) {
                 excelExport(event);
             });
+            // 송파구
+            $('#btn_songpa-gu').on('click', function () {
+                $('#hdn_sel-gu').val('송파구');
+                let fileUrl = "https://roy-fild.github.io/file/songpa-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
 
+            // 양천구
+            $('#btn_yangcheon-gu').on('click', function () {
+                $('#hdn_sel-gu').val('양천구');
+                let fileUrl = "https://roy-fild.github.io/file/yangcheon-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 종로/중구
+            $('#btn_jongno-jung-gu').on('click', function () {
+                $('#hdn_sel-gu').val('종로중구');
+                let fileUrl = "https://roy-fild.github.io/file/jongno-jung-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 분당구
+            $('#btn_bundang-gu').on('click', function () {
+                $('#hdn_sel-gu').val('분당구');
+                let fileUrl = "https://roy-fild.github.io/file/bundang-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+        
             // 동작구
             $('#btn_dongjak-gu').on('click', function () {
+                $('#hdn_sel-gu').val('동작구');
                 let fileUrl = "https://roy-fild.github.io/file/dongjak-gu.xlsx"; // 다운로드할 엑셀 파일 URL
                 btnExcelExport(fileUrl);
             });
             // 영등포구
             $('#btn_yeongdeungpo-gu').on('click', function () {
+                $('#hdn_sel-gu').val('영등포구');
                 let fileUrl = "https://roy-fild.github.io/file/yeongdeungpo-gu.xlsx"; // 다운로드할 엑셀 파일 URL
                 btnExcelExport(fileUrl);
             });
 
             // 서대문구
             $('#btn_seodaemun-gu').on('click', function () {
+                $('#hdn_sel-gu').val('서대문구');
                 let fileUrl = "https://roy-fild.github.io/file/seodaemun-gu.xlsx"; // 다운로드할 엑셀 파일 URL
                 btnExcelExport(fileUrl);
             });
 
             // 성북구
             $('#btn_seong-buk-gu').on('click', function () {
+                $('#hdn_sel-gu').val('성북구');
                 let fileUrl = "https://roy-fild.github.io/file/seong-buk-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 동대문구
+            $('#btn_dongdaemun-gu').on('click', function () {
+                $('#hdn_sel-gu').val('동대문구');
+                let fileUrl = "https://roy-fild.github.io/file/dongdaemun-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 관악구
+            $('#btn_gwanak-gu').on('click', function () {
+                $('#hdn_sel-gu').val('관악구');
+                let fileUrl = "https://roy-fild.github.io/file/gwanak-gu.xlsx"; // 다운로드할 엑셀 파일 URL
                 btnExcelExport(fileUrl);
             });
 
@@ -148,8 +193,9 @@
 
                 XLSX.utils.book_append_sheet(wb, ws, "아파트 정보");  // 시트 추가
 
+                var fileNm = $('#hdn_sel-gu').val() + '_시세_트래킹.xlsx'
                 // 엑셀 파일로 저장
-                XLSX.writeFile(wb, "아파트_시세_트래킹.xlsx");
+                XLSX.writeFile(wb, fileNm);
             });
         });
 
@@ -289,17 +335,11 @@
                                             juPrice = cvrtPrice(price);
                                             createObj(ju, juPrice, type, size, floor);
                                         }
-
-                                        // console.log(aptNm, aptInfo, price, mePrice, juPrice);
-                                        // console.log(type, floor)
                                     }
                                 }
                             }
                         }
                     });
-
-                    // console.log(JSON.stringify(me));
-                    // console.log(JSON.stringify(ju));
 
                     var uniqueKeys = getUniqueKeys(me, ju);
 
@@ -543,10 +583,17 @@
     <a href="https://cors-anywhere.herokuapp.com">link</a>
     <a href="https://roy-fild.github.io/file/naver_apt_list_202406.xlsx" download>download</a>
     <div>
+        <input type="hidden" id="hdn_sel-gu"/>
+        <button id="btn_songpa-gu">송파구</button>
+        <button id="btn_yangcheon-gu">양천구</button>
+        <button id="btn_jongno-jung-gu">종로/중구</button>
+        <button id="btn_bundang-gu">분당구</button>
         <button id="btn_dongjak-gu">동작구</button>
         <button id="btn_yeongdeungpo-gu">영등포구</button>
         <button id="btn_seong-buk-gu">성북구</button>
+        <button id="btn_dongdaemun-gu">동대문구</button>
         <button id="btn_seodaemun-gu">서대문구</button>
+        <button id="btn_gwanak-gu">관악구</button>
     </div>
     <div>대형제외<input id="chk" type="checkbox" checked></input></div>
 
