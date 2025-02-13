@@ -1,34 +1,79 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>네이버 금융 아파트 정보 가져오기</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
+
 <body>
     <h1>아파트 정보</h1>
     <button id="loadData">데이터 가져오기</button>
     <div id="result"></div>
 
     <script>
-        $(document).ready(function() {
-            $("#loadData").click(function() {
+        $(document).ready(function () {
+            $("#loadData").click(function () {
                 $.ajax({
-                    url: "https://cors-anywhere.herokuapp.com/https://fin.land.naver.com/complexes/111396?tradeTypes=A1&sortingType=%EB%82%AE%EC%9D%80%EA%B0%80%EA%B2%A9%EC%88%9C&tab=article",
+                    url: "https://cors-anywhere.herokuapp.com/https://fin.land.naver.com/complexes/111396?tradeTypes=A1,B1&sortingType=%EB%82%AE%EC%9D%80%EA%B0%80%EA%B2%A9%EC%88%9C&tab=article",
                     method: "GET",
-                    success: function(response) {
+                    success: function (response) {
                         console.log(response);
-                        // 페이지에서 필요한 정보 추출 (예제 코드)
-                        let data = $(response).find(".ComplexArticleList_article__GjagM").text();
-                        $("#result").html("<p>아파트 정보: " + data + "</p>");
+
+                        $(response).find(".ComplexArticleList_article__GjagM li").each(function (index, item) {
+
+                            var aptInfo = $(item).find('.ComplexArticleItem_name__4h3AA').text();
+                            var price = $(item).find('.ComplexArticleItem_price__DFeIb').text();
+                            var price2 = cvrtPrice(price);
+                            var size = $(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(1).text();
+                            var floor = $(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(2).text();
+
+                            console.log(aptInfo, price, price2);
+                            console.log(size, floor)
+                        });
+
+                        // console.log(len);
+
+                        // let data = $(response).find(".ComplexArticleList_article__GjagM").text();
+
+                        // console.log(data);
+
+                        //$("#result").html("<p>아파트 정보: " + data + "</p>");
                     },
-                    error: function() {
+                    error: function () {
                         $("#result").html("<p>데이터를 가져오는 데 실패했습니다.</p>");
                     }
                 });
             });
         });
+
+        function cvrtPrice(text) {
+            // '매매'라는 단어가 포함되어 있으면 제거
+            text = text.replace(/^(매매|전세)\s*/, "");
+
+            let match = text.match(/(\d+)억(?:\s*(\d{1,3})(?:,?(\d{3}))?)?/);
+            if (!match) return text; // 변환할 수 없는 경우 원본 반환
+
+            let billion = parseInt(match[1], 10);
+            let thousand = 0;
+
+            if (match[2] && match[3]) {
+                thousand = parseInt(match[2] + match[3], 10); // 5,000 처리
+            } else if (match[2]) {
+                thousand = parseInt(match[2], 10) * 1000; // 5천 처리
+            }
+
+            // 천 단위를 억 단위로 변환
+            let decimalPart = thousand / 10000; // 1천 = 0.1억
+            let result = (billion + decimalPart).toFixed(1); // 소수점 한 자리까지만 유지
+
+            return result;
+
+        }
+
     </script>
 </body>
+
 </html>
