@@ -146,9 +146,9 @@
 
         function requestNaver(aptArr) {
             // console.log(aptArr);
-            for (var i = 0; i < aptArr.length; i++) {                
+            for (var i = 0; i < aptArr.length; i++) {
                 // console.log(aptArr[i])
-                loadData(aptArr[i]);                
+                loadData(aptArr[i]);
             }
 
         }
@@ -159,9 +159,9 @@
                 method: "GET",
                 success: function (response) {
 
-                    var aptNm   = $(response).find('.ComplexSummary_name__vX3IN').text();
+                    var aptNm = $(response).find('.ComplexSummary_name__vX3IN').text();
                     var aptYear = $(response).find('.ComplexSummary_information__3bhbo').find('li').eq(1).text();
-                    var aptSedae= $(response).find('.ComplexSummary_information__3bhbo').find('li').eq(2).text();
+                    var aptSedae = $(response).find('.ComplexSummary_information__3bhbo').find('li').eq(2).text();
                     var mePrice = 0;
                     var juPrice = 0;
 
@@ -173,23 +173,26 @@
                         var aptInfo = $(item).find('.ComplexArticleItem_name__4h3AA').text().replace(new RegExp(`^(${aptNm})\\s*`), "");
                         var price = $(item).find('.ComplexArticleItem_price__DFeIb').text();
                         var type = chkType($(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(1).text());
+                        var size = $(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(1).text();
                         var floor = $(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(2).text();
 
-                        if (aptInfo !== '') {
-                            // 저층 제외, 최상층 제외
-                            if (chkFloor(floor) !== false) {
-                                // console.log(chkFloor(floor)); // 층 수 가져오기
-                                // 매매/전세 확인
-                                if (price.includes('매매')) {
-                                    mePrice = cvrtPrice(price);
-                                    createObj(me, mePrice, type, floor);
-                                } else {
-                                    juPrice = cvrtPrice(price);
-                                    createObj(ju, juPrice, type, floor);
-                                }
+                        if (chkBigType(size)) {
+                            if (aptInfo !== '') {
+                                // 저층 제외, 최상층 제외
+                                if (chkFloor(floor) !== false) {
+                                    // console.log(chkFloor(floor)); // 층 수 가져오기
+                                    // 매매/전세 확인
+                                    if (price.includes('매매')) {
+                                        mePrice = cvrtPrice(price);
+                                        createObj(me, mePrice, type, size, floor);
+                                    } else {
+                                        juPrice = cvrtPrice(price);
+                                        createObj(ju, juPrice, type, size, floor);
+                                    }
 
-                                // console.log(aptNm, aptInfo, price, mePrice, juPrice);
-                                // console.log(type, floor)
+                                    // console.log(aptNm, aptInfo, price, mePrice, juPrice);
+                                    // console.log(type, floor)
+                                }
                             }
                         }
                     });
@@ -199,7 +202,7 @@
 
                     var uniqueKeys = getUniqueKeys(me, ju);
 
-                    console.log(uniqueKeys);
+                    // console.log(uniqueKeys);
                     var html = [];
                     for (var i = 0; i < uniqueKeys.length; i++) {
                         html.push('<tr>');
@@ -207,6 +210,13 @@
                         html.push('<td>' + aptYear + '</td>');
                         html.push('<td>' + aptSedae + '</td>');
                         html.push('<td>' + uniqueKeys[i] + '</td>');
+
+                        if (getSize(uniqueKeys[i], me) === '') {
+                            html.push('<td>' + getSize(uniqueKeys[i], ju) + '</td>');
+                        } else {
+                            html.push('<td>' + getSize(uniqueKeys[i], me) + '</td>');
+                        }
+
                         html.push('<td>' + getPrice(uniqueKeys[i], me) + '</td>');
                         html.push('<td>' + getPrice(uniqueKeys[i], ju) + '</td>');
                         html.push('<td>' + getFloor(uniqueKeys[i], me) + '</td>');
@@ -241,6 +251,35 @@
             } else {
                 return '';
             }
+        }
+
+        function getSize(key, json) {
+            if (json.hasOwnProperty(key)) {
+                return json[key].size;
+            } else {
+                return '';
+            }
+        }
+
+        function chkBigType(size) {
+            var chk = $('#chk').is(':checked');
+            if (chk) {                
+                var match = size.match(/\(([^)]+)\)/); // 가로 안의 내용 찾기
+               
+                if(match){
+                    match = match[1].replace(/[A-Za-z]/g, ""); // 영문 제거 
+                }
+
+                if(parseInt(match) > 84){
+                    return false;
+                }else{
+                    return true;
+                }
+
+            }else{
+                return true;
+            }
+
         }
 
 
@@ -281,29 +320,29 @@
 
 
         // 아파트 정보 입력
-        function createObj(arr, price, type, floor) {
+        function createObj(arr, price, type, size, floor) {
 
             type = type.trim();
 
             if (!arr.hasOwnProperty(type)) {
-                setNewInfo(arr, price, type, floor);
+                setNewInfo(arr, price, type, size, floor);
             } else {
                 var bfPrice = arr[type].price;
                 var afPrice = price;
 
                 if (parseFloat(bfPrice) > parseFloat(afPrice)) {
-                    console.log('do it');
-                    setNewInfo(arr, price, type, floor);
+                    setNewInfo(arr, price, type, size, floor);
                 }
             }
             // console.log(arr);
             return arr;
         }
 
-        function setNewInfo(arr, price, type, floor) {
+        function setNewInfo(arr, price, type, size, floor) {
             var info = new Object();
             info.price = price;
             info.floor = floor;
+            info.size = size;
             arr[type] = (info);
         }
 
@@ -359,6 +398,7 @@
 
     <h1>아파트 정보</h1>
     <!-- <button id="loadData">데이터 가져오기</button> -->
+    <div>대형제외<input id="chk" type="checkbox" checked></input></div>
     <div>
         엑셀 파일선택 <input type="file" id="excelFile" onchange="excelExport(event)" />
     </div>
@@ -370,6 +410,7 @@
                     <th>연식</th>
                     <th>세대</th>
                     <th>유형</th>
+                    <th>평형</th>
                     <th>매매</th>
                     <th>전세</th>
                     <th>매/층</th>
