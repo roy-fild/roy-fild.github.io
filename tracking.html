@@ -305,9 +305,16 @@
                 success: function (response) {
                     var addr = $(response).find('.HeaderBrandDepth-module_sub-name__t-5rA').text(); // 주소
                     var addrSplit = addr.split(' ');
-                    var gu = addrSplit[0];
-                    var dong = addrSplit[1];
+                    var gu = "";
+                    var dong = ""; 
 
+                    if(addrSplit.length > 2){
+                        gu = addrSplit[1];
+                        dong = addrSplit[2];
+                    }else{
+                        gu = addrSplit[0];
+                        dong = addrSplit[1];
+                    }
                     var aptNm = $(response).find('.ComplexSummary_name__vX3IN').text(); // 아파트명
                     var aptYearInfo = $(response).find('.ComplexSummary_information__3bhbo').find('li').eq(2).text();  // 연식 상세 정보
                     var aptYear = cvrtAptYear(aptYearInfo);   // 연식
