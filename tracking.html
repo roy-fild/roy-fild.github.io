@@ -145,9 +145,9 @@
         }
 
         function requestNaver(aptArr) {
-            console.log(aptArr);
+            // console.log(aptArr);
             for (var i = 0; i < aptArr.length; i++) {                
-                console.log(aptArr[i])
+                // console.log(aptArr[i])
                 loadData(aptArr[i]);                
             }
 
@@ -159,7 +159,9 @@
                 method: "GET",
                 success: function (response) {
 
-                    var aptNm = $(response).find('.ComplexSummary_name__vX3IN').text();
+                    var aptNm   = $(response).find('.ComplexSummary_name__vX3IN').text();
+                    var aptYear = $(response).find('.ComplexSummary_information__3bhbo').find('li').eq(1).text();
+                    var aptSedae= $(response).find('.ComplexSummary_information__3bhbo').find('li').eq(2).text();
                     var mePrice = 0;
                     var juPrice = 0;
 
@@ -202,6 +204,8 @@
                     for (var i = 0; i < uniqueKeys.length; i++) {
                         html.push('<tr>');
                         html.push('<td>' + aptNm + '</td>');
+                        html.push('<td>' + aptYear + '</td>');
+                        html.push('<td>' + aptSedae + '</td>');
                         html.push('<td>' + uniqueKeys[i] + '</td>');
                         html.push('<td>' + getPrice(uniqueKeys[i], me) + '</td>');
                         html.push('<td>' + getPrice(uniqueKeys[i], ju) + '</td>');
@@ -363,6 +367,8 @@
             <thead>
                 <tr>
                     <th>단지명</th>
+                    <th>연식</th>
+                    <th>세대</th>
                     <th>유형</th>
                     <th>매매</th>
                     <th>전세</th>
