@@ -156,7 +156,8 @@
 
         function loadData(id) {
             $.ajax({
-                url: "https://cors-anywhere.herokuapp.com/https://fin.land.naver.com/complexes/" + id + "?tradeTypes=A1,B1&tab=article",
+                // url: "https://cors-anywhere.herokuapp.com/https://fin.land.naver.com/complexes/" + id + "?tradeTypes=A1,B1&tab=article",
+                url: "https://fin.land.naver.com/complexes/" + id + "?tradeTypes=A1,B1&tab=article",
                 method: "GET",
                 success: function (response) {
 
