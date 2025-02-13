@@ -109,14 +109,25 @@
                 excelExport(event);
             });
 
+            // 동작구
+            $('#btn_dongjak-gu').on('click', function () {
+                let fileUrl = "https://roy-fild.github.io/file/dongjak-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+            // 영등포구
+            $('#btn_yeongdeungpo-gu').on('click', function () {
+                let fileUrl = "https://roy-fild.github.io/file/yeongdeungpo-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
             // 서대문구
-            $('#btn_seodaemun-gu').on('click', function () {       
+            $('#btn_seodaemun-gu').on('click', function () {
                 let fileUrl = "https://roy-fild.github.io/file/seodaemun-gu.xlsx"; // 다운로드할 엑셀 파일 URL
-                btnExcelExport(fileUrl);                     
+                btnExcelExport(fileUrl);
             });
 
             // 성북구
-            $('#btn_seong-buk-gu').on('click', function () {                            
+            $('#btn_seong-buk-gu').on('click', function () {
                 let fileUrl = "https://roy-fild.github.io/file/seong-buk-gu.xlsx"; // 다운로드할 엑셀 파일 URL
                 btnExcelExport(fileUrl);
             });
@@ -480,8 +491,12 @@
     <!-- <button id="loadData">데이터 가져오기</button> -->
     <a href="https://cors-anywhere.herokuapp.com">link</a>
     <a href="https://roy-fild.github.io/file/naver_apt_list_202406.xlsx" download>download</a>
-    <button id="btn_seong-buk-gu">성북구</button>
-    <button id="btn_seodaemun-gu">서대문구</button>
+    <div>        
+        <button id="btn_dongjak-gu">동작구</button>
+        <button id="btn_yeongdeungpo-gu">영등포구</button>
+        <button id="btn_seong-buk-gu">성북구</button>
+        <button id="btn_seodaemun-gu">서대문구</button>
+    </div>
     <div>대형제외<input id="chk" type="checkbox" checked></input></div>
     <div>
         엑셀 파일선택 <input type="file" id="excelFile" onchange="excelExport(event)" />
