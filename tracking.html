@@ -11,21 +11,27 @@
         .red_btn {
             background-color: red;
         }
+
         .orange_btn {
             background-color: #FFA500;
         }
+
         .yellow_btn {
             background-color: yellow;
         }
+
         .green_btn {
             background-color: green;
             color: #e5e5e5;
         }
+
         .skyblue_btn {
             background-color: skyblue;
         }
+
         .purple_btn {
             background-color: rgb(128, 0, 128);
+            color: #e5e5e5;
         }
 
         body {
@@ -128,6 +134,20 @@
             $('#excelFile').on('change', function (event) {
                 excelExport(event);
             });
+            // 정찰기(수도권)
+            $('#btn_observer-sudo').on('click', function () {
+                $('#hdn_sel-gu').val('정찰기-수도권');
+                let fileUrl = "https://roy-fild.github.io/file/tracking-list.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 정찰기(지방)
+            $('#btn_observer-jibang').on('click', function () {
+                $('#hdn_sel-gu').val('정찰기-지방');
+                let fileUrl = "https://roy-fild.github.io/file/tracking-jibang.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
             // 송파구
             $('#btn_songpa-gu').on('click', function () {
                 $('#hdn_sel-gu').val('송파구');
@@ -628,24 +648,29 @@
 </head>
 
 <body>
-
-    <h3>실시간 트래킹</h3>
-    <!-- <button id="loadData">데이터 가져오기</button> -->
-    <a href="https://cors-anywhere.herokuapp.com">link</a>
-    <a href="https://roy-fild.github.io/file/naver_apt_list_202406.xlsx" download>download</a>
+    <div>
+        <h3>실시간 트래킹</h3>
+        <!-- <button id="loadData">데이터 가져오기</button> -->
+        <a href="https://cors-anywhere.herokuapp.com">link</a>
+        <a href="https://roy-fild.github.io/file/naver_apt_list_202406.xlsx" download>download</a>
+    </div>
+    <div>
+        <button id="btn_observer-sudo" class="purple_btn">정찰기(수도권)</button>        
+        <button id="btn_observer-jibang" class="purple_btn">정찰기(지방)</button>     
+    </div>    
     <div>
         <input type="hidden" id="hdn_sel-gu" />
         <button id="btn_songpa-gu" class="red_btn">송파구</button>
         <button id="btn_yangcheon-gu" class="orange_btn">양천구</button>
         <button id="btn_bundang-gu" class="orange_btn">분당구</button>
-        <button id="btn_jongno-jung-gu"class="yellow_btn">종로/중구</button>
+        <button id="btn_jongno-jung-gu" class="yellow_btn">종로/중구</button>
         <button id="btn_dongjak-gu" class="yellow_btn">동작구</button>
         <button id="btn_yeongdeungpo-gu" class="yellow_btn">영등포구</button>
         <button id="btn_seong-buk-gu" class="green_btn">성북구</button>
-        <button id="btn_dongdaemun-gu"  class="green_btn">동대문구</button>
-        <button id="btn_seodaemun-gu"  class="green_btn">서대문구</button>
-        <button id="btn_gwanak-gu"  class="green_btn">관악구</button>
-        <button id="btn_suji-gu"  class="green_btn">수지구</button>
+        <button id="btn_dongdaemun-gu" class="green_btn">동대문구</button>
+        <button id="btn_seodaemun-gu" class="green_btn">서대문구</button>
+        <button id="btn_gwanak-gu" class="green_btn">관악구</button>
+        <button id="btn_suji-gu" class="green_btn">수지구</button>
     </div>
     <div>59,84 만<input id="chk" type="checkbox" checked></input></div>
 
