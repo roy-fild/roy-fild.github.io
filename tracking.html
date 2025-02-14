@@ -483,7 +483,11 @@
 
                 },
                 error: function () {
-                    $("#result").html("<p>데이터를 가져오는 데 실패했습니다.</p>");
+                    var html = "";
+                    html += '<tr>';
+                    html += '<td colspan="16">' + id + '번 가져오는 데 실패했습니다.</td>';
+                    html += '</tr>';
+                    $('#tbl_aptInfo tbody').append(html);                  
                 }
             });
         }
