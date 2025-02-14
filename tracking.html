@@ -8,6 +8,23 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
+        #loadingBar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background-color: #f3f3f3;
+            z-index: 9999;
+        }
+
+        #loadingProgress {
+            height: 100%;
+            width: 0;
+            background-color: #4caf50;
+            transition: width 0.4s ease;
+        }
+
         .red_btn {
             background-color: red;
         }
@@ -245,8 +262,35 @@
                 // 엑셀 파일로 저장
                 XLSX.writeFile(wb, fileNm);
             });
+
+            // 기존 코드에 로딩바 추가
+            $('#btn_observer-sudo, #btn_observer-jibang, #btn_songpa-gu, #btn_yangcheon-gu, #btn_bundang-gu, #btn_jongno-jung-gu, #btn_dongjak-gu, #btn_yeongdeungpo-gu, #btn_seong-buk-gu, #btn_dongdaemun-gu, #btn_seodaemun-gu, #btn_gwanak-gu, #btn_suji-gu').on('click', function () {
+                showLoadingBar();
+            });
+
+            $('#excelFile').on('change', function (event) {
+                showLoadingBar();
+                excelExport(event);
+            });
+
+            // 데이터 로딩이 완료된 후 로딩바 숨기기
+            $(document).ajaxStop(function () {
+                hideLoadingBar();
+            });
         });
 
+        function showLoadingBar() {
+            $('#loadingBar').show();
+            $('#loadingProgress').css('width', '0');
+            $('#loadingProgress').animate({ width: '100%' }, 1000); // 로딩바 애니메이션
+        }
+
+        function hideLoadingBar() {
+            $('#loadingProgress').css('width', '100%');
+            setTimeout(function () {
+                $('#loadingBar').hide();
+            }, 500); // 로딩바 숨김
+        }
 
 
 
@@ -648,6 +692,9 @@
 </head>
 
 <body>
+    <div id="loadingBar" style="display: none;">
+        <div id="loadingProgress"></div>
+    </div>
     <div>
         <h3>실시간 트래킹</h3>
         <!-- <button id="loadData">데이터 가져오기</button> -->
@@ -655,9 +702,9 @@
         <a href="https://roy-fild.github.io/file/naver_apt_list_202406.xlsx" download>download</a>
     </div>
     <div>
-        <button id="btn_observer-sudo" class="purple_btn">정찰기(수도권)</button>        
-        <button id="btn_observer-jibang" class="purple_btn">정찰기(지방)</button>     
-    </div>    
+        <button id="btn_observer-sudo" class="purple_btn">정찰기(수도권)</button>
+        <button id="btn_observer-jibang" class="purple_btn">정찰기(지방)</button>
+    </div>
     <div>
         <input type="hidden" id="hdn_sel-gu" />
         <button id="btn_songpa-gu" class="red_btn">송파구</button>
