@@ -309,11 +309,11 @@
                     var dong = ""; 
 
                     if(addrSplit.length > 2){
-                        gu = addrSplit[1];
-                        dong = addrSplit[2];
+                        gu = addrSubstr(addrSplit[1]);
+                        dong = addrSubstr(addrSplit[2]);
                     }else{
-                        gu = addrSplit[0];
-                        dong = addrSplit[1];
+                        gu = addrSubstr(addrSplit[0]);
+                        dong = addrSubstr(addrSplit[1]);
                     }
                     var aptNm = $(response).find('.ComplexSummary_name__vX3IN').text(); // 아파트명
                     var aptYearInfo = $(response).find('.ComplexSummary_information__3bhbo').find('li').eq(2).text();  // 연식 상세 정보
@@ -368,12 +368,13 @@
                         var jPrice = getPrice(uniqueKeys[i], ju);   // 전세가
 
                         html += '<tr>';
+                        html += '<td>' + id + '</td>';              // ID(네이버)
                         html += '<td>' + gu + '</td>';              // 구
-                        html += '<td>' + dong + '</td>';              // 구
+                        html += '<td>' + dong + '</td>';              // 동
                         html += '<td>' + aptNm + '</td>';            // 단지
                         html += '<td>' + aptYear + '</td>';          // 연식
                         html += '<td>' + aptSedae + '</td>';         // 세대
-                        html += '<td>' + uniqueKeys[i] + '</td>';
+                        // html += '<td>' + uniqueKeys[i] + '</td>';
 
                         // 유형
                         if (getSize(uniqueKeys[i], me) === '') {
@@ -403,6 +404,9 @@
             });
         }
 
+        function addrSubstr(text){
+            return text.substring(0, text.length-1);
+        }
 
         function cvrtAptSaedae(text){
             return text.replace('세대', '').trim();
@@ -605,7 +609,7 @@
 
 <body>
 
-    <h1>실시간 트래킹</h1>
+    <h3>실시간 트래킹</h3>
     <!-- <button id="loadData">데이터 가져오기</button> -->
     <a href="https://cors-anywhere.herokuapp.com">link</a>
     <a href="https://roy-fild.github.io/file/naver_apt_list_202406.xlsx" download>download</a>
@@ -633,12 +637,13 @@
         <table id="tbl_aptInfo">
             <thead>
                 <tr>
+                    <th>ID</th>
                     <th>구</th>
                     <th>동</th>
                     <th>단지명</th>
                     <th>연식</th>
                     <th>세대</th>
-                    <th>유형</th>
+                    <!-- <th>유형</th> -->
                     <th>평형</th>
                     <th>매매</th>
                     <th>전세</th>
