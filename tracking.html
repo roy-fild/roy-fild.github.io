@@ -8,6 +8,26 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
+        .red_btn {
+            background-color: red;
+        }
+        .orange_btn {
+            background-color: #FFA500;
+        }
+        .yellow_btn {
+            background-color: yellow;
+        }
+        .green_btn {
+            background-color: green;
+            color: #e5e5e5;
+        }
+        .skyblue_btn {
+            background-color: skyblue;
+        }
+        .purple_btn {
+            background-color: rgb(128, 0, 128);
+        }
+
         body {
             padding: 1.5em;
             background: #f5f5f5
@@ -135,7 +155,7 @@
                 let fileUrl = "https://roy-fild.github.io/file/bundang-gu.xlsx"; // 다운로드할 엑셀 파일 URL
                 btnExcelExport(fileUrl);
             });
-        
+
             // 동작구
             $('#btn_dongjak-gu').on('click', function () {
                 $('#hdn_sel-gu').val('동작구');
@@ -306,12 +326,12 @@
                     var addr = $(response).find('.HeaderBrandDepth-module_sub-name__t-5rA').text(); // 주소
                     var addrSplit = addr.split(' ');
                     var gu = "";
-                    var dong = ""; 
+                    var dong = "";
 
-                    if(addrSplit.length > 2){
+                    if (addrSplit.length > 2) {
                         gu = addrSubstr(addrSplit[1]);
                         dong = addrSubstr(addrSplit[2]);
-                    }else{
+                    } else {
                         gu = addrSubstr(addrSplit[0]);
                         dong = addrSubstr(addrSplit[1]);
                     }
@@ -337,7 +357,7 @@
                         var size = $(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(1).text();
                         var floor = $(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(2).text();
                         if (chkAptYn(aptYn)) {  // 도시형 확인
-                            if(chkCityApt(aptNm)){      //  도시형 확인
+                            if (chkCityApt(aptNm)) {      //  도시형 확인
                                 if (chkBigType(size)) {
                                     if (aptInfo !== '') {
                                         // 저층 제외, 최상층 제외
@@ -404,15 +424,15 @@
             });
         }
 
-        function addrSubstr(text){
-            return text.substring(0, text.length-1);
+        function addrSubstr(text) {
+            return text.substring(0, text.length - 1);
         }
 
-        function cvrtAptSaedae(text){
+        function cvrtAptSaedae(text) {
             return text.replace('세대', '').trim();
         }
 
-        function cvrtAptYear(text){
+        function cvrtAptYear(text) {
             return text.substring(0, text.indexOf('.'));
         }
 
@@ -464,7 +484,7 @@
             }
         }
 
-        function chkCityApt(nm){
+        function chkCityApt(nm) {
             if (nm.includes('도시형')) {
                 return false;
             } else {
@@ -472,7 +492,7 @@
             }
         }
 
-        
+
 
         function chkBigType(size) {
             var chk = $('#chk').is(':checked');
@@ -614,24 +634,24 @@
     <a href="https://cors-anywhere.herokuapp.com">link</a>
     <a href="https://roy-fild.github.io/file/naver_apt_list_202406.xlsx" download>download</a>
     <div>
-        <input type="hidden" id="hdn_sel-gu"/>
-        <button id="btn_songpa-gu">송파구</button>
-        <button id="btn_yangcheon-gu">양천구</button>
-        <button id="btn_jongno-jung-gu">종로/중구</button>
-        <button id="btn_bundang-gu">분당구</button>
-        <button id="btn_dongjak-gu">동작구</button>
-        <button id="btn_yeongdeungpo-gu">영등포구</button>
-        <button id="btn_seong-buk-gu">성북구</button>
-        <button id="btn_dongdaemun-gu">동대문구</button>
-        <button id="btn_seodaemun-gu">서대문구</button>
-        <button id="btn_gwanak-gu">관악구</button>
-        <button id="btn_suji-gu">수지구</button>
+        <input type="hidden" id="hdn_sel-gu" />
+        <button id="btn_songpa-gu" class="red_btn">송파구</button>
+        <button id="btn_yangcheon-gu" class="orange_btn">양천구</button>
+        <button id="btn_bundang-gu" class="orange_btn">분당구</button>
+        <button id="btn_jongno-jung-gu"class="yellow_btn">종로/중구</button>
+        <button id="btn_dongjak-gu" class="yellow_btn">동작구</button>
+        <button id="btn_yeongdeungpo-gu" class="yellow_btn">영등포구</button>
+        <button id="btn_seong-buk-gu" class="green_btn">성북구</button>
+        <button id="btn_dongdaemun-gu"  class="green_btn">동대문구</button>
+        <button id="btn_seodaemun-gu"  class="green_btn">서대문구</button>
+        <button id="btn_gwanak-gu"  class="green_btn">관악구</button>
+        <button id="btn_suji-gu"  class="green_btn">수지구</button>
     </div>
     <div>59,84 만<input id="chk" type="checkbox" checked></input></div>
 
     <div>
         엑셀 파일선택 <input type="file" id="excelFile" onchange="excelExport(event)" />
-        <button id="excelDownload">엑셀로 내보내기</button>
+        <button id="excelDownload" class="green_btn">엑셀로 내보내기</button>
     </div>
     <div id="result">
         <table id="tbl_aptInfo">
