@@ -483,7 +483,7 @@
                     match = match[1].replace(/[A-Za-z]/g, ""); // 영문 제거 
                 }
 
-                if (parseInt(match) > 84) {
+                if (parseInt(match) > 84 || parseInt(match) < 59) {
                     return false;
                 } else {
                     return true;
@@ -627,7 +627,7 @@
         <button id="btn_gwanak-gu">관악구</button>
         <button id="btn_suji-gu">수지구</button>
     </div>
-    <div>대형제외<input id="chk" type="checkbox" checked></input></div>
+    <div>59,84 만<input id="chk" type="checkbox" checked></input></div>
 
     <div>
         엑셀 파일선택 <input type="file" id="excelFile" onchange="excelExport(event)" />
