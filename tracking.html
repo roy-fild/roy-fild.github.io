@@ -489,7 +489,7 @@
                     html += '<tr>';
                     html += '<td colspan="16">[ ' + id + ' ] 번 단지 정보를 가져오는 데 실패했습니다.</td>';
                     html += '</tr>';
-                    $('#tbl_aptInfo tbody').append(html);                  
+                    $('#tbl_aptInfo tbody').append(html);
                 }
             });
         }
@@ -679,14 +679,27 @@
             let thousand = 0;
 
             if (match[2] && match[3]) {
-                thousand = parseInt(match[2] + match[3], 10); // 5,000 처리
+                // "5,000" 같은 형식 (천 단위)
+                thousand = parseInt(match[2] + match[3], 10);
             } else if (match[2]) {
-                thousand = parseInt(match[2], 10) * 1000; // 5천 처리
+                let num = parseInt(match[2], 10);
+                if (num >= 1000) {
+                    // "5천" 같은 형식
+                    thousand = num * 1000;
+                } else {
+                    // "500" 같은 백 단위 숫자
+                    thousand = num;
+                }
             }
 
             // 천 단위를 억 단위로 변환
             let decimalPart = thousand / 10000; // 1천 = 0.1억
-            let result = (billion + decimalPart).toFixed(1); // 소수점 한 자리까지만 유지
+            let result = (billion + decimalPart).toFixed(3); // 소수점 한 자리까지만 유지
+
+            // 불필요한 0 제거 (예: "8.100" → "8.1", "8.000" → "8")
+            result = result.replace(/\.?0+$/, "");
+
+
 
             return result;
         }
@@ -701,7 +714,7 @@
     <div id="loadingBar" style="display: none;">
         <div id="loadingProgress"></div>
     </div>
-    <div>     
+    <div>
         <!-- <button id="loadData">데이터 가져오기</button> -->
         <a href="https://cors-anywhere.herokuapp.com" target='_blank'>link</a>
         <a href="https://roy-fild.github.io/file/naver_apt_list_202406.xlsx" download>download</a>
