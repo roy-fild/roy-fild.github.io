@@ -255,6 +255,13 @@
                 btnExcelExport(fileUrl);
             });
 
+            // 수정/중원구
+            $('#btn_sujeong-jungwon-gu').on('click', function () {
+                $('#hdn_sel-gu').val('수정-중원구');
+                let fileUrl = "https://roy-fild.github.io/file/sujeong-jungwon-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
 
             $('#excelDownload').on('click', function () {
 
@@ -780,9 +787,12 @@
         <button id="btn_seong-buk-gu" class="green_btn">성북구</button>
         <button id="btn_dongdaemun-gu" class="green_btn">동대문구</button>
         <button id="btn_seodaemun-gu" class="green_btn">서대문구</button>
-        <button id="btn_gwanak-gu" class="green_btn">관악구</button>
+        <button id="btn_gwanak-gu" class="green_btn">관악구</button>        
+    </div>
+    <div>
         <button id="btn_suji-gu" class="green_btn">수지구</button>
         <button id="btn_dongtan" class="green_btn">동탄</button>
+        <button id="btn_sujeong-jungwon-gu" class="green_btn">수정/중원구</button>
     </div>
     <div>59,84 만<input id="chk" type="checkbox" checked></input></div>
 
