@@ -248,6 +248,13 @@
                 btnExcelExport(fileUrl);
             });
 
+            // 동탄
+            $('#btn_dongtan').on('click', function () {
+                $('#hdn_sel-gu').val('동탄');
+                let fileUrl = "https://roy-fild.github.io/file/dongtan.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
 
             $('#excelDownload').on('click', function () {
 
@@ -775,6 +782,7 @@
         <button id="btn_seodaemun-gu" class="green_btn">서대문구</button>
         <button id="btn_gwanak-gu" class="green_btn">관악구</button>
         <button id="btn_suji-gu" class="green_btn">수지구</button>
+        <button id="btn_dongtan" class="green_btn">동탄</button>
     </div>
     <div>59,84 만<input id="chk" type="checkbox" checked></input></div>
 
