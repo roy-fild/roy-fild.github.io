@@ -272,6 +272,25 @@
                     }
                 });
 
+                // 열 너비 자동 조정
+                let colWidths = [];
+                let range = XLSX.utils.decode_range(ws['!ref']); // 데이터 범위 가져오기
+
+                for (let C = range.s.c; C <= range.e.c; ++C) {  // 열 반복
+                    let maxWidth = 10; // 최소 너비 기본값
+                    for (let R = range.s.r; R <= range.e.r; ++R) {  // 행 반복
+                        let cell_address = XLSX.utils.encode_cell({ r: R, c: C }); // 셀 주소 가져오기
+                        let cell = ws[cell_address];
+
+                        if (cell && cell.v) {
+                            let cellValue = String(cell.v);  // 셀 값을 문자열로 변환
+                            maxWidth = Math.max(maxWidth, cellValue.length + 2); // 최대 너비 계산 (여백 추가)
+                        }
+                    }
+                    colWidths.push({ wch: maxWidth });
+                }
+                ws['!cols'] = colWidths; // 자동 조정된 너비 설정
+
                 XLSX.utils.book_append_sheet(wb, ws, "아파트 정보");  // 시트 추가
 
                 var fileNm = $('#hdn_sel-gu').val() + '_시세_트래킹_' + getNowDate() + '.xlsx'
