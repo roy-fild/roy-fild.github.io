@@ -263,34 +263,33 @@
                 let wb = XLSX.utils.book_new();
                 let ws = XLSX.utils.table_to_sheet(table, { sheetStubs: true });  // table을 시트로 변환하면서 stub을 추가
 
-                // 스타일 설정: 모든 셀의 폰트 크기를 10으로 설정
-                Object.keys(ws).forEach(cell => {
-                    if (ws[cell] && ws[cell].t) { // t 속성이 있는 경우(데이터가 있는 경우)
-                        ws[cell].s = {
-                            font: { sz: 10 }  // 글자 크기 10으로 설정
-                        };
-                    }
-                });
-
                 // 열 너비 자동 조정
                 let colWidths = [];
-                let range = XLSX.utils.decode_range(ws['!ref']); // 데이터 범위 가져오기
+                let range = XLSX.utils.decode_range(ws['!ref']);
 
-                for (let C = range.s.c; C <= range.e.c; ++C) {  // 열 반복
-                    let maxWidth = 10; // 최소 너비 기본값
-                    for (let R = range.s.r; R <= range.e.r; ++R) {  // 행 반복
-                        let cell_address = XLSX.utils.encode_cell({ r: R, c: C }); // 셀 주소 가져오기
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    let maxWidth = 10;
+                    for (let R = range.s.r; R <= range.e.r; ++R) {
+                        let cell_address = XLSX.utils.encode_cell({ r: R, c: C });
                         let cell = ws[cell_address];
 
                         if (cell && cell.v) {
-                            let cellValue = String(cell.v);  // 셀 값을 문자열로 변환
-                            maxWidth = Math.max(maxWidth, cellValue.length + 2); // 최대 너비 계산 (여백 추가)
+                            let cellValue = String(cell.v);
+                            maxWidth = Math.max(maxWidth, cellValue.length + 2);
                         }
                     }
                     colWidths.push({ wch: maxWidth });
                 }
-                ws['!cols'] = colWidths; // 자동 조정된 너비 설정
+                ws['!cols'] = colWidths;
 
+                // 스타일 적용 (기본 적용 확인)
+                Object.keys(ws).forEach(cell => {
+                    if (ws[cell] && ws[cell].t) {
+                        ws[cell].s = {
+                            font: { name: "Arial", sz: 10 }  // Arial 폰트 + 크기 10
+                        };
+                    }
+                });
                 XLSX.utils.book_append_sheet(wb, ws, "아파트 정보");  // 시트 추가
 
                 var fileNm = $('#hdn_sel-gu').val() + '_시세_트래킹_' + getNowDate() + '.xlsx'
