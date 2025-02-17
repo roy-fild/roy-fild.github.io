@@ -263,9 +263,18 @@
                 let wb = XLSX.utils.book_new();
                 let ws = XLSX.utils.table_to_sheet(table, { sheetStubs: true });  // table을 시트로 변환하면서 stub을 추가
 
+                // 스타일 설정: 모든 셀의 폰트 크기를 10으로 설정
+                Object.keys(ws).forEach(cell => {
+                    if (ws[cell] && ws[cell].t) { // t 속성이 있는 경우(데이터가 있는 경우)
+                        ws[cell].s = {
+                            font: { sz: 10 }  // 글자 크기 10으로 설정
+                        };
+                    }
+                });
+
                 XLSX.utils.book_append_sheet(wb, ws, "아파트 정보");  // 시트 추가
 
-                var fileNm = $('#hdn_sel-gu').val() + '_시세_트래킹_'+ getNowDate()+'.xlsx'
+                var fileNm = $('#hdn_sel-gu').val() + '_시세_트래킹_' + getNowDate() + '.xlsx'
                 // 엑셀 파일로 저장
                 XLSX.writeFile(wb, fileNm);
             });
@@ -362,7 +371,7 @@
                     // console.log('SheetName: ' + sheetName);
                     let rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
                     var keys = Object.keys(rows);
-                    
+
 
                     for (var i = 0; i < keys.length; i++) {
                         var key = keys[i];
