@@ -28,23 +28,28 @@
         .red_btn {
             background-color: red;
             color: #e5e5e5;
+            margin-bottom: 5px;
         }
 
         .orange_btn {
             background-color: #FFA500;
+            margin-bottom: 5px;
         }
 
         .yellow_btn {
             background-color: yellow;
+            margin-bottom: 5px;
         }
 
         .green_btn {
             background-color: green;
             color: #e5e5e5;
+            margin-bottom: 5px;
         }
 
         .skyblue_btn {
             background-color: skyblue;
+            margin-bottom: 5px;
         }
 
         .purple_btn {
@@ -357,7 +362,7 @@
                     // console.log('SheetName: ' + sheetName);
                     let rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
                     var keys = Object.keys(rows);
-
+                    
 
                     for (var i = 0; i < keys.length; i++) {
                         var key = keys[i];
@@ -389,6 +394,7 @@
                 url: "https://cors-anywhere.herokuapp.com/https://fin.land.naver.com/complexes/" + id + "?tradeTypes=A1,B1&tab=article",
                 method: "GET",
                 success: function (response) {
+                    console.log(response);
                     var addr = $(response).find('.HeaderBrandDepth-module_sub-name__t-5rA').text(); // 주소
                     var addrSplit = addr.split(' ');
                     var gu = "";
