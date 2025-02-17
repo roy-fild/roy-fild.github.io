@@ -449,11 +449,11 @@
         }
 
         function loadData(id) {
+            //console.log(id);
             $.ajax({
                 url: "https://cors-anywhere.herokuapp.com/https://fin.land.naver.com/complexes/" + id + "?tradeTypes=A1,B1&tab=article",
                 method: "GET",
                 success: function (response) {
-                    console.log(response);
                     var addr = $(response).find('.HeaderBrandDepth-module_sub-name__t-5rA').text(); // 주소
                     var addrSplit = addr.split(' ');
                     var gu = "";
