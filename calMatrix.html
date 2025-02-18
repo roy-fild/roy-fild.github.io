@@ -54,7 +54,8 @@
         var titArr = [];       // 투자금
         titArr.push(" ");
         for (var i = 1; i <= 15; i++) {
-            titArr.push(i)
+            var tit = i + '억대';
+            titArr.push(tit)
         }
 
         contentsArr.push(titArr);
@@ -97,7 +98,7 @@
 
                 // 차액
                 var s = Number(me) - Number(ju);
-                s = Math.ceil(s);
+                s = Math.round(s);
 
                 // 투자금 일치 가격이 높을경우
                 if (j == s && Number(me) > 19.9) {
@@ -126,7 +127,7 @@
 
                 // 차액
                 var s = Number(me) - Number(ju);
-                s = Math.ceil(s);
+                s = Math.round(s);
 
                 // 투자금 일치 가격이 같을경우
                 if (j == s && Number(me).toFixed(1) == Number(price)) {
