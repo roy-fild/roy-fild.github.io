@@ -98,7 +98,7 @@
 
                 // 차액
                 var s = Number(me) - Number(ju);
-                s = Math.round(s);
+                s = s.toFixed(0);
 
                 // 투자금 일치 가격이 높을경우
                 if (j == s && Number(me) > 19.9) {
@@ -127,7 +127,7 @@
 
                 // 차액
                 var s = Number(me) - Number(ju);
-                s = Math.round(s);
+                s = s.toFixed(0);
 
                 // 투자금 일치 가격이 같을경우
                 if (j == s && Number(me).toFixed(1) == Number(price)) {
