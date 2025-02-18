@@ -65,14 +65,17 @@
         }
 
         .darkgoldenrod_btn {
-            background-color: rgb(184,134,11);
-            color: #e5e5e5;
+            background-color: rgb(233, 172, 17);
             margin-bottom: 5px;
         }
 
         .olivedrab_btn {
             background-color: rgb(107,142,35);
             color: #e5e5e5;
+            margin-bottom: 5px;
+        }
+        .ligthseagreen_btn {
+            background-color: rgb(32,178,170);
             margin-bottom: 5px;
         }
 
@@ -812,8 +815,19 @@
         <button id="btn_dongtan" class="darkslategrey_btn">동탄</button>
         <button id="btn_sujeong-jungwon-gu" class="darkslategrey_btn">수정/중원구</button>
     </div>
-    <div>59,84 만<input id="chk" type="checkbox" checked></input></div>
-
+    <div>
+        <b>대전</b>
+        <button id="btn_daejeon-seo-gu" class="darkgoldenrod_btn">서구</button>
+        <button id="btn_daejeon-yuseong-gu" class="darkgoldenrod_btn">유성구</button>
+        <b>광주</b>
+        <button id="btn_gwangju-buk-gu" class="darkgoldenrod_btn">북구</button>        
+    </div>
+    <div>
+        <button id="btn_cheongju" class="ligthseagreen_btn">청주(흥덕구/청원구/상당구)</button>        
+        <button id="btn_jeonju" class="ligthseagreen_btn">전주(덕진구/완산구)</button>   
+        <button id="btn_cheonan" class="ligthseagreen_btn">천안(서북구/동남구)</button>    
+    </div>
+    <div>59,84 만<input id="chk" type="checkbox" checked></input></div>        
     <div>
         엑셀 파일선택 <input type="file" id="excelFile" onchange="excelExport(event)" />
         <button id="excelDownload" class="green_btn">EXCEL</button>
