@@ -515,8 +515,11 @@
 
         function loadData(id) {
             //console.log(id);
+
+            var corsAllowUrl = "https://cors-anywhere.herokuapp.com/";
+
             $.ajax({
-                url: "https://cors-anywhere.herokuapp.com/https://fin.land.naver.com/complexes/" + id + "?tradeTypes=A1,B1&tab=article",
+                url: corsAllowUrl + "https://fin.land.naver.com/complexes/" + id + "?tradeTypes=A1,B1&tab=article",
                 method: "GET",
                 success: function (response) {
                     var addr = $(response).find('.HeaderBrandDepth-module_sub-name__t-5rA').text(); // 주소
