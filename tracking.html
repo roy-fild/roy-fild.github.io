@@ -59,7 +59,7 @@
         }
 
         .darkslategrey_btn {
-            background-color: rgb(47,79,79);
+            background-color: rgb(47, 79, 79);
             color: #e5e5e5;
             margin-bottom: 5px;
         }
@@ -70,12 +70,13 @@
         }
 
         .olivedrab_btn {
-            background-color: rgb(107,142,35);
+            background-color: rgb(107, 142, 35);
             color: #e5e5e5;
             margin-bottom: 5px;
         }
+
         .ligthseagreen_btn {
-            background-color: rgb(32,178,170);
+            background-color: rgb(32, 178, 170);
             margin-bottom: 5px;
         }
 
@@ -170,6 +171,9 @@
                 border-bottom: 1px solid #e5e5e5;
             }
 
+            .hide {
+                display: none;
+            }
 
         }
     </style>
@@ -319,9 +323,9 @@
             });
 
 
-             /************************************
-             *  지방 (중소도시)
-             ************************************/
+            /************************************
+            *  지방 (중소도시)
+            ************************************/
 
             // 청주
             $('#btn_cheongju').on('click', function () {
@@ -470,7 +474,7 @@
         }
 
 
-        // 엑셀 자료 추출
+        // 엑셀 자료 추출 (Upload 용)
         function excelExport(event) {
 
             $('#tbl_aptInfo tbody').empty();
@@ -503,7 +507,7 @@
             };
             reader.readAsBinaryString(input.files[0]);
         }
-
+        // Naver 호출
         function requestNaver(aptArr) {
             // console.log(aptArr);
             for (var i = 0; i < aptArr.length; i++) {
@@ -587,7 +591,7 @@
                         var jPrice = getPrice(uniqueKeys[i], ju);   // 전세가
 
                         html += '<tr>';
-                        // html += '<td>' + id + '</td>';              // ID(네이버)
+                        html += '<td>' + id + '</td>';              // ID(네이버)
                         html += '<td>' + gu + '</td>';              // 구
                         html += '<td>' + dong + '</td>';              // 동
                         html += '<td>' + aptNm + '</td>';            // 단지
@@ -595,7 +599,7 @@
                         html += '<td>' + aptSedae + '</td>';         // 세대
                         // html += '<td>' + uniqueKeys[i] + '</td>';
 
-                        // 유형
+                        // 평형(상세)
                         if (getSize(uniqueKeys[i], me) === '') {
                             html += '<td>' + getSize(uniqueKeys[i], ju) + '</td>';
                         } else {
@@ -875,7 +879,7 @@
         <button id="btn_seong-buk-gu" class="green_btn">성북구</button>
         <button id="btn_dongdaemun-gu" class="green_btn">동대문구</button>
         <button id="btn_seodaemun-gu" class="green_btn">서대문구</button>
-        <button id="btn_gwanak-gu" class="green_btn">관악구</button>        
+        <button id="btn_gwanak-gu" class="green_btn">관악구</button>
     </div>
     <div>
         <b>수도권</b>
@@ -888,30 +892,34 @@
         <button id="btn_daejeon-seo-gu" class="darkgoldenrod_btn">서구</button>
         <button id="btn_daejeon-yuseong-gu" class="darkgoldenrod_btn">유성구</button>
         <b>광주시</b>
-        <button id="btn_gwangju-buk-gu" class="darkgoldenrod_btn">북구</button>        
+        <button id="btn_gwangju-buk-gu" class="darkgoldenrod_btn">북구</button>
     </div>
     <div>
-        <button id="btn_cheongju" class="ligthseagreen_btn">청주(흥덕구/청원구/상당구)</button>        
-        <button id="btn_jeonju" class="ligthseagreen_btn">전주(덕진구/완산구)</button>   
-        <button id="btn_cheonan" class="ligthseagreen_btn">천안(서북구/동남구)</button>    
+        <button id="btn_cheongju" class="ligthseagreen_btn">청주(흥덕구/청원구/상당구)</button>
+        <button id="btn_jeonju" class="ligthseagreen_btn">전주(덕진구/완산구)</button>
+        <button id="btn_cheonan" class="ligthseagreen_btn">천안(서북구/동남구)</button>
     </div>
-    <div>59,84 만<input id="chk" type="checkbox" checked></input></div>        
+    <div>59,84 만<input id="chk" type="checkbox" checked></input></div>
     <div>
-        엑셀 파일선택 <input type="file" id="excelFile" onchange="excelExport(event)" />
+        검색용 Excel <input type="file" id="excelFile" onchange="excelExport(event)" />
+        비교용 Excel <input type="file" id="excelFile" onchange="compareExport(event)" />
+
+    </div>
+    <div class="excel-container">
         <button id="excelDownload" class="green_btn">EXCEL</button>
     </div>
     <div id="result">
         <table id="tbl_aptInfo">
             <thead>
                 <tr>
-                    <!-- <th>ID</th> -->
+                    <th>ID</th>
                     <th>구</th>
                     <th>동</th>
                     <th>단지명</th>
                     <th>연식</th>
                     <th>세대</th>
                     <!-- <th>유형</th> -->
-                    <th>평형</th>
+                    <th>평형(상세)</th>
                     <th>매매</th>
                     <th>전세</th>
                     <th>차액</th>
