@@ -180,8 +180,15 @@
     <script>
         $(document).ready(function () {
 
+            // UpLoad용 엑셀파일 
             $('#excelFile').on('change', function (event) {
+                showLoadingBar();
                 excelExport(event);
+            });
+
+            $('#cmpExcelFile').on('change', function (event) {
+                showLoadingBar();
+                compareExport(event);
             });
 
             // 정찰기(수도권)
@@ -403,11 +410,6 @@
                 showLoadingBar();
             });
 
-            $('#excelFile').on('change', function (event) {
-                showLoadingBar();
-                excelExport(event);
-            });
-
             // 데이터 로딩이 완료된 후 로딩바 숨기기
             $(document).ajaxStop(function () {
                 hideLoadingBar();
@@ -522,10 +524,14 @@
 
             var corsAllowUrl = "https://cors-anywhere.herokuapp.com/";
 
+            var reqUrl = corsAllowUrl + "https://fin.land.naver.com/complexes/" + id + "?tradeTypes=A1,B1&tab=article";
+            //var reqUrl = corsAllowUrl + "https://fin.land.naver.com/complexes/" + id + "?tradeTypes=A1,B1&sortingType=낮은가격순&tab=article"
+            // https://fin.land.naver.com/front-api/v1/complex/article/list?complexNumber=364&userChannelType=PC&page=0
             $.ajax({
-                url: corsAllowUrl + "https://fin.land.naver.com/complexes/" + id + "?tradeTypes=A1,B1&tab=article",
+                url: reqUrl,
                 method: "GET",
                 success: function (response) {
+                    console.log(response);
                     var addr = $(response).find('.HeaderBrandDepth-module_sub-name__t-5rA').text(); // 주소
                     var addrSplit = addr.split(' ');
                     var gu = "";
@@ -849,6 +855,165 @@
             return currentDate = `${year}${month}${day}`;
         }
 
+        /*
+         * 비교용 Excel 
+         */
+
+        // 엑셀 자료 추출 (Upload 용)
+        function compareExport(event) {
+
+            var aptArr = [];
+            let fileName = event.target.files[0].name.split(".").shift();
+            let input = event.target;
+            let reader = new FileReader();
+            reader.onload = function () {
+                let data = reader.result;
+                let workBook = XLSX.read(data, { type: 'binary' });
+                workBook.SheetNames.forEach(function (sheetName) {
+                    // console.log('SheetName: ' + sheetName);
+                    let rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
+                    var keys = Object.keys(rows);
+
+
+                    for (var i = 0; i < keys.length; i++) {
+                        var key = keys[i];
+                        var subKeys = Object.keys(rows[key]);
+
+                        var id = rows[key][subKeys[0]];    // id
+                        var aptNm = rows[key][subKeys[1]];    // 아파트명 
+                        var aptType = rows[key][subKeys[2]];    // 아파트 타입      
+                        var mePrice = rows[key][subKeys[3]];    // 매매가
+                        var juPrice = rows[key][subKeys[4]];    // 전세가        
+
+                        var info = id + "|" + aptNm + "|" + aptType + "|" + mePrice + "|" + juPrice;
+
+                        aptArr.push(info);
+                    }
+                    // console.log(aptArr);
+                    compareWithTable(aptArr, fileName);
+                })
+            };
+            reader.readAsBinaryString(input.files[0]);
+        }
+
+
+        function compareWithTable(aptArr, fileName) {
+
+            var titArr = [];
+
+            titArr.push("ID");
+            titArr.push("아파트명");
+            titArr.push("타입");
+            titArr.push("매매");
+            titArr.push("전세");
+
+            var contentsArr = [];
+
+            contentsArr.push(titArr);
+
+            for (i = 0; i < aptArr.length; i++) {
+                var rowArr = [];
+                var aptSplit = aptArr[i].split('|');
+                var id = aptSplit[0];
+                var aptNm = aptSplit[1];
+                var aptType = aptSplit[2];
+                var mePrice = aptSplit[3];
+                var juPrice = aptSplit[4];
+
+                var cmpMePrice = 0;
+                var cmpJuPrice = 0;
+
+                $("#tbl_aptInfo tbody tr").each(function (index, element) {
+                    var tblId = $(element).find("td").eq(0).text(); //  tabld ID
+                    var tblType = cvrtDtlSz($(element).find("td").eq(6).text()); //  평형 상세
+                    var tblMe = $(element).find("td").eq(7).text(); // 매매
+                    var tblJu = $(element).find("td").eq(8).text(); // 전세
+
+                    if (id == tblId && aptType == tblType) {
+                        if (Number(tblMe) !== 0 ) {
+                            if(Number(cmpMePrice) == 0 ){
+                                cmpMePrice = tblMe;
+                            }else if(Number(cmpMePrice) >= Number(tblMe)){
+                                cmpMePrice = tblMe;
+                            }
+                            
+                        }
+                        if (Number(tblJu) !== 0) {
+                            if(Number(cmpJuPrice) == 0 ){
+                                cmpJuPrice = tblJu;
+                            }else if(Number(cmpJuPrice) >= Number(tblJu)){
+                                cmpJuPrice = tblJu;
+                            }
+                        }
+                    }
+                });
+                // 매매가 없으면 기존 매매가로 처리
+                if (Number(cmpMePrice) == 0) {
+                    cmpMePrice = mePrice;
+                }
+
+                // 전세가 없으면 기존 전세가로 처리
+                if (Number(cmpJuPrice) == 0) {
+                    cmpJuPrice = juPrice;
+                }
+
+                //console.log(cmpMePrice, cmpJuPrice);
+
+                rowArr.push(id);
+                rowArr.push(aptNm);
+                rowArr.push(aptType);
+                rowArr.push(cmpMePrice);
+                rowArr.push(cmpJuPrice);
+
+                contentsArr.push(rowArr);
+
+            }
+
+            downloadCSV(contentsArr, fileName);
+        }
+
+        // 평형 상세 변경
+        function cvrtDtlSz(v) {
+            return v.substring(0, v.indexOf(".")).trim();
+        }
+
+        function downloadCSV(contentsArr, f) {
+
+            const worksheet = XLSX.utils.aoa_to_sheet(contentsArr);
+
+            // 스타일 설정: 폰트 크기 9
+            Object.keys(worksheet).forEach(cell => {
+                if (cell[0] !== '!') {
+                    worksheet[cell].s = {
+                        font: { sz: 9 },
+                        alignment: { wrapText: true }
+                    };
+                }
+            });
+
+            // 열 너비 자동 조정 (개행 문자 및 한글 고려)
+            const colWidths = contentsArr[0].map((_, colIndex) => {
+                const maxWidth = contentsArr.reduce((max, row) => {
+                    const cellValue = row[colIndex] ? String(row[colIndex]) : "";
+                    const lines = cellValue.split(/\r?\n/); // 개행 문자 기준 분할
+                    const maxLineWidth = Math.max(...lines.map(line => {
+                        return line.split('').reduce((acc, char) => {
+                            return acc + (char.match(/[가-힣]/) ? 2 : 1); // 한글은 2배 너비로 계산
+                        }, 0);
+                    }));
+                    return Math.max(max, maxLineWidth);
+                }, 10); // 최소 너비 10 설정
+                return { wch: maxWidth + 2 }; // 여백을 추가하여 가독성 향상
+            });
+            worksheet['!cols'] = colWidths;
+
+            // 엑셀 파일 생성 (CSV 대신 XLSX 사용)
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+
+            const fileName = f + "_result.xlsx";
+            XLSX.writeFile(workbook, fileName);
+        }
 
     </script>
 </head>
@@ -901,8 +1066,8 @@
     </div>
     <div>59,84 만<input id="chk" type="checkbox" checked></input></div>
     <div>
-        검색용 Excel <input type="file" id="excelFile" onchange="excelExport(event)" />
-        비교용 Excel <input type="file" id="excelFile" onchange="compareExport(event)" />
+        검색용 Excel <input type="file" id="excelFile"  />
+        비교용 Excel <input type="file" id="cmpExcelFile" />
 
     </div>
     <div class="excel-container">
