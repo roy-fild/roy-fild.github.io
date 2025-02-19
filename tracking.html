@@ -179,6 +179,7 @@
             $('#excelFile').on('change', function (event) {
                 excelExport(event);
             });
+
             // 정찰기(수도권)
             $('#btn_observer-sudo').on('click', function () {
                 $('#hdn_sel-gu').val('정찰기-수도권');
@@ -192,6 +193,10 @@
                 let fileUrl = "https://roy-fild.github.io/file/tracking-jibang.xlsx"; // 다운로드할 엑셀 파일 URL
                 btnExcelExport(fileUrl);
             });
+
+            /************************************
+             *  수도권
+             ************************************/
 
             // 송파구
             $('#btn_songpa-gu').on('click', function () {
@@ -282,6 +287,63 @@
                 let fileUrl = "https://roy-fild.github.io/file/sujeong-jungwon-gu.xlsx"; // 다운로드할 엑셀 파일 URL
                 btnExcelExport(fileUrl);
             });
+
+            /************************************
+             *  지방 (광역시)
+             ************************************/
+
+            // 대전
+
+            // 서구
+            $('#btn_daejeon-seo-gu').on('click', function () {
+                $('#hdn_sel-gu').val('대전-서구');
+                let fileUrl = "https://roy-fild.github.io/file/daejeon-seo-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 유성구
+            $('#btn_daejeon-yuseong-gu').on('click', function () {
+                $('#hdn_sel-gu').val('대전-유성구');
+                let fileUrl = "https://roy-fild.github.io/file/daejeon-yuseong-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+
+            // 광주
+
+            // 북구
+            $('#btn_gwangju-buk-gu').on('click', function () {
+                $('#hdn_sel-gu').val('광주-북구');
+                let fileUrl = "https://roy-fild.github.io/file/gwangju-buk-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+
+             /************************************
+             *  지방 (중소도시)
+             ************************************/
+
+            // 청주
+            $('#btn_cheongju').on('click', function () {
+                $('#hdn_sel-gu').val('청주');
+                let fileUrl = "https://roy-fild.github.io/file/cheongju.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 전주
+            $('#btn_jeonju').on('click', function () {
+                $('#hdn_sel-gu').val('전주');
+                let fileUrl = "https://roy-fild.github.io/file/jeonju.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 천안
+            $('#btn_cheonan').on('click', function () {
+                $('#hdn_sel-gu').val('천안');
+                let fileUrl = "https://roy-fild.github.io/file/cheonan.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
 
 
             $('#excelDownload').on('click', function () {
