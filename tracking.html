@@ -430,7 +430,9 @@
         }
 
 
-
+        /**
+         * Excel 파일에서 아파트 ID 가져오기
+         */
         function btnExcelExport(fileUrl) {
             $('#tbl_aptInfo tbody').empty();
             var aptArr = [];
@@ -464,8 +466,7 @@
                             // console.log(aptArr);
                             requestNaver(aptArr);
                         })
-                        //console.log(aptArr.length);
-                        //requestNaver(aptArr);
+
                     };
                     reader.readAsArrayBuffer(data);
                 },
@@ -510,143 +511,208 @@
             reader.readAsBinaryString(input.files[0]);
         }
         // Naver 호출
-        function requestNaver(aptArr) {
-            // console.log(aptArr);
-            for (var i = 0; i < aptArr.length; i++) {
-                // console.log(aptArr[i])
-                loadData(aptArr[i]);
-            }
+        async function requestNaver(aptArr) {
 
+            let bfId = "";
+            for (const id of aptArr) {
+                let iObj = {};
+                if (bfId !== id) {
+                    bfId = id;
+                    await loadBaseData(iObj, id); // 동기적으로 실행
+                }
+
+                let mObj = {};
+                let jObj = {};
+                let mCnt = 0;
+                let jCnt = 0;
+
+                await loadData(mObj, jObj, id, '0', mCnt, jCnt); // 동기적으로 실행
+
+                createTableList(iObj, mObj, jObj); // loadData 완료 후 실행
+            }
         }
 
-        function loadData(id) {
-            //console.log(id);
+        function loadBaseData(iObj, id) {
+            return new Promise((resolve, reject) => {
+                var corsAllowUrl = "https://cors-anywhere.herokuapp.com/";
+                var reqUrl = corsAllowUrl + "https://fin.land.naver.com/complexes/" + id + "?tab=transaction&tradeType=A1&pyeongTypeNumber=1";
 
-            var corsAllowUrl = "https://cors-anywhere.herokuapp.com/";
+                $.ajax({
+                    url: reqUrl,
+                    method: "GET",
+                    success: function (response) {
+                        //console.log(response);
+                        var addr = $(response).find('.HeaderBrandDepth-module_sub-name__t-5rA').text();
+                        var addrSplit = addr.split(' ');
+                        var gu = "";
+                        var dong = "";
 
-            var reqUrl = corsAllowUrl + "https://fin.land.naver.com/complexes/" + id + "?tradeTypes=A1,B1&tab=article";
-            //var reqUrl = corsAllowUrl + "https://fin.land.naver.com/complexes/" + id + "?tradeTypes=A1,B1&sortingType=낮은가격순&tab=article"
-            // https://fin.land.naver.com/front-api/v1/complex/article/list?complexNumber=364&userChannelType=PC&page=0
-            $.ajax({
-                url: reqUrl,
-                method: "GET",
-                success: function (response) {
-                    console.log(response);
-                    var addr = $(response).find('.HeaderBrandDepth-module_sub-name__t-5rA').text(); // 주소
-                    var addrSplit = addr.split(' ');
-                    var gu = "";
-                    var dong = "";
+                        if (addrSplit.length > 2) {
+                            gu = addrSubstr(addrSplit[1]);
+                            dong = addrSubstr(addrSplit[2]);
+                        } else {
+                            gu = addrSubstr(addrSplit[0]);
+                            dong = addrSubstr(addrSplit[1]);
+                        }
+                        var aptNm = $(response).find('.ComplexSummary_name__vX3IN').text();
+                        var aptYearInfo = $(response).find('.ComplexSummary_information__3bhbo').find('li').eq(2).text();
+                        var aptYear = cvrtAptYear(aptYearInfo);
+                        var aptSedae = cvrtAptSaedae($(response).find('.ComplexSummary_information__3bhbo').find('li').eq(1).text());
+                        var mCnt = $(response).find('.ComplexSummary_area-list-button__0Hc4H').find('.ComplexSummary_count__tmidA').eq(0).text();
+                        var jCnt = $(response).find('.ComplexSummary_area-list-button__0Hc4H').find('.ComplexSummary_count__tmidA').eq(1).text();
 
-                    if (addrSplit.length > 2) {
-                        gu = addrSubstr(addrSplit[1]);
-                        dong = addrSubstr(addrSplit[2]);
-                    } else {
-                        gu = addrSubstr(addrSplit[0]);
-                        dong = addrSubstr(addrSplit[1]);
+                        // console.log(iObj, id, aptNm, gu, dong, aptYear, aptSedae, mCnt, jCnt)
+
+                        setBaseInfo(iObj, id, aptNm, gu, dong, aptYear, aptSedae, mCnt, jCnt);
+                        resolve(); // 완료 시 resolve 호출
+                    },
+                    error: function () {
+                        var html = "";
+                        html += '<tr>';
+                        html += '<td colspan="16">[ ' + id + ' ] 번 단지 정보를 가져오는 데 실패했습니다.</td>';
+                        html += '</tr>';
+                        $('#tbl_aptInfo tbody').append(html);
+                        reject(); // 실패 시 reject 호출
                     }
-                    var aptNm = $(response).find('.ComplexSummary_name__vX3IN').text(); // 아파트명
-                    var aptYearInfo = $(response).find('.ComplexSummary_information__3bhbo').find('li').eq(2).text();  // 연식 상세 정보
-                    var aptYear = cvrtAptYear(aptYearInfo);   // 연식
-                    var aptSedae = cvrtAptSaedae($(response).find('.ComplexSummary_information__3bhbo').find('li').eq(1).text()); // 세대
-                    var mCnt = $(response).find('.ComplexSummary_area-list-button__0Hc4H').find('.ComplexSummary_count__tmidA').eq(0).text();
-                    var jCnt = $(response).find('.ComplexSummary_area-list-button__0Hc4H').find('.ComplexSummary_count__tmidA').eq(1).text();
-                    var mePrice = 0;
-                    var juPrice = 0;
+                });
+            });
+        }
 
-                    var me = new Object(); // 매매 하위
-                    var ju = new Object(); // 전세 하위
+        function loadData(mObj, jObj, id, pageCnt, mCnt, jCnt) {
 
-                    $(response).find(".ComplexArticleList_article__GjagM li").each(function (index, item) {
+            return new Promise((resolve, reject) => {
+                var corsAllowUrl = "https://cors-anywhere.herokuapp.com/";
+                var reqUrl = corsAllowUrl + "https://fin.land.naver.com/front-api/v1/complex/article/list?complexNumber=" + id + "&userChannelType=PC&page=" + pageCnt;
 
-                        var aptYn = $(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(0).text();
+                $.ajax({
+                    url: reqUrl,
+                    method: "GET",
+                    dataType: "JSON",
+                    async: true,
+                    contentType: "application/json; charset=utf-8",
+                    success: function (res) {
 
-                        var aptInfo = $(item).find('.ComplexArticleItem_name__4h3AA').text().replace(new RegExp(`^(${aptNm})\\s*`), "");
-                        var price = $(item).find('.ComplexArticleItem_price__DFeIb').text();
-                        var type = chkType($(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(1).text());
-                        var size = $(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(1).text();
-                        var floor = $(item).find('.ComplexArticleItem_list-summary__7yJ6y').children('li').eq(2).text();
-                        if (chkAptYn(aptYn)) {  // 도시형 확인
-                            if (chkCityApt(aptNm)) {      //  도시형 확인
-                                if (chkBigType(size)) {
-                                    if (aptInfo !== '') {
-                                        // 저층 제외, 최상층 제외
-                                        if (chkFloor(floor) !== false) {
-                                            // console.log(chkFloor(floor)); // 층 수 가져오기
-                                            // 매매/전세 확인
-                                            if (price.includes('매매')) {
-                                                mePrice = cvrtPrice(price);
-                                                createObj(me, mePrice, type, size, floor);
-                                            } else {
-                                                juPrice = cvrtPrice(price);
-                                                createObj(ju, juPrice, type, size, floor);
-                                            }
-                                        }
+                        var aptName = "";
+                        var hasNextPage = res.result.hasNextPage;
+                        for (var i = 0; i < res.result.list.length; i++) {
+                            var result = res.result.list[i];
+                            var info = result.representativeArticleInfo;
+
+                            aptName = info.complexName;
+
+                            var tradeType = info.tradeType;    // 매매/전세
+                            var supplyType= info.spaceInfo.supplySpaceName; // 공급평형
+                            var spaceType = info.spaceInfo.exclusiveSpaceName;  // 타입
+                            var floorInfo = info.articleDetail.floorInfo;   // 층수
+                            var dealPrice = formatToEok(info.priceInfo.dealPrice);   // 매매가
+                            var rantPrice = formatToEok(info.priceInfo.warrantyPrice);   // 전세가
+
+                            // 저층 고층 제외
+                            if (chkFloor(floorInfo)) {
+                                // 59, 84 만 체크
+                                if (chkBigType(spaceType)) {
+                                    if ('A1' === tradeType) {
+                                        createObj(mObj, dealPrice, supplyType, spaceType, floorInfo);
+                                        mCnt++;
+                                    } else if ('B1' === tradeType) {
+                                        createObj(jObj, rantPrice, supplyType, spaceType, floorInfo);
+                                        jCnt++;
                                     }
                                 }
                             }
                         }
-                    });
 
-                    var uniqueKeys = getUniqueKeys(me, ju);
 
-                    // console.log(uniqueKeys);
-                    var html = "";
-                    for (var i = 0; i < uniqueKeys.length; i++) {
-
-                        var mPrice = getPrice(uniqueKeys[i], me);   // 매매가
-                        var jPrice = getPrice(uniqueKeys[i], ju);   // 전세가
-
-                        html += '<tr>';
-                        html += '<td>' + id + '</td>';              // ID(네이버)
-                        html += '<td>' + gu + '</td>';              // 구
-                        html += '<td>' + dong + '</td>';              // 동
-                        html += '<td>' + aptNm + '</td>';            // 단지
-                        html += '<td>' + aptYear + '</td>';          // 연식
-                        html += '<td>' + aptSedae + '</td>';         // 세대
-                        // html += '<td>' + uniqueKeys[i] + '</td>';
-
-                        // 평형(상세)
-                        if (getSize(uniqueKeys[i], me) === '') {
-                            html += '<td>' + getSize(uniqueKeys[i], ju) + '</td>';
+                        if (hasNextPage) {
+                            return loadData(mObj, jObj, id, parseInt(pageCnt) + 1, mCnt, jCnt).then(resolve).catch(reject);
                         } else {
-                            html += '<td>' + getSize(uniqueKeys[i], me) + '</td>';
+                            resolve();
                         }
-
-                        html += '<td>' + mPrice + '</td>';  // 매매가
-                        html += '<td>' + jPrice + '</td>';  // 전세가
-                        html += '<td>' + getBalance(mPrice, jPrice) + '</td>';  // 차액
-                        html += '<td>' + getPersent(mPrice, jPrice) + '</td>';  // 전세가율
-                        html += '<td>' + mCnt + '</td>';  // 매매갯수
-                        html += '<td>' + jCnt + '</td>';  // 매매갯수
-
-                        html += '<td>' + getFloor(uniqueKeys[i], me) + '</td>';  // 매매층
-                        html += '<td>' + getFloor(uniqueKeys[i], ju) + '</td>';  // 전세층
+                    },
+                    error: function () {
+                        var html = "";
+                        html += '<tr>';
+                        html += '<td colspan="16">[ ' + id + ' ] 번 단지 정보를 가져오는 데 실패했습니다.</td>';
                         html += '</tr>';
+                        $('#tbl_aptInfo tbody').append(html);
+                        reject();
                     }
-
-                    $('#tbl_aptInfo tbody').append(html);
-
-                },
-                error: function () {
-                    var html = "";
-                    html += '<tr>';
-                    html += '<td colspan="16">[ ' + id + ' ] 번 단지 정보를 가져오는 데 실패했습니다.</td>';
-                    html += '</tr>';
-                    $('#tbl_aptInfo tbody').append(html);
-                }
+                });
             });
         }
 
-        function addrSubstr(text) {
-            return text.substring(0, text.length - 1);
+
+        function createTableList(iObj, mObj, jObj) {
+
+            var uniqueKeys = getUniqueKeys(mObj, jObj);
+
+            var html = "";
+            for (var i = 0; i < uniqueKeys.length; i++) {
+
+                var mPrice = getPrice(uniqueKeys[i], mObj);   // 매매가
+                var jPrice = getPrice(uniqueKeys[i], jObj);   // 전세가
+
+                html += '<tr>';
+                html += '<td>' + iObj.id + '</td>';              // ID(네이버)
+                html += '<td>' + iObj.gu + '</td>';              // 구
+                html += '<td>' + iObj.dong + '</td>';              // 동
+                html += '<td>' + iObj.aptNm + '</td>';            // 단지
+                html += '<td>' + iObj.year + '</td>';          // 연식
+                html += '<td>' + iObj.sd + '</td>';         // 세대
+                // 평형
+                if(mObj.hasOwnProperty(uniqueKeys[i])){
+                    html += '<td>' + getSupplyType(uniqueKeys[i], mObj) + '</td>';   
+                }else{
+                    html += '<td>' + getSupplyType(uniqueKeys[i], jObj) + '</td>';   
+                }
+                
+                html += '<td>' + uniqueKeys[i] + '</td>';  // 타입
+                html += '<td>' + mPrice + '</td>';  // 매매가
+                html += '<td>' + jPrice + '</td>';  // 전세가
+                html += '<td>' + getBalance(mPrice, jPrice) + '</td>';  // 차액
+                html += '<td>' + getPersent(mPrice, jPrice) + '</td>';  // 전세가율
+                html += '<td>' + iObj.mCnt + '</td>';  // 매매갯수
+                html += '<td>' + iObj.jCnt + '</td>';  // 매매갯수
+
+                html += '<td>' + getFloor(uniqueKeys[i], mObj) + '</td>';  // 매매층
+                html += '<td>' + getFloor(uniqueKeys[i], jObj) + '</td>';  // 전세층
+                html += '</tr>';
+            }
+
+            $('#tbl_aptInfo tbody').append(html);
+
         }
 
-        function cvrtAptSaedae(text) {
-            return text.replace('세대', '').trim();
+        function getPrice(key, json) {
+            if (json.hasOwnProperty(key)) {
+                return json[key].priceInfo;
+            } else {
+                return '0';
+            }
         }
 
-        function cvrtAptYear(text) {
-            return text.substring(0, text.indexOf('.'));
+        function getFloor(key, json) {
+            if (json.hasOwnProperty(key)) {
+                return json[key].floorInfo;
+            } else {
+                return '';
+            }
+        }
+
+        function getSize(key, json) {
+            if (json.hasOwnProperty(key)) {
+                return json[key].size;
+            } else {
+                return '';
+            }
+        }
+
+        function getSupplyType(key, json){
+            if (json.hasOwnProperty(key)) {
+                return json[key].supplyType;
+            } else {
+                return '';
+            }
         }
 
         function getBalance(mPrice, jPrice) {
@@ -665,70 +731,28 @@
             }
         }
 
-        function getPrice(key, json) {
-            if (json.hasOwnProperty(key)) {
-                return json[key].price;
-            } else {
-                return '0';
-            }
+        function addrSubstr(text) {
+            return text.substring(0, text.length - 1);
         }
 
-        function getFloor(key, json) {
-            if (json.hasOwnProperty(key)) {
-                return json[key].floor;
-            } else {
-                return '';
-            }
+        function cvrtAptSaedae(text) {
+            return text.replace('세대', '').trim();
         }
 
-        function getSize(key, json) {
-            if (json.hasOwnProperty(key)) {
-                return json[key].size;
-            } else {
-                return '';
-            }
+        function cvrtAptYear(text) {
+            return text.substring(0, text.indexOf('.'));
         }
 
-        function chkAptYn(aptYn) {
-            if (aptYn.includes('도시')) {
-                return false;
-            } else {
-                return true;
-            }
+        // 층 변환
+        function chkFloor(f) {
+            var maxFloor = parseInt(f.substring(f.indexOf('/') + 1, f.length));
+            var nowFloor = f.substring(0, f.indexOf('/'));
+
+            var excludeFloors = [String(maxFloor), '1', '2', '3', '저'];
+
+            if (excludeFloors.includes(nowFloor)) return false;
+            return true;
         }
-
-        function chkCityApt(nm) {
-            if (nm.includes('도시형')) {
-                return false;
-            } else {
-                return true;
-            }
-        }
-
-
-
-        function chkBigType(size) {
-            var chk = $('#chk').is(':checked');
-            if (chk) {
-                var match = size.match(/\(([^)]+)\)/); // 가로 안의 내용 찾기
-
-                if (match) {
-                    match = match[1].replace(/[A-Za-z]/g, ""); // 영문 제거 
-                }
-
-                if (parseInt(match) > 84 || parseInt(match) < 51) {
-                    return false;
-                } else {
-                    return true;
-                }
-
-            } else {
-                return true;
-            }
-
-        }
-
-
 
         // 중복되지 않는 키 추출 함수
         function getUniqueKeys(json1, json2) {
@@ -763,97 +787,71 @@
             return uniqueKeys;
         }
 
+        function chkBigType(v) {
+            var chk = $('#chk').is(':checked');
+            if (chk) {
+                var match = extractNumbers(v);
+                if (parseInt(match) > 84 || parseInt(match) < 51) {
+                    return false;
+                } else {
+                    return true;
+                }
+            } else {
+                return true;
+            }
+        }
+
+        // 타입 숫자만 반환
+        function extractNumbers(str) {
+            return str.match(/\d+/g)?.join('') || '';
+        }
 
 
         // 아파트 정보 입력
-        function createObj(arr, price, type, size, floor) {
+        function createObj(obj, priceInfo, supplyType, spaceType, floorInfo) {
 
-            type = type.trim();
+            spaceType = spaceType.trim();
 
-            if (!arr.hasOwnProperty(type)) {
-                setNewInfo(arr, price, type, size, floor);
+            if (!obj.hasOwnProperty(spaceType)) {
+                setNewInfo(obj, priceInfo, supplyType, spaceType, floorInfo);
             } else {
-                var bfPrice = arr[type].price;
-                var afPrice = price;
+                var bfPrice = obj[spaceType].priceInfo;
+                var afPrice = priceInfo;
 
                 if (parseFloat(bfPrice) > parseFloat(afPrice)) {
-                    setNewInfo(arr, price, type, size, floor);
+                    setNewInfo(obj, priceInfo, supplyType, spaceType, floorInfo);
                 }
             }
             // console.log(arr);
-            return arr;
+            return obj;
         }
 
-        function setNewInfo(arr, price, type, size, floor) {
+        function setNewInfo(obj, priceInfo, supplyType, spaceType, floorInfo) {
             var info = new Object();
-            info.price = price;
-            info.floor = floor;
-            info.size = size;
-            arr[type] = (info);
+            info.priceInfo = priceInfo;
+            info.supplyType = supplyType;
+            info.floorInfo = floorInfo;
+            obj[spaceType] = (info);            
         }
 
-
-        // 타입 변환
-        function chkType(type) {
-            type = type.substring(type.indexOf('㎡') + 1, type.length);
-            return type.replace(/[()]/g, "").replace(/(\d+)\.\d+(\w)/g, "$1$2");
+        function setBaseInfo(obj, id, aptNm, gu, dong, year, sd, mCnt, jCnt) {
+            obj.id = id;
+            obj.aptNm = aptNm;
+            obj.gu = gu;
+            obj.dong = dong;
+            obj.year = year;
+            obj.sd = sd;
+            obj.mCnt = mCnt;
+            obj.jCnt = jCnt;
         }
 
-        // 층 변환
-        function chkFloor(f) {
-            var maxFloor = parseInt(f.substring(f.indexOf('/') + 1, f.indexOf('층')));
-            var nowFloor = f.substring(0, f.indexOf('/'));
+        function formatToEok(value) {
+            if (typeof value !== "number" || isNaN(value)) return "Invalid Input";
 
-            var excludeFloors = [String(maxFloor), String(maxFloor - 1), '1', '2', '3', '저'];
-
-            if (excludeFloors.includes(nowFloor)) return false;
-            return nowFloor;
+            let result = value / 100000000; // 억 단위 변환
+            return result % 1 === 0 ? result.toFixed(0) : result.toFixed(1); // 정수면 소수점 제거, 소수 있으면 유지
         }
 
-        // 가격 변환
-        function cvrtPrice(text) {
-            // '매매'라는 단어가 포함되어 있으면 제거
-            text = text.replace(/^(매매|전세)\s*/, "");
-
-            let match = text.match(/(\d+)억(?:\s*(\d{1,3})(?:,?(\d{3}))?)?/);
-            if (!match) return text; // 변환할 수 없는 경우 원본 반환
-
-            let billion = parseInt(match[1], 10);
-            let thousand = 0;
-
-            if (match[2] && match[3]) {
-                // "5,000" 같은 형식 (천 단위)
-                thousand = parseInt(match[2] + match[3], 10);
-            } else if (match[2]) {
-                let num = parseInt(match[2], 10);
-                if (num >= 1000) {
-                    // "5천" 같은 형식
-                    thousand = num * 1000;
-                } else {
-                    // "500" 같은 백 단위 숫자
-                    thousand = num;
-                }
-            }
-
-            // 천 단위를 억 단위로 변환
-            let decimalPart = thousand / 10000; // 1천 = 0.1억
-            let result = (billion + decimalPart).toFixed(3); // 소수점 한 자리까지만 유지
-
-            // 불필요한 0 제거 (예: "8.100" → "8.1", "8.000" → "8")
-            result = result.replace(/\.?0+$/, "");
-
-
-
-            return result;
-        }
-
-        function getNowDate() {
-            let today = new Date();
-            let year = today.getFullYear();
-            let month = String(today.getMonth() + 1).padStart(2, "0"); // 1월 = 0이므로 +1
-            let day = String(today.getDate()).padStart(2, "0");
-            return currentDate = `${year}${month}${day}`;
-        }
 
         /*
          * 비교용 Excel 
@@ -930,18 +928,18 @@
                     var tblJu = $(element).find("td").eq(8).text(); // 전세
 
                     if (id == tblId && aptType == tblType) {
-                        if (Number(tblMe) !== 0 ) {
-                            if(Number(cmpMePrice) == 0 ){
+                        if (Number(tblMe) !== 0) {
+                            if (Number(cmpMePrice) == 0) {
                                 cmpMePrice = tblMe;
-                            }else if(Number(cmpMePrice) >= Number(tblMe)){
+                            } else if (Number(cmpMePrice) >= Number(tblMe)) {
                                 cmpMePrice = tblMe;
                             }
-                            
+
                         }
                         if (Number(tblJu) !== 0) {
-                            if(Number(cmpJuPrice) == 0 ){
+                            if (Number(cmpJuPrice) == 0) {
                                 cmpJuPrice = tblJu;
-                            }else if(Number(cmpJuPrice) >= Number(tblJu)){
+                            } else if (Number(cmpJuPrice) >= Number(tblJu)) {
                                 cmpJuPrice = tblJu;
                             }
                         }
@@ -1066,7 +1064,7 @@
     </div>
     <div>59,84 만<input id="chk" type="checkbox" checked></input></div>
     <div>
-        검색용 Excel <input type="file" id="excelFile"  />
+        검색용 Excel <input type="file" id="excelFile" />
         비교용 Excel <input type="file" id="cmpExcelFile" />
 
     </div>
@@ -1083,8 +1081,8 @@
                     <th>단지명</th>
                     <th>연식</th>
                     <th>세대</th>
-                    <!-- <th>유형</th> -->
-                    <th>평형(상세)</th>
+                    <th>평형</th>
+                    <th>타입</th>
                     <th>매매</th>
                     <th>전세</th>
                     <th>차액</th>
