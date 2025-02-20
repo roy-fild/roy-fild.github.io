@@ -669,8 +669,8 @@
                 html += '<td>' + iObj.mCnt + '</td>';  // 매매갯수
                 html += '<td>' + iObj.jCnt + '</td>';  // 매매갯수
 
-                html += '<td>' + getFloor(uniqueKeys[i], mObj) + '층</td>';  // 매매층
-                html += '<td>' + getFloor(uniqueKeys[i], jObj) + '층</td>';  // 전세층
+                html += '<td>' + getFloor(uniqueKeys[i], mObj) + '</td>';  // 매매층
+                html += '<td>' + getFloor(uniqueKeys[i], jObj) + '</td>';  // 전세층
                 html += '</tr>';
             }
 
@@ -688,7 +688,7 @@
 
         function getFloor(key, json) {
             if (json.hasOwnProperty(key)) {
-                return json[key].floorInfo;
+                return json[key].floorInfo + '층';
             } else {
                 return '';
             }
