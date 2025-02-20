@@ -522,11 +522,9 @@
                 }
 
                 let mObj = {};
-                let jObj = {};
-                let mCnt = 0;
-                let jCnt = 0;
+                let jObj = {};                
 
-                await loadData(mObj, jObj, id, '0', mCnt, jCnt); // 동기적으로 실행
+                await loadData(mObj, jObj, id, '0'); // 동기적으로 실행
 
                 createTableList(iObj, mObj, jObj); // loadData 완료 후 실행
             }
@@ -578,7 +576,7 @@
             });
         }
 
-        function loadData(mObj, jObj, id, pageCnt, mCnt, jCnt) {
+        function loadData(mObj, jObj, id, pageCnt) {
 
             return new Promise((resolve, reject) => {
                 var corsAllowUrl = "https://cors-anywhere.herokuapp.com/";
@@ -587,8 +585,7 @@
                 $.ajax({
                     url: reqUrl,
                     method: "GET",
-                    dataType: "JSON",
-                    async: true,
+                    dataType: "JSON",                    
                     contentType: "application/json; charset=utf-8",
                     success: function (res) {
 
@@ -612,11 +609,9 @@
                                 // 59, 84 만 체크
                                 if (chkBigType(spaceType)) {
                                     if ('A1' === tradeType) {
-                                        createObj(mObj, dealPrice, supplyType, spaceType, floorInfo);
-                                        mCnt++;
+                                        createObj(mObj, dealPrice, supplyType, spaceType, floorInfo);                                      
                                     } else if ('B1' === tradeType) {
-                                        createObj(jObj, rantPrice, supplyType, spaceType, floorInfo);
-                                        jCnt++;
+                                        createObj(jObj, rantPrice, supplyType, spaceType, floorInfo);                                        
                                     }
                                 }
                             }
@@ -624,7 +619,7 @@
 
 
                         if (hasNextPage) {
-                            return loadData(mObj, jObj, id, parseInt(pageCnt) + 1, mCnt, jCnt).then(resolve).catch(reject);
+                            return loadData(mObj, jObj, id, parseInt(pageCnt) + 1).then(resolve).catch(reject);
                         } else {
                             resolve();
                         }
@@ -674,8 +669,8 @@
                 html += '<td>' + iObj.mCnt + '</td>';  // 매매갯수
                 html += '<td>' + iObj.jCnt + '</td>';  // 매매갯수
 
-                html += '<td>' + getFloor(uniqueKeys[i], mObj) + '</td>';  // 매매층
-                html += '<td>' + getFloor(uniqueKeys[i], jObj) + '</td>';  // 전세층
+                html += '<td>' + getFloor(uniqueKeys[i], mObj) + '층</td>';  // 매매층
+                html += '<td>' + getFloor(uniqueKeys[i], jObj) + '층</td>';  // 전세층
                 html += '</tr>';
             }
 
@@ -852,6 +847,14 @@
             return result % 1 === 0 ? result.toFixed(0) : result.toFixed(1); // 정수면 소수점 제거, 소수 있으면 유지
         }
 
+        function getNowDate() {
+            let today = new Date();
+            let year = today.getFullYear();
+            let month = String(today.getMonth() + 1).padStart(2, "0"); // 1월 = 0이므로 +1
+            let day = String(today.getDate()).padStart(2, "0");
+            return currentDate = `${year}${month}${day}`;
+        }
+
 
         /*
          * 비교용 Excel 
@@ -916,18 +919,19 @@
                 var aptNm = aptSplit[1];
                 var aptType = aptSplit[2];
                 var mePrice = aptSplit[3];
-                var juPrice = aptSplit[4];
+                var juPrice = aptSplit[4];                
 
                 var cmpMePrice = 0;
                 var cmpJuPrice = 0;
 
                 $("#tbl_aptInfo tbody tr").each(function (index, element) {
-                    var tblId = $(element).find("td").eq(0).text(); //  tabld ID
-                    var tblType = cvrtDtlSz($(element).find("td").eq(6).text()); //  평형 상세
-                    var tblMe = $(element).find("td").eq(7).text(); // 매매
-                    var tblJu = $(element).find("td").eq(8).text(); // 전세
+                    var tblId = $(element).find("td").eq(0).text(); //  tabld ID                    
+                    var tblType = $(element).find("td").eq(7).text(); //  타입
+                    var tblMe = $(element).find("td").eq(8).text(); // 매매
+                    var tblJu = $(element).find("td").eq(9).text(); // 전세
 
-                    if (id == tblId && aptType == tblType) {
+                    
+                    if (id === tblId && aptType === extractNumbers(tblType)) {
                         if (Number(tblMe) !== 0) {
                             if (Number(cmpMePrice) == 0) {
                                 cmpMePrice = tblMe;
@@ -946,14 +950,14 @@
                     }
                 });
                 // 매매가 없으면 기존 매매가로 처리
-                if (Number(cmpMePrice) == 0) {
-                    cmpMePrice = mePrice;
-                }
+                // if (Number(cmpMePrice) == 0) {
+                //     cmpMePrice = mePrice;
+                // }
 
                 // 전세가 없으면 기존 전세가로 처리
-                if (Number(cmpJuPrice) == 0) {
-                    cmpJuPrice = juPrice;
-                }
+                // if (Number(cmpJuPrice) == 0) {
+                //     cmpJuPrice = juPrice;
+                // }
 
                 //console.log(cmpMePrice, cmpJuPrice);
 
@@ -984,7 +988,7 @@
                 if (cell[0] !== '!') {
                     worksheet[cell].s = {
                         font: { sz: 9 },
-                        alignment: { wrapText: true }
+                        alignment: { wrapText: true, horizontal: "right" } // 우측정렬
                     };
                 }
             });
