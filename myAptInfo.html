@@ -2,7 +2,7 @@
 <html>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 
     $(function () {
@@ -16,92 +16,194 @@
 
     });
 
+    // function onSearchBak() {
+    //     var region = $("#sel_region option:selected").val();
+
+    //     $.getJSON('https://roy-fild.github.io/json/myAptInfo.json', function (data) {
+    //         var html = [];
+    //         $.each(data, function (i, item) {
+    //             // 수도권
+    //             if (region == 'S') {
+    //                 if (item.region == '수도권' || item.region == '경기도') {
+    //                     chkPrice(html, item);
+    //                 }
+
+    //                 // 지방
+    //             } else if (region === 'J') {
+    //                 if (item.region != '수도권' && item.region != '경기도') {
+    //                     chkPrice(html, item);
+    //                 }
+    //                 // 전체
+    //             } else {
+    //                 chkPrice(html, item);
+    //             }
+
+    //         });
+
+    //         $('#tbl_aptInfo tbody').empty()
+    //         $('#tbl_aptInfo tbody').append(html);
+
+    //     });
+
+    //     setTimeout(function () {
+    //         if ($('#tbl_aptInfo tbody tr').length === 0) {
+    //             alert('검색된 내역이 없습니다');
+    //         }
+    //     }, 1500);
+    // }
+
     function onSearch() {
-        var region = $("#sel_region option:selected").val();
 
-        $.getJSON('https://roy-fild.github.io/json/myAptInfo.json', function (data) {
-            var html = [];
-            $.each(data, function (i, item) {
-                // 수도권
-                if (region == 'S') {
-                    if (item.region == '수도권' || item.region == '경기도') {
-                        chkPrice(html, item);
-                    }
+        let fileUrl = "https://roy-fild.github.io/file/myAptInfo.xlsx"; // 다운로드할 엑셀 파일 URL
 
-                // 지방
-                } else if (region === 'J') {
-                    if (item.region != '수도권' && item.region != '경기도') {
-                        chkPrice(html, item);
-                    }
-                // 전체
-                } else {
-                    chkPrice(html, item);
-                }
+        $('#tbl_aptInfo tbody').empty();
 
-            });
+        $.ajax({
+            url: fileUrl,
+            method: "GET",
+            xhrFields: {
+                responseType: "blob" // 바이너리 데이터로 가져오기
+            },
+            success: function (data) {
+                let reader = new FileReader();
+                reader.onload = function (e) {
+                    let arrayBuffer = e.target.result;
+                    let workBook = XLSX.read(arrayBuffer, { type: "array" });
 
-            $('#tbl_aptInfo tbody').empty()
-            $('#tbl_aptInfo tbody').append(html);
-
-        });
-
-        setTimeout(function () {
-            if ($('#tbl_aptInfo tbody tr').length === 0) {
-                alert('검색된 내역이 없습니다');
+                    workBook.SheetNames.forEach(function (sheetName) {
+                        // console.log('SheetName: ' + sheetName);
+                        let rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
+                        var keys = Object.keys(rows);
+                        chkValue(keys, rows);
+                    })
+                };
+                reader.readAsArrayBuffer(data);
+            },
+            error: function () {
+                alert("엑셀 파일을 다운로드하는 중 오류가 발생했습니다.");
             }
-        }, 1500);
+        });
     }
 
-    // 금액 체크
-    function chkPrice(html, item) {
-        var price = Number($("#sel_price option:selected").val());
-        if (price == 11) {
-            if (price <= item.me) {
-                chkPyung(html, item);
+    function chkValue(keys, rows) {
+        console.log('1111');
+        var html = "";
+        var ipt_region = $("#sel_region option:selected").val();
+
+        for (var i = 0; i < keys.length; i++) {
+            var key = keys[i];
+            var subKeys = Object.keys(rows[key]);
+            var region = rows[key][subKeys[0]];   // 지역
+
+            // 수도권
+            if (ipt_region == 'S') {
+                if (region == '수도권' || region == '경기도') {
+                    chkPrice(html, rows, key, subKeys);
+                }
+                // 지방
+            } else if (ipt_region === 'J') {
+                if (region != '수도권' && region != '경기도') {
+                    chkPrice(html, rows, key, subKeys);
+                }
+                // 전체
+            } else {
+                chkPrice(html, rows, key, subKeys);
             }
-        } else if (price <= item.me && item.me < price + 1) {
-            chkPyung(html, item);
+        }
+        console.log(html);
+
+
+    }
+
+    // 금액 체크{
+    function chkPrice(html, rows, key, subKeys) {
+        console.log(html);
+        var price = Number($("#sel_price option:selected").val());
+        var v = Number(rows[key][subKeys[11]]);
+        if (price == 11) {
+            if (price <= v) {
+                chkPyung(html, rows, key, subKeys);
+            }
+        } else if (price <= v && v < price + 1) {
+            chkPyung(html, rows, key, subKeys);
         }
     }
     // 평형 체크
-    function chkPyung(html, item){
+    function chkPyung(html, rows, key, subKeys) {
+        console.log(html);
         var pyung = Number($("#sel_pyung option:selected").val());
+        var v = Number(rows[key][subKeys[8]]);
 
-        if(pyung == 20){
-            if(item.pyung < 30){
-                crateHtml(html, item);
+        if (pyung == 20) {
+            if (v < 30) {
+                crateHtml(html, rows, key, subKeys);
             }
-        }else{
-            if(item.pyung >= 30){
-                crateHtml(html, item);
+        } else {
+            if (v >= 30) {
+                crateHtml(html, rows, key, subKeys);
             }
         }
     }
 
     // 테이블생성
-    function crateHtml(html, item) {
-        html.push('<tr>');
-        html.push('<td>' + item.si + '</td>');
-        html.push('<td>' + item.do + '</td>');
-        html.push('<td>' + item.gun + '</td>');
-        html.push('<td>' + item.nm + '</td>');
-        html.push('<td>' + item.year + '</td>');
-        html.push('<td>' + item.sedae + '</td>');
-        html.push('<td>' + item.pyung + '</td>');
-        html.push('<td>' + item.design + '</td>');
-        html.push('<td style="color:#0000ff;">' + item.me + '</td>');
-        html.push('<td>' + item.jun + '</td>');
-        html.push('<td>' + item.env + '</td>');
-        html.push('<td>' + item.junRate + '</td>');
-        html.push('<td>' + item.meCnt + '</td>');
-        html.push('<td>' + item.junCnt + '</td>');
-        html.push('<td>' + item.junWrate + '</td>');
-        html.push('<td>' + item.bfme + '</td>');
-        html.push('<td>' + item.chRate + '</td>');
-        html.push('<td>' + item.rate + '</td>');
-        html.push('<td>' + item.proceeds + '</td>');
-        html.push('</tr>');
+    function crateHtml(html, rows, key, subKeys) {
+        console.log(html);
 
+        var si = rows[key][subKeys[1]];    // 시
+        var gu = rows[key][subKeys[2]];    // 구
+        var dong = rows[key][subKeys[3]];    // 동
+        var nm = rows[key][subKeys[4]];    // 아파트명
+        var year = rows[key][subKeys[5]];    // 연식
+        var saedae = rows[key][subKeys[6]];    // 세대수
+        var size = rows[key][subKeys[7]];    // ㎡
+        var pyung = rows[key][subKeys[8]];    // 평
+        var type = rows[key][subKeys[9]];    // 타입
+        var structure = rows[key][subKeys[10]];    // 구조
+        var price = rows[key][subKeys[11]];    // 매매가
+        var rent = rows[key][subKeys[12]];    // 전세가
+        var gap = rows[key][subKeys[13]];   // 차액
+        var rentPriceRate = rows[key][subKeys[14]];    // 전세가율
+        var mCnt = rows[key][subKeys[15]];    // 매
+        var jCnt = rows[key][subKeys[16]];    // 전
+        var rentRate = rows[key][subKeys[17]];    // 전세비율
+        var high = rows[key][subKeys[18]];    // 전고점
+        var change = rows[key][subKeys[19]];    // 변화율
+        var roi = rows[key][subKeys[20]];    // 수익률
+        var profit = rows[key][subKeys[21]];    // 수익금
+
+        html += "<tr>";
+        html += `<td>${si}</td>`;
+        html += `<td>${gu}</td>`;
+        html += `<td>${dong}</td>`;
+        html += `<td>${nm}</td>`;
+        html += `<td>${year}</td>`;
+        html += `<td>${saedae}</td>`;
+        html += `<td>${pyung}</td>`;
+        html += `<td>${structure}</td>`;
+        html += `<td style="color:#0000ff;">${price}</td>`;
+        html += `<td>${rent}</td>`;
+        html += `<td>${gap}</td>`;
+        html += `<td>${cvrtPersent(rentPriceRate)}</td>`;
+        html += `<td>${mCnt}</td>`;
+        html += `<td>${jCnt}</td>`;
+        html += `<td>${cvrtPersent(rentRate)}</td>`;
+        html += `<td>${high}</td>`;
+        html += `<td>${cvrtPersent(change)}</td>`;
+        html += `<td>${cvrtPersent(roi)}</td>`;
+        html += `<td>${profit}</td>`;
+        html += "</tr>";
+
+        $('#tbl_aptInfo tbody').append(html);
+    }
+
+    function cvrtPersent(v) {
+        let decimalValue = parseFloat(v);
+        if (!isNaN(decimalValue)) {
+            let percentage = (decimalValue * 100).toFixed(2) + "%";  // 소수점 2자리까지 표시
+            return percentage;
+        } else {
+            return "0%";
+        }
     }
 
 
@@ -207,7 +309,10 @@
             </thead>
         </table>
         <small><i>
-                <font size=1>2025.01</font>
+                <font size=1>서울.2025.02</font>
+            </i></small>
+            <i>
+                <font size=1>지방.2025.01</font>
             </i></small>
         <table id="tbl_aptInfo">
             <thead>
