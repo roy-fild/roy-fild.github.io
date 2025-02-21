@@ -926,13 +926,16 @@
                 var cmpMePrice = "";
                 var cmpJuPrice = "";
 
+                var mCnt = "";
+                var jCnt = "";
+
                 $("#tbl_aptInfo tbody tr").each(function (index, element) {
                     var tblId = $(element).find("td").eq(0).text(); //  tabld ID                    
                     var tblType = $(element).find("td").eq(7).text(); //  타입
                     var tblMe = $(element).find("td").eq(8).text(); // 매매
                     var tblJu = $(element).find("td").eq(9).text(); // 전세
-                    var tblMCnt = $(element).find("td").eq(12).text(); // 매
-                    var tblJCnt = $(element).find("td").eq(13).text(); // 전
+                    mCnt = $(element).find("td").eq(12).text(); // 매
+                    jCnt = $(element).find("td").eq(13).text(); // 전
 
                     
                     if (id === tblId && aptType === extractNumbers(tblType)) {
@@ -970,8 +973,8 @@
                 rowArr.push(aptType);
                 rowArr.push(cmpMePrice);
                 rowArr.push(cmpJuPrice);
-                rowArr.push(tblMCnt);
-                rowArr.push(tblJCnt);
+                rowArr.push(mCnt);
+                rowArr.push(jCnt);
 
                 contentsArr.push(rowArr);
 
