@@ -522,7 +522,7 @@
                 }
 
                 let mObj = {};
-                let jObj = {};                
+                let jObj = {};
 
                 await loadData(mObj, jObj, id, '0'); // 동기적으로 실행
 
@@ -585,7 +585,7 @@
                 $.ajax({
                     url: reqUrl,
                     method: "GET",
-                    dataType: "JSON",                    
+                    dataType: "JSON",
                     contentType: "application/json; charset=utf-8",
                     success: function (res) {
 
@@ -598,7 +598,7 @@
                             aptName = info.complexName;
 
                             var tradeType = info.tradeType;    // 매매/전세
-                            var supplyType= info.spaceInfo.supplySpaceName; // 공급평형
+                            var supplyType = info.spaceInfo.supplySpaceName; // 공급평형
                             var spaceType = info.spaceInfo.exclusiveSpaceName;  // 타입
                             var floorInfo = info.articleDetail.floorInfo;   // 층수
                             var dealPrice = formatToEok(info.priceInfo.dealPrice);   // 매매가
@@ -609,9 +609,9 @@
                                 // 59, 84 만 체크
                                 if (chkBigType(spaceType)) {
                                     if ('A1' === tradeType) {   // 매매
-                                        createObj(mObj, dealPrice, supplyType, spaceType, floorInfo);                                      
+                                        createObj(mObj, dealPrice, supplyType, spaceType, floorInfo);
                                     } else if ('B1' === tradeType) { // 전세
-                                        createObj(jObj, rantPrice, supplyType, spaceType, floorInfo);                                        
+                                        createObj(jObj, rantPrice, supplyType, spaceType, floorInfo);
                                     }
                                 }
                             }
@@ -655,12 +655,12 @@
                 html += '<td>' + iObj.year + '</td>';          // 연식
                 html += '<td>' + iObj.sd + '</td>';         // 세대
                 // 평형
-                if(mObj.hasOwnProperty(uniqueKeys[i])){
-                    html += '<td>' + getSupplyType(uniqueKeys[i], mObj) + '</td>';   
-                }else{
-                    html += '<td>' + getSupplyType(uniqueKeys[i], jObj) + '</td>';   
+                if (mObj.hasOwnProperty(uniqueKeys[i])) {
+                    html += '<td>' + getSupplyType(uniqueKeys[i], mObj) + '</td>';
+                } else {
+                    html += '<td>' + getSupplyType(uniqueKeys[i], jObj) + '</td>';
                 }
-                
+
                 html += '<td>' + uniqueKeys[i] + '</td>';  // 타입
                 html += '<td>' + mPrice + '</td>';  // 매매가
                 html += '<td>' + jPrice + '</td>';  // 전세가
@@ -702,7 +702,7 @@
             }
         }
 
-        function getSupplyType(key, json){
+        function getSupplyType(key, json) {
             if (json.hasOwnProperty(key)) {
                 return json[key].supplyType;
             } else {
@@ -826,7 +826,7 @@
             info.priceInfo = priceInfo;
             info.supplyType = supplyType;
             info.floorInfo = floorInfo;
-            obj[spaceType] = (info);            
+            obj[spaceType] = (info);
         }
 
         function setBaseInfo(obj, id, aptNm, gu, dong, year, sd, mCnt, jCnt) {
@@ -921,7 +921,7 @@
                 var aptNm = aptSplit[1];
                 var aptType = aptSplit[2];
                 var mePrice = aptSplit[3];
-                var juPrice = aptSplit[4];                
+                var juPrice = aptSplit[4];
 
                 var cmpMePrice = "";
                 var cmpJuPrice = "";
@@ -933,27 +933,31 @@
                     var tblId = $(element).find("td").eq(0).text(); //  tabld ID                    
                     var tblType = $(element).find("td").eq(7).text(); //  타입
                     var tblMe = $(element).find("td").eq(8).text(); // 매매
-                    var tblJu = $(element).find("td").eq(9).text(); // 전세
-                    mCnt = $(element).find("td").eq(12).text(); // 매
-                    jCnt = $(element).find("td").eq(13).text(); // 전
+                    var tblJu = $(element).find("td").eq(9).text(); // 전세           
 
-                    
-                    if (id === tblId && aptType === extractNumbers(tblType)) {
-                        if (Number(tblMe) !== 0) {
-                            if (cmpMePrice === "") {
-                                cmpMePrice = tblMe;
-                            } else if (Number(cmpMePrice) >= Number(tblMe)) {
-                                cmpMePrice = tblMe;
-                            }
+                    if (id === tblId ) {
 
-                        }
-                        if (Number(tblJu) !== 0) {
-                            if (cmpJuPrice === "") {
-                                cmpJuPrice = tblJu;
-                            } else if (Number(cmpJuPrice) >= Number(tblJu)) {
-                                cmpJuPrice = tblJu;
+                        mCnt = $(element).find("td").eq(12).text(); // 매
+                        jCnt = $(element).find("td").eq(13).text(); // 전
+
+                        // 타입이 같고, 매매가 0이 아니면
+                        if (aptType === extractNumbers(tblType)) {
+                            if (Number(tblMe) !== 0) {
+                                if (cmpMePrice === "") {
+                                    cmpMePrice = tblMe;
+                                } else if (Number(cmpMePrice) >= Number(tblMe)) {
+                                    cmpMePrice = tblMe;
+                                }
+
                             }
-                        }
+                            if (Number(tblJu) !== 0) {
+                                if (cmpJuPrice === "") {
+                                    cmpJuPrice = tblJu;
+                                } else if (Number(cmpJuPrice) >= Number(tblJu)) {
+                                    cmpJuPrice = tblJu;
+                                }
+                            }
+                        }                        
                     }
                 });
                 // 매매가 없으면 기존 매매가로 처리
