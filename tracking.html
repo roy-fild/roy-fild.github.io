@@ -80,6 +80,11 @@
             margin-bottom: 5px;
         }
 
+        .grey_btn {
+            background-color: rgb(128,128,128);
+            margin-bottom: 5px;
+        }
+
         body {
             padding: 1.5em;
             background: #f5f5f5
@@ -179,6 +184,13 @@
     </style>
     <script>
         $(document).ready(function () {
+
+            // 새창 띄우기
+            $('#btn_new_window').on('click', function (e) {
+                e.preventDefault();
+                var currentUrl = window.location.href;
+                window.open(currentUrl, '_blank');
+            });
 
             // UpLoad용 엑셀파일 
             $('#excelFile').on('change', function (event) {
@@ -935,7 +947,7 @@
                     var tblMe = $(element).find("td").eq(8).text(); // 매매
                     var tblJu = $(element).find("td").eq(9).text(); // 전세           
 
-                    if (id === tblId ) {
+                    if (id === tblId) {
 
                         mCnt = $(element).find("td").eq(12).text(); // 매
                         jCnt = $(element).find("td").eq(13).text(); // 전
@@ -957,7 +969,7 @@
                                     cmpJuPrice = tblJu;
                                 }
                             }
-                        }                        
+                        }
                     }
                 });
                 // 매매가 없으면 기존 매매가로 처리
@@ -1041,6 +1053,7 @@
         <!-- <button id="loadData">데이터 가져오기</button> -->
         <a href="https://cors-anywhere.herokuapp.com" target='_blank'>START</a>
         <a href="https://roy-fild.github.io/file/naver_apt_list_202406.xlsx" download>Download</a>
+        <button id="btn_new_window" class="grey_btn">새창</button>
     </div>
     <div>
         <b>정찰기</b>
