@@ -608,9 +608,9 @@
                             if (chkFloor(floorInfo)) {
                                 // 59, 84 만 체크
                                 if (chkBigType(spaceType)) {
-                                    if ('A1' === tradeType) {
+                                    if ('A1' === tradeType) {   // 매매
                                         createObj(mObj, dealPrice, supplyType, spaceType, floorInfo);                                      
-                                    } else if ('B1' === tradeType) {
+                                    } else if ('B1' === tradeType) { // 전세
                                         createObj(jObj, rantPrice, supplyType, spaceType, floorInfo);                                        
                                     }
                                 }
@@ -627,7 +627,7 @@
                     error: function () {
                         var html = "";
                         html += '<tr>';
-                        html += '<td colspan="16">[ ' + id + ' ] 번 단지 정보를 가져오는 데 실패했습니다.</td>';
+                        html += '<td colspan="18">[ ' + id + ' ] 번 단지 정보를 가져오는 데 실패했습니다.</td>';
                         html += '</tr>';
                         $('#tbl_aptInfo tbody').append(html);
                         reject();
@@ -907,6 +907,8 @@
             titArr.push("타입");
             titArr.push("매매");
             titArr.push("전세");
+            titArr.push("매");
+            titArr.push("전");
 
             var contentsArr = [];
 
@@ -921,19 +923,21 @@
                 var mePrice = aptSplit[3];
                 var juPrice = aptSplit[4];                
 
-                var cmpMePrice = 0;
-                var cmpJuPrice = 0;
+                var cmpMePrice = "";
+                var cmpJuPrice = "";
 
                 $("#tbl_aptInfo tbody tr").each(function (index, element) {
                     var tblId = $(element).find("td").eq(0).text(); //  tabld ID                    
                     var tblType = $(element).find("td").eq(7).text(); //  타입
                     var tblMe = $(element).find("td").eq(8).text(); // 매매
                     var tblJu = $(element).find("td").eq(9).text(); // 전세
+                    var tblMCnt = $(element).find("td").eq(12).text(); // 매
+                    var tblJCnt = $(element).find("td").eq(13).text(); // 전
 
                     
                     if (id === tblId && aptType === extractNumbers(tblType)) {
                         if (Number(tblMe) !== 0) {
-                            if (Number(cmpMePrice) == 0) {
+                            if (cmpMePrice === "") {
                                 cmpMePrice = tblMe;
                             } else if (Number(cmpMePrice) >= Number(tblMe)) {
                                 cmpMePrice = tblMe;
@@ -941,7 +945,7 @@
 
                         }
                         if (Number(tblJu) !== 0) {
-                            if (Number(cmpJuPrice) == 0) {
+                            if (cmpJuPrice === "") {
                                 cmpJuPrice = tblJu;
                             } else if (Number(cmpJuPrice) >= Number(tblJu)) {
                                 cmpJuPrice = tblJu;
@@ -966,6 +970,8 @@
                 rowArr.push(aptType);
                 rowArr.push(cmpMePrice);
                 rowArr.push(cmpJuPrice);
+                rowArr.push(tblMCnt);
+                rowArr.push(tblJCnt);
 
                 contentsArr.push(rowArr);
 
