@@ -9,48 +9,16 @@
 
         // 검색
         $('#tb_btnSearch').on('click', function () {
+            showLoadingBar();
             onSearch();
         });
 
-
-
+        // 데이터 로딩이 완료된 후 로딩바 숨기기
+        $(document).ajaxStop(function () {
+            hideLoadingBar();
+        });
     });
 
-    // function onSearchBak() {
-    //     var region = $("#sel_region option:selected").val();
-
-    //     $.getJSON('https://roy-fild.github.io/json/myAptInfo.json', function (data) {
-    //         var html = [];
-    //         $.each(data, function (i, item) {
-    //             // 수도권
-    //             if (region == 'S') {
-    //                 if (item.region == '수도권' || item.region == '경기도') {
-    //                     chkPrice(html, item);
-    //                 }
-
-    //                 // 지방
-    //             } else if (region === 'J') {
-    //                 if (item.region != '수도권' && item.region != '경기도') {
-    //                     chkPrice(html, item);
-    //                 }
-    //                 // 전체
-    //             } else {
-    //                 chkPrice(html, item);
-    //             }
-
-    //         });
-
-    //         $('#tbl_aptInfo tbody').empty()
-    //         $('#tbl_aptInfo tbody').append(html);
-
-    //     });
-
-    //     setTimeout(function () {
-    //         if ($('#tbl_aptInfo tbody tr').length === 0) {
-    //             alert('검색된 내역이 없습니다');
-    //         }
-    //     }, 1500);
-    // }
 
     function onSearch() {
 
@@ -86,7 +54,6 @@
     }
 
     function chkValue(keys, rows) {
-        console.log('1111');
         var html = "";
         var ipt_region = $("#sel_region option:selected").val();
 
@@ -110,14 +77,10 @@
                 chkPrice(html, rows, key, subKeys);
             }
         }
-        console.log(html);
-
-
     }
 
     // 금액 체크{
     function chkPrice(html, rows, key, subKeys) {
-        console.log(html);
         var price = Number($("#sel_price option:selected").val());
         var v = Number(rows[key][subKeys[11]]);
         if (price == 11) {
@@ -130,7 +93,6 @@
     }
     // 평형 체크
     function chkPyung(html, rows, key, subKeys) {
-        console.log(html);
         var pyung = Number($("#sel_pyung option:selected").val());
         var v = Number(rows[key][subKeys[8]]);
 
@@ -138,16 +100,17 @@
             if (v < 30) {
                 crateHtml(html, rows, key, subKeys);
             }
-        } else {
+        } else if (pyung == 30) {
             if (v >= 30) {
                 crateHtml(html, rows, key, subKeys);
             }
+        } else {
+            crateHtml(html, rows, key, subKeys);
         }
     }
 
     // 테이블생성
     function crateHtml(html, rows, key, subKeys) {
-        console.log(html);
 
         var si = rows[key][subKeys[1]];    // 시
         var gu = rows[key][subKeys[2]];    // 구
@@ -206,6 +169,19 @@
         }
     }
 
+    function showLoadingBar() {
+        $('#loadingBar').show();
+        $('#loadingProgress').css('width', '0');
+        $('#loadingProgress').animate({ width: '100%' }, 1000); // 로딩바 애니메이션
+    }
+
+    function hideLoadingBar() {
+        $('#loadingProgress').css('width', '100%');
+        setTimeout(function () {
+            $('#loadingBar').hide();
+        }, 500); // 로딩바 숨김
+    }
+
 
 
 </script>
@@ -213,6 +189,23 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
+        #loadingBar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background-color: #f3f3f3;
+            z-index: 9999;
+        }
+
+        #loadingProgress {
+            height: 100%;
+            width: 0;
+            background-color: #4caf50;
+            transition: width 0.4s ease;
+        }
+
         body {
             color: #666;
             font: 14px/24px "Open Sans", "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", Sans-Serif;
@@ -267,7 +260,9 @@
 </head>
 
 <body>
-
+    <div id="loadingBar" style="display: none;">
+        <div id="loadingProgress"></div>
+    </div>
     <div class="tab_t tab_box on">
         <table>
             <thead>
@@ -300,6 +295,7 @@
                         <select id="sel_pyung">
                             <option value="20" selected>20평대</option>
                             <option value="30">30평대</option>
+                            <option value="ALL">전체</option>
                         </select>
                     </td>
                     <td id="tb_btnSearch" style="text-align: center; background-color: slategrey; color:white;">
@@ -311,9 +307,9 @@
         <small><i>
                 <font size=1>서울.2025.02</font>
             </i></small>
-            <i>
-                <font size=1>지방.2025.01</font>
-            </i></small>
+        <i>
+            <font size=1>지방.2025.01</font>
+        </i></small>
         <table id="tbl_aptInfo">
             <thead>
                 <tr>
