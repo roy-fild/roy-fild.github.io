@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>네이버 아파트 정보 조회</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        #loadingBar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background-color: #f3f3f3;
+            z-index: 9999;
+            display: none;
+        }
+
+        #loadingProgress {
+            height: 100%;
+            width: 0;
+            background-color: #4caf50;
+            transition: width 0.4s ease;
+        }
+
+        button {
+            margin-bottom: 5px;
+            padding: 8px 16px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .skyblue_btn {
+            background-color: skyblue;
+        }
+
+        .green_btn {
+            background-color: green;
+            color: white;
+        }
+
+        body {
+            padding: 1.5em;
+            background: #f5f5f5;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+        }
+
+        th,
+        td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background: #73685d;
+            color: white;
+        }
+
+        tbody tr:nth-child(odd) {
+            background: #f9f9f9;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loadingBar">
+        <div id="loadingProgress"></div>
+    </div>
+
+    <button id="btn_search" class="skyblue_btn">조회</button>
+    <button id="btn_excelDownload" class="green_btn">EXCEL</button>
+
+    <table id="tbl_aptInfo">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>시</th>
+                <th>구</th>
+                <th>동</th>
+                <th>단지명</th>
+                <th>연식</th>
+                <th>세대</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        $(document).ready(function () {
+            $('#btn_search').on('click', function () {
+                requestNaver();
+            });
+
+            $('#btn_excelDownload').on('click', function () {
+                downloadExcel();
+            });
+        });
+
+        async function requestNaver() {
+            // $('#tbl_aptInfo tbody').empty();
+            // showLoadingBar();
+
+            const ids = [...Array(20).keys()];  // 🚀 1,000개만 처리 (30만 개 비현실적)
+
+            let contents = "";
+            //contents += "ID,시,구,동,단지명,연식,세대\n";
+
+            var contentsArr = [];
+            var titArr = [];
+            var aptInfo = [];
+            titArr.push("ID");
+            titArr.push("시");
+            titArr.push("구");
+            titArr.push("동");
+            titArr.push("단지명");
+            titArr.push("연식");
+            titArr.push("세대");
+
+            contentsArr.push(titArr);
+
+            var cnt = 0;
+
+            for (let id = 37000; id < 50000; id++) {
+                try {
+                    aptInfo = await loadBaseData(id, contents);
+                    contentsArr.push(aptInfo);
+                    if (cnt == 1000){
+                        console.clear();
+                    }
+                    if (cnt == 10000) {
+                        downloadExcel(contentsArr);
+                        contentsArr = [];
+                        contentsArr.push(createTit());
+                        cnt = 0;
+                    }
+                    
+                } catch (error) {
+                    console.error(`ID ${id} 조회 실패`);
+                }
+                cnt++; 
+            }
+
+            // hideLoadingBar();
+            downloadExcel(contentsArr);
+        }
+        function createTit(){
+            var titArr = [];
+            titArr.push("ID");
+            titArr.push("시");
+            titArr.push("구");
+            titArr.push("동");
+            titArr.push("단지명");
+            titArr.push("연식");
+            titArr.push("세대");
+            return titArr;
+        }
+
+        function loadBaseData(id) {
+            return new Promise((resolve, reject) => {
+                var corsAllowUrl = "https://cors-anywhere.herokuapp.com/";
+                const reqUrl = `${corsAllowUrl}https://fin.land.naver.com/complexes/${id}?tab=transaction&tradeType=A1&pyeongTypeNumber=1`;
+                var aptInfo = [];
+                $.ajax({
+                    url: reqUrl,
+                    method: "GET",
+                    success: function (response) {
+                        var addr = $(response).find('.HeaderBrandDepth-module_sub-name__t-5rA').text();
+                        var addrSplit = addr.split(' ');
+                        var si = "", gu = "", dong = "";
+
+                        if (addrSplit.length > 2) {
+                            si = addrSubstr(addrSplit[0]);
+                            gu = addrSubstr(addrSplit[1]);
+                            dong = addrSubstr(addrSplit[2]);
+                        } else {
+
+                            gu = addrSubstr(addrSplit[0]);
+                            dong = addrSubstr(addrSplit[1]);
+                        }
+
+                        var aptNm = $(response).find('.ComplexSummary_name__vX3IN').text();
+                        var aptYearInfo = $(response).find('.ComplexSummary_information__3bhbo').find('li').eq(2).text();
+                        var aptYear = cvrtAptYear(aptYearInfo);
+                        var aptSedae = cvrtAptSaedae($(response).find('.ComplexSummary_information__3bhbo').find('li').eq(1).text());
+
+
+                        aptInfo.push(id);
+                        aptInfo.push(aptNm);
+                        aptInfo.push(si);
+                        aptInfo.push(gu);
+                        aptInfo.push(dong);
+                        aptInfo.push(aptYear);
+                        aptInfo.push(aptSedae);
+
+                        resolve(aptInfo);
+                    },
+                    error: function () {
+                        reject(new Error(`ID ${id} 조회 실패`));
+                    }
+                });
+            });
+        }
+        function saveTextFile(fileName, content) {
+            let blob = new Blob([content], { type: "text/plain" });
+            let link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+
+
+        function downloadExcel(contentsArr) {
+
+            const worksheet = XLSX.utils.aoa_to_sheet(contentsArr);
+
+            // 스타일 설정: 폰트 크기 9
+            Object.keys(worksheet).forEach(cell => {
+                if (cell[0] !== '!') {
+                    worksheet[cell].s = {
+                        font: { sz: 9 },
+                        alignment: { wrapText: true }
+                    };
+                }
+            });
+
+            // 열 너비 자동 조정 (개행 문자 및 한글 고려)
+            const colWidths = contentsArr[0].map((_, colIndex) => {
+                const maxWidth = contentsArr.reduce((max, row) => {
+                    const cellValue = row[colIndex] ? String(row[colIndex]) : "";
+                    const lines = cellValue.split(/\r?\n/); // 개행 문자 기준 분할
+                    const maxLineWidth = Math.max(...lines.map(line => {
+                        return line.split('').reduce((acc, char) => {
+                            return acc + (char.match(/[가-힣]/) ? 2 : 1); // 한글은 2배 너비로 계산
+                        }, 0);
+                    }));
+                    return Math.max(max, maxLineWidth);
+                }, 10); // 최소 너비 10 설정
+                return { wch: maxWidth + 2 }; // 여백을 추가하여 가독성 향상
+            });
+            worksheet['!cols'] = colWidths;
+
+            // 엑셀 파일 생성 (CSV 대신 XLSX 사용)
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+
+            const fileName = "apt_info_result.xlsx";
+            XLSX.writeFile(workbook, fileName);
+        }
+
+        function showLoadingBar() {
+            $('#loadingBar').show();
+            $('#loadingProgress').css('width', '0').animate({ width: '100%' }, 1000);
+        }
+
+        function hideLoadingBar() {
+            setTimeout(() => $('#loadingBar').hide(), 500);
+        }
+
+        function addrSubstr(text) {
+            return text.substring(0, text.length - 1);
+        }
+
+
+        function getNowDate() {
+            const d = new Date();
+            return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+        }
+
+        function cvrtAptSaedae(text) {
+            return text.replace('세대', '').trim();
+        }
+
+        function cvrtAptYear(text) {
+            return text.substring(0, text.indexOf('.'));
+        }
+    </script>
+</body>
+
+</html>
