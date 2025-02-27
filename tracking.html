@@ -610,6 +610,7 @@
                             aptName = info.complexName;
 
                             var dongName = info.dongName;   // 동 정보,
+                            var desc = info.articleDetail.articleFeatureDescription; // 물건 정보
                             var tradeType = info.tradeType;    // 매매/전세
                             var supplyType = info.spaceInfo.supplySpaceName; // 공급평형
                             var spaceType = info.spaceInfo.exclusiveSpaceName;  // 타입
@@ -624,9 +625,9 @@
                                 // 59, 84 만 체크
                                 if (chkBigType(spaceType)) {
                                     if ('A1' === tradeType) {   // 매매
-                                        createObj(mObj, dealPrice, supplyType, spaceType, floorInfo);
+                                        createObj(mObj, dealPrice, supplyType, spaceType, floorInfo, desc);
                                     } else if ('B1' === tradeType) { // 전세
-                                        createObj(jObj, rantPrice, supplyType, spaceType, floorInfo);
+                                        createObj(jObj, rantPrice, supplyType, spaceType, floorInfo, desc);
                                     }
                                 }
                             }
@@ -684,13 +685,20 @@
                 html += '<td>' + iObj.mCnt + '</td>';  // 매매갯수
                 html += '<td>' + iObj.jCnt + '</td>';  // 매매갯수
 
-                html += '<td>' + getFloor(uniqueKeys[i], mObj) + '</td>';  // 매매층
-                html += '<td>' + getFloor(uniqueKeys[i], jObj) + '</td>';  // 전세층
+                html += '<td title="'+ getDesc(uniqueKeys[i], mObj) +'">' + getFloor(uniqueKeys[i], mObj) + '</td>';  // 매매층
+                html += '<td title="'+ getDesc(uniqueKeys[i], jObj) +'">' + getFloor(uniqueKeys[i], jObj) + '</td>';  // 전세층
                 html += '</tr>';
             }
 
             $('#tbl_aptInfo tbody').append(html);
 
+        }
+        function getDesc(key, json){
+            if (json.hasOwnProperty(key)) {
+                return json[key].desc;
+            } else {
+                return '';
+            }
         }
 
         function getPrice(key, json) {
@@ -818,29 +826,30 @@
 
 
         // 아파트 정보 입력
-        function createObj(obj, priceInfo, supplyType, spaceType, floorInfo) {
+        function createObj(obj, priceInfo, supplyType, spaceType, floorInfo, desc) {
 
             spaceType = spaceType.trim();
 
             if (!obj.hasOwnProperty(spaceType)) {
-                setNewInfo(obj, priceInfo, supplyType, spaceType, floorInfo);
+                setNewInfo(obj, priceInfo, supplyType, spaceType, floorInfo, desc);
             } else {
                 var bfPrice = obj[spaceType].priceInfo;
                 var afPrice = priceInfo;
 
                 if (parseFloat(bfPrice) > parseFloat(afPrice)) {
-                    setNewInfo(obj, priceInfo, supplyType, spaceType, floorInfo);
+                    setNewInfo(obj, priceInfo, supplyType, spaceType, floorInfo, desc);
                 }
             }
             // console.log(arr);
             return obj;
         }
 
-        function setNewInfo(obj, priceInfo, supplyType, spaceType, floorInfo) {
+        function setNewInfo(obj, priceInfo, supplyType, spaceType, floorInfo, desc) {
             var info = new Object();
             info.priceInfo = priceInfo;
             info.supplyType = supplyType;
             info.floorInfo = floorInfo;
+            info.desc = desc;
             obj[spaceType] = (info);
         }
 
