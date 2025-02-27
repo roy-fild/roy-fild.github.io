@@ -609,12 +609,14 @@
 
                             aptName = info.complexName;
 
+                            var dongName = info.dongName;   // 동 정보,
                             var tradeType = info.tradeType;    // 매매/전세
                             var supplyType = info.spaceInfo.supplySpaceName; // 공급평형
                             var spaceType = info.spaceInfo.exclusiveSpaceName;  // 타입
-                            var floorInfo = info.articleDetail.floorInfo;   // 층수
+                            var floorInfo = `${dongName}(${info.articleDetail.floorInfo})`;   // 층수
                             var dealPrice = formatToEok(info.priceInfo.dealPrice);   // 매매가
                             var rantPrice = formatToEok(info.priceInfo.warrantyPrice);   // 전세가
+                            
 
                             // 저층 고층 제외
                             if (chkFloor(floorInfo)) {
@@ -700,7 +702,7 @@
 
         function getFloor(key, json) {
             if (json.hasOwnProperty(key)) {
-                return json[key].floorInfo + '층';
+                return json[key].floorInfo;
             } else {
                 return '';
             }
