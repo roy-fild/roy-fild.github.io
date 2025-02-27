@@ -613,13 +613,14 @@
                             var tradeType = info.tradeType;    // 매매/전세
                             var supplyType = info.spaceInfo.supplySpaceName; // 공급평형
                             var spaceType = info.spaceInfo.exclusiveSpaceName;  // 타입
-                            var floorInfo = `${dongName}(${info.articleDetail.floorInfo})`;   // 층수
+                            var floorInfo = info.articleDetail.floorInfo;   // 층수
                             var dealPrice = formatToEok(info.priceInfo.dealPrice);   // 매매가
                             var rantPrice = formatToEok(info.priceInfo.warrantyPrice);   // 전세가
                             
 
                             // 저층 고층 제외
                             if (chkFloor(floorInfo)) {
+                                floorInfo = `${dongName}(${floorInfo})`
                                 // 59, 84 만 체크
                                 if (chkBigType(spaceType)) {
                                     if ('A1' === tradeType) {   // 매매
