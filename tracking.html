@@ -446,6 +446,7 @@
          * Excel 파일에서 아파트 ID 가져오기
          */
         function btnExcelExport(fileUrl) {
+            document.title = `(${$('#hdn_sel-gu').val()})네이버 시세 트래킹`  ;
             $('#tbl_aptInfo tbody').empty();
             var aptArr = [];
             $.ajax({
