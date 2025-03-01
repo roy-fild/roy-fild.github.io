@@ -81,7 +81,7 @@
         }
 
         .grey_btn {
-            background-color: rgb(128,128,128);
+            background-color: rgb(128, 128, 128);
             margin-bottom: 5px;
         }
 
@@ -426,6 +426,14 @@
             $(document).ajaxStop(function () {
                 hideLoadingBar();
             });
+
+            // 필터
+            $("#filterInput").on("keyup", function () {
+                var value = $(this).val().toLowerCase();
+                $("tbody tr").filter(function () {
+                    $(this).toggle($(this).find("td").eq(8).text().toLowerCase().indexOf(value) > -1);
+                });
+            });
         });
 
         function showLoadingBar() {
@@ -446,7 +454,7 @@
          * Excel 파일에서 아파트 ID 가져오기
          */
         function btnExcelExport(fileUrl) {
-            document.title = `(${$('#hdn_sel-gu').val()})네이버 시세 트래킹`  ;
+            document.title = `(${$('#hdn_sel-gu').val()})네이버 시세 트래킹`;
             $('#tbl_aptInfo tbody').empty();
             var aptArr = [];
             $.ajax({
@@ -618,7 +626,7 @@
                             var floorInfo = info.articleDetail.floorInfo;   // 층수
                             var dealPrice = formatToEok(info.priceInfo.dealPrice);   // 매매가
                             var rantPrice = formatToEok(info.priceInfo.warrantyPrice);   // 전세가
-                            
+
 
                             // 저층 고층 제외
                             if (chkFloor(floorInfo)) {
@@ -665,7 +673,7 @@
                 var jPrice = getPrice(uniqueKeys[i], jObj);   // 전세가
 
                 html += '<tr>';
-                html += '<td><a href="https://new.land.naver.com/complexes/'+ iObj.id + '" target="_blank">' + iObj.id + '</a></td>';              // ID(네이버)
+                html += '<td><a href="https://new.land.naver.com/complexes/' + iObj.id + '" target="_blank">' + iObj.id + '</a></td>';              // ID(네이버)
                 html += '<td>' + iObj.gu + '</td>';              // 구
                 html += '<td>' + iObj.dong + '</td>';              // 동
                 html += '<td>' + iObj.aptNm + '</td>';            // 단지
@@ -686,15 +694,15 @@
                 html += '<td>' + iObj.mCnt + '</td>';  // 매매갯수
                 html += '<td>' + iObj.jCnt + '</td>';  // 매매갯수
 
-                html += '<td title="'+ getDesc(uniqueKeys[i], mObj) +'">' + getFloor(uniqueKeys[i], mObj) + '</td>';  // 매매층
-                html += '<td title="'+ getDesc(uniqueKeys[i], jObj) +'">' + getFloor(uniqueKeys[i], jObj) + '</td>';  // 전세층
+                html += '<td title="' + getDesc(uniqueKeys[i], mObj) + '">' + getFloor(uniqueKeys[i], mObj) + '</td>';  // 매매층
+                html += '<td title="' + getDesc(uniqueKeys[i], jObj) + '">' + getFloor(uniqueKeys[i], jObj) + '</td>';  // 전세층
                 html += '</tr>';
             }
 
             $('#tbl_aptInfo tbody').append(html);
 
         }
-        function getDesc(key, json){
+        function getDesc(key, json) {
             if (json.hasOwnProperty(key)) {
                 return json[key].desc;
             } else {
@@ -1112,6 +1120,7 @@
 
     </div>
     <div class="excel-container">
+        <input type="text" id="filterInput" placeholder="가격대" style="width: 40px;">
         <button id="excelDownload" class="green_btn">EXCEL</button>
     </div>
     <div id="result">
