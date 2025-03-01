@@ -427,21 +427,54 @@
                 hideLoadingBar();
             });
 
-            // 필터(가격대)
-            $("#filterPrice").on("keyup", function () {
-                var value = $(this).val().toLowerCase();
-                $("tbody tr").filter(function () {
-                    $(this).toggle($(this).find("td").eq(8).text().toLowerCase().indexOf(value) > -1);
+
+            // 매매가, 차액 필터
+            function filterTable(inputSelector, columnIndex) {
+                $(inputSelector).on("input", function () {
+                    let inputVal = $(this).val().trim();
+                    let numericInput = parseFloat(inputVal);
+
+                    $("tbody tr").each(function () {
+                        let cellText = $(this).find("td").eq(columnIndex).text().trim();
+                        let numericCell = parseFloat(cellText);
+
+                        if (!isNaN(numericInput)) {
+                            $(this).toggle(!isNaN(numericCell) && Math.floor(numericCell) === numericInput);
+                        } else {
+                            $(this).toggle(inputVal === "");
+                        }
+                    });
                 });
+            }
+
+            filterTable("#filterPrice", 8);
+            filterTable("#filterGap", 10);
+
+            $('#numberInput').on('input', function () {
+                let inputVal = parseFloat($(this).val());
+                let closestVal = null;
+                let closestRow = null;
+
+                if (!isNaN(inputVal)) {
+                    $('tbody tr').each(function () {
+                        let rowVal = parseFloat($(this).find('.numeric').text());
+                        if (!isNaN(rowVal)) {
+                            if (closestVal === null || Math.abs(rowVal - inputVal) < Math.abs(closestVal - inputVal)) {
+                                closestVal = rowVal;
+                                closestRow = $(this);
+                            }
+                        }
+                    });
+
+                    $('tbody tr').hide();
+                    if (closestRow) closestRow.show();
+                } else {
+                    $('tbody tr').show();
+                }
             });
 
-            // 필터(차액)
-            $("#filterGap").on("keyup", function () {
-                var value = $(this).val().toLowerCase();
-                $("tbody tr").filter(function () {
-                    $(this).toggle($(this).find("td").eq(10).text().toLowerCase().indexOf(value) > -1);
-                });
-            });
+
+
         });
 
         function showLoadingBar() {
