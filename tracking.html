@@ -427,11 +427,19 @@
                 hideLoadingBar();
             });
 
-            // 필터
-            $("#filterInput").on("keyup", function () {
+            // 필터(가격대)
+            $("#filterPrice").on("keyup", function () {
                 var value = $(this).val().toLowerCase();
                 $("tbody tr").filter(function () {
                     $(this).toggle($(this).find("td").eq(8).text().toLowerCase().indexOf(value) > -1);
+                });
+            });
+
+            // 필터(차액)
+            $("#filterGap").on("keyup", function () {
+                var value = $(this).val().toLowerCase();
+                $("tbody tr").filter(function () {
+                    $(this).toggle($(this).find("td").eq(10).text().toLowerCase().indexOf(value) > -1);
                 });
             });
         });
@@ -1120,7 +1128,8 @@
 
     </div>
     <div class="excel-container">
-        <input type="text" id="filterInput" placeholder="가격대" style="width: 40px;">
+        <input type="text" id=" " placeholder="가격대" style="width: 40px;">
+        <input type="text" id="filterGap" placeholder="차액" style="width: 40px;">
         <button id="excelDownload" class="green_btn">EXCEL</button>
     </div>
     <div id="result">
