@@ -439,7 +439,7 @@
                         let numericCell = parseFloat(cellText);
 
                         if (!isNaN(numericInput)) {
-                            $(this).toggle(!isNaN(numericCell) && Math.floor(numericCell) === numericInput);
+                            $(this).toggle(!isNaN(numericCell) && (Math.floor(numericCell) === Math.floor(numericInput) || numericCell === numericInput));
                         } else {
                             $(this).toggle(inputVal === "");
                         }
@@ -1161,8 +1161,8 @@
 
     </div>
     <div class="excel-container">
-        <input type="text" id="filterPrice" placeholder="매매가" style="width: 40px;">
-        <input type="text" id="filterGap" placeholder="차액" style="width: 40px;">
+        <input type="text" id="filterPrice" placeholder="매매가" style="width: 40px;" maxlength="5">
+        <input type="text" id="filterGap" placeholder="차액" style="width: 40px;"maxlength="5">
         <button id="excelDownload" class="green_btn">EXCEL</button>
     </div>
     <div id="result">
