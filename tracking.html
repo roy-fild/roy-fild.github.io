@@ -427,6 +427,20 @@
                 hideLoadingBar();
             });
 
+            // 300 세대 이상 필터
+            $('#filter300').change(function() {
+                if ($(this).is(':checked')) {
+                    $('tbody tr').each(function() {
+                        var value = parseInt($(this).find('td:nth-child(6)').text().replace(/,/g, ''), 10);
+                        if (value < 300) {
+                            $(this).hide();
+                        }
+                    });
+                } else {
+                    $('tbody tr').show();
+                }
+            });
+
 
             // 매매가, 차액 필터
             function filterTable(inputSelector, columnIndex) {
@@ -449,29 +463,6 @@
 
             filterTable("#filterPrice", 8);
             filterTable("#filterGap", 10);
-
-            $('#numberInput').on('input', function () {
-                let inputVal = parseFloat($(this).val());
-                let closestVal = null;
-                let closestRow = null;
-
-                if (!isNaN(inputVal)) {
-                    $('tbody tr').each(function () {
-                        let rowVal = parseFloat($(this).find('.numeric').text());
-                        if (!isNaN(rowVal)) {
-                            if (closestVal === null || Math.abs(rowVal - inputVal) < Math.abs(closestVal - inputVal)) {
-                                closestVal = rowVal;
-                                closestRow = $(this);
-                            }
-                        }
-                    });
-
-                    $('tbody tr').hide();
-                    if (closestRow) closestRow.show();
-                } else {
-                    $('tbody tr').show();
-                }
-            });
 
 
 
@@ -1154,13 +1145,16 @@
         <button id="btn_jeonju" class="ligthseagreen_btn">전주(65만)덕진구/완산구</button>
         <button id="btn_cheonan" class="ligthseagreen_btn">천안(66만)서북구/동남구</button>
     </div>
-    <div>59,84 만<input id="chk" type="checkbox" checked></input></div>
+    <div>
+        <input id="chk" type="checkbox" checked>59,84 만</input>        
+    </div>
     <div>
         검색용 Excel <input type="file" id="excelFile" />
         비교용 Excel(ID/아파트명/타입/매매가/전세가) <input type="file" id="cmpExcelFile" />
 
     </div>
     <div class="excel-container">
+        <input id="filter300" type="checkbox">300세대 이상</input>
         <input type="text" inputmode="decimal" pattern="\\d*\\.?\\d*" oninput="this.value = this.value.replace(/[^0-9.]/g, '');"  id="filterPrice" placeholder="매매가" style="width: 40px;" maxlength="5">
         <input type="text" inputmode="decimal" pattern="\\d*\\.?\\d*" oninput="this.value = this.value.replace(/[^0-9.]/g, '');"  id="filterGap" placeholder="차액" style="width: 40px;"maxlength="5">
         <button id="excelDownload" class="green_btn">EXCEL</button>
