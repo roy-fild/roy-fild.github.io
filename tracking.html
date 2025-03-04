@@ -427,42 +427,34 @@
                 hideLoadingBar();
             });
 
-            // 300 세대 이상 필터
-            $('#filter300').change(function() {
-                if ($(this).is(':checked')) {
-                    $('tbody tr').each(function() {
-                        var value = parseInt($(this).find('td:nth-child(6)').text().replace(/,/g, ''), 10);
-                        if (value < 300) {
-                            $(this).hide();
-                        }
-                    });
-                } else {
-                    $('tbody tr').show();
-                }
-            });
+            function applyFilters() {
+                let filter300Checked = $('#filter300').is(':checked');
+                let priceInput = parseFloat($('#filterPrice').val().trim());
+                let gapInput = parseFloat($('#filterGap').val().trim());
 
+                $('tbody tr').each(function () {
+                    let units = parseInt($(this).find('td:nth-child(6)').text().replace(/,/g, ''), 10);
+                    let price = parseFloat($(this).find('td').eq(8).text().trim());
+                    let gap = parseFloat($(this).find('td').eq(10).text().trim());
 
-            // 매매가, 차액 필터
-            function filterTable(inputSelector, columnIndex) {
-                $(inputSelector).on("input", function () {
-                    let inputVal = $(this).val().trim();
-                    let numericInput = parseFloat(inputVal);
+                    let showRow = true;
 
-                    $("tbody tr").each(function () {
-                        let cellText = $(this).find("td").eq(columnIndex).text().trim();
-                        let numericCell = parseFloat(cellText);
+                    if (filter300Checked && units < 300) {
+                        showRow = false;
+                    }
+                    if (!isNaN(priceInput) && !(Math.floor(price) === Math.floor(priceInput) || price === priceInput)) {
+                        showRow = false;
+                    }
+                    if (!isNaN(gapInput) && !(Math.floor(gap) === Math.floor(gapInput) || gap === gapInput)) {
+                        showRow = false;
+                    }
 
-                        if (!isNaN(numericInput)) {
-                            $(this).toggle(!isNaN(numericCell) && (Math.floor(numericCell) === Math.floor(numericInput) || numericCell === numericInput));
-                        } else {
-                            $(this).toggle(inputVal === "");
-                        }
-                    });
+                    $(this).toggle(showRow);
                 });
             }
 
-            filterTable("#filterPrice", 8);
-            filterTable("#filterGap", 10);
+            $('#filter300').change(applyFilters);
+            $('#filterPrice, #filterGap').on("input", applyFilters);
 
 
 
@@ -1105,7 +1097,7 @@
     <div>
         <!-- <button id="loadData">데이터 가져오기</button> -->
         <a href="https://cors-anywhere.herokuapp.com" target='_blank'>START</a>
-        <a href="https://roy-fild.github.io/file/naver_apt_list_202406.xlsx" download>Download</a>
+        <a href="https://roy-fild.github.io/file/all_naver_apt_id_data.xlsx" download>Download</a>
         <button id="btn_new_window" class="grey_btn">새창</button>
     </div>
     <div>
@@ -1146,7 +1138,7 @@
         <button id="btn_cheonan" class="ligthseagreen_btn">천안(66만)서북구/동남구</button>
     </div>
     <div>
-        <input id="chk" type="checkbox" checked>59,84 만</input>        
+        <input id="chk" type="checkbox" checked>59,84 만</input>
     </div>
     <div>
         검색용 Excel <input type="file" id="excelFile" />
@@ -1155,8 +1147,12 @@
     </div>
     <div class="excel-container">
         <input id="filter300" type="checkbox">300세대 이상</input>
-        <input type="text" inputmode="decimal" pattern="\\d*\\.?\\d*" oninput="this.value = this.value.replace(/[^0-9.]/g, '');"  id="filterPrice" placeholder="매매가" style="width: 40px;" maxlength="5">
-        <input type="text" inputmode="decimal" pattern="\\d*\\.?\\d*" oninput="this.value = this.value.replace(/[^0-9.]/g, '');"  id="filterGap" placeholder="차액" style="width: 40px;"maxlength="5">
+        <input type="text" inputmode="decimal" pattern="\\d*\\.?\\d*"
+            oninput="this.value = this.value.replace(/[^0-9.]/g, '');" id="filterPrice" placeholder="매매가"
+            style="width: 40px;" maxlength="5">
+        <input type="text" inputmode="decimal" pattern="\\d*\\.?\\d*"
+            oninput="this.value = this.value.replace(/[^0-9.]/g, '');" id="filterGap" placeholder="차액"
+            style="width: 40px;" maxlength="5">
         <button id="excelDownload" class="green_btn">EXCEL</button>
     </div>
     <div id="result">
