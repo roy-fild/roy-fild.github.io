@@ -479,7 +479,7 @@
 
             $('#btn_init').on('click', function () {
                 $('#filterPrice, #filterGap, #filterSize, #filterAptNm').val('');
-                $('#filter300').prop('checked',false);
+                $('#filter300').prop('checked', false);
                 applyFilters();
             });
 
@@ -1125,8 +1125,8 @@
         <a href="https://cors-anywhere.herokuapp.com" target='_blank'>START</a>
         <a href="https://roy-fild.github.io/file/all_naver_apt_id_data.xlsx" download>Download</a>
         <button id="btn_new_window" class="grey_btn" style="margin-right: 5%;">새창</button>
-        검색용 Excel <input type="file" id="excelFile" style="margin-bottom:5px;"/>
-        비교용 Excel(ID/아파트명/타입/매매가/전세가) <input type="file" id="cmpExcelFile" style="margin-bottom:5px"/>
+        검색용 Excel <input type="file" id="excelFile" style="margin-bottom:5px;" />
+        비교용 Excel(ID/아파트명/타입/매매가/전세가) <input type="file" id="cmpExcelFile" style="margin-bottom:5px" />
     </div>
     <div>
     </div>
@@ -1169,7 +1169,7 @@
         <button id="btn_jeonju" class="ligthseagreen_btn">전주[65만]덕진구/완산구</button>
         <button id="btn_cheonan" class="ligthseagreen_btn">천안[66만]서북구/동남구</button>
     </div>
-    
+
     <div class="excel-container" style="margin-left: 80%;">
         <button id="excelDownload" class="green_btn">EXCEL</button>
         <button id="btn_init" class="grey_btn">초기화</button>
@@ -1182,13 +1182,15 @@
                     <th></th>
                     <th></th>
                     <th>
-                        <input id="filterAptNm" type="text" placeholder="단지명" style="width: 180px;" >
+                        <input id="filterAptNm" type="text" placeholder="단지명" style="width: 180px;">
                     </th>
                     <th></th>
                     <th style="width:80px"><input id="filter300" type="checkbox">300^</input></th>
                     <th></th>
                     <th style="width:80px">
-                        <input id="filterSize" type="text" placeholder="타입" style="width: 40px;" maxlength="4">
+                        <input id="filterSize" type="text" pattern="\\d*\\.?\\d*"
+                            oninput="this.value = this.value.replace(/[^0-9.]/g, '');" placeholder="타입"
+                            style="width: 40px;" maxlength="3">
                     </th>
                     <th><input type="text" inputmode="decimal" pattern="\\d*\\.?\\d*"
                             oninput="this.value = this.value.replace(/[^0-9.]/g, '');" id="filterPrice"
