@@ -180,6 +180,14 @@
                 display: none;
             }
 
+            .excel-container {
+                position: fixed;
+                right: 10px;
+                top: 10px;
+                z-index: 1000;
+                /* 다른 요소 위에 표시 */
+            }
+
         }
     </style>
     <script>
@@ -427,15 +435,19 @@
                 hideLoadingBar();
             });
 
+
+            // Table 필터 
             function applyFilters() {
                 let filter300Checked = $('#filter300').is(':checked');
                 let priceInput = parseFloat($('#filterPrice').val().trim());
                 let gapInput = parseFloat($('#filterGap').val().trim());
+                let filterSizeInput = $('#filterSize').val().trim();
 
                 $('tbody tr').each(function () {
                     let units = parseInt($(this).find('td:nth-child(6)').text().replace(/,/g, ''), 10);
                     let price = parseFloat($(this).find('td').eq(8).text().trim());
                     let gap = parseFloat($(this).find('td').eq(10).text().trim());
+                    let size = $(this).find('td').eq(7).text().trim();
 
                     let showRow = true;
 
@@ -448,15 +460,22 @@
                     if (!isNaN(gapInput) && !(Math.floor(gap) === Math.floor(gapInput) || gap === gapInput)) {
                         showRow = false;
                     }
+                    if (filterSizeInput !== "" && !size.includes(filterSizeInput)) {
+                        showRow = false;
+                    }
 
                     $(this).toggle(showRow);
                 });
             }
 
             $('#filter300').change(applyFilters);
-            $('#filterPrice, #filterGap').on("input", applyFilters);
+            $('#filterPrice, #filterGap, #filterSize').on("input", applyFilters);
 
 
+            $('#btn_init').on('click', function () {
+                $('#filterPrice, #filterGap, #filterSize').val('');
+                applyFilters();
+            });
 
         });
 
@@ -700,7 +719,7 @@
                 html += '<td><a href="https://new.land.naver.com/complexes/' + iObj.id + '" target="_blank">' + iObj.id + '</a></td>';              // ID(네이버)
                 html += '<td>' + iObj.gu + '</td>';              // 구
                 html += '<td>' + iObj.dong + '</td>';              // 동
-                html += '<td><a href="https://fin.land.naver.com/complexes/'+ iObj.id +'?tradeTypes=A1&sortingType=%EB%82%AE%EC%9D%80%EA%B0%80%EA%B2%A9%EC%88%9C&tab=article" target="_blank">' + iObj.aptNm + '</td>';            // 단지
+                html += '<td><a href="https://fin.land.naver.com/complexes/' + iObj.id + '?tradeTypes=A1&sortingType=%EB%82%AE%EC%9D%80%EA%B0%80%EA%B2%A9%EC%88%9C&tab=article" target="_blank">' + iObj.aptNm + '</td>';            // 단지
                 html += '<td>' + iObj.year + '</td>';          // 연식
                 html += '<td>' + iObj.sd + '</td>';         // 세대
 
@@ -1102,6 +1121,10 @@
         <button id="btn_new_window" class="grey_btn">새창</button>
     </div>
     <div>
+        검색용 Excel <input type="file" id="excelFile" style="margin-bottom:5px"/>
+        비교용 Excel(ID/아파트명/타입/매매가/전세가) <input type="file" id="cmpExcelFile" style="margin-bottom:5px"/>
+    </div>
+    <div>
         <b>정찰기</b>
         <button id="btn_observer-sudo" class="purple_btn">수도권</button>
         <button id="btn_observer-jibang" class="purple_btn">지방</button>
@@ -1138,13 +1161,10 @@
         <button id="btn_jeonju" class="ligthseagreen_btn">전주(65만)덕진구/완산구</button>
         <button id="btn_cheonan" class="ligthseagreen_btn">천안(66만)서북구/동남구</button>
     </div>
-    <div>
-        검색용 Excel <input type="file" id="excelFile" />
-        비교용 Excel(ID/아파트명/타입/매매가/전세가) <input type="file" id="cmpExcelFile" />
-
-    </div>
-    <div class="excel-container">               
+    
+    <div class="excel-container" style="margin-left: 80%;">
         <button id="excelDownload" class="green_btn">EXCEL</button>
+        <button id="btn_init" class="grey_btn">초기화</button>
     </div>
     <div id="result">
         <table id="tbl_aptInfo">
@@ -1157,14 +1177,16 @@
                     <th></th>
                     <th style="width:80px"><input id="filter300" type="checkbox">300^</input></th>
                     <th></th>
+                    <th style="width:80px">
+                        <input id="filterSize" type="text" placeholder="타입" style="width: 40px;" maxlength="4">
+                    </th>
+                    <th><input type="text" inputmode="decimal" pattern="\\d*\\.?\\d*"
+                            oninput="this.value = this.value.replace(/[^0-9.]/g, '');" id="filterPrice"
+                            placeholder="매매가" style="width: 40px;" maxlength="4"></th>
                     <th></th>
                     <th><input type="text" inputmode="decimal" pattern="\\d*\\.?\\d*"
-                        oninput="this.value = this.value.replace(/[^0-9.]/g, '');" id="filterPrice" placeholder="매매가"
-                        style="width: 40px;" maxlength="4"></th>
-                    <th></th>
-                    <th><input type="text" inputmode="decimal" pattern="\\d*\\.?\\d*"
-                        oninput="this.value = this.value.replace(/[^0-9.]/g, '');" id="filterGap" placeholder="차액"
-                        style="width: 40px;" maxlength="4"></th>
+                            oninput="this.value = this.value.replace(/[^0-9.]/g, '');" id="filterGap" placeholder="차액"
+                            style="width: 40px;" maxlength="4"></th>
                     <th></th>
                     <th></th>
                     <th></th>
