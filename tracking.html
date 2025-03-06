@@ -427,6 +427,7 @@
 
             // 기존 코드에 로딩바 추가
             $('button').on('click', function () {
+                if ($(this).data('no-loading')) return;
                 showLoadingBar();
             });
 
@@ -1172,7 +1173,7 @@
 
     <div class="excel-container" style="margin-left: 80%;">
         <button id="excelDownload" class="green_btn">EXCEL</button>
-        <button id="btn_init" class="grey_btn">초기화</button>
+        <button id="btn_init" class="grey_btn" data-no-loading="true">초기화</button>
     </div>
     <div id="result">
         <table id="tbl_aptInfo">
