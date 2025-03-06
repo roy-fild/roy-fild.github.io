@@ -236,6 +236,13 @@
                 btnExcelExport(fileUrl);
             });
 
+            // 성동구           
+            $('#btn_seongdong-gu').on('click', function () {
+                $('#hdn_sel-gu').val('성동구');
+                let fileUrl = "https://roy-fild.github.io/file/seongdong-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
             // 양천구
             $('#btn_yangcheon-gu').on('click', function () {
                 $('#hdn_sel-gu').val('양천구');
@@ -1140,6 +1147,7 @@
         <b>서울시(10)</b>
         <input type="hidden" id="hdn_sel-gu" />
         <button id="btn_songpa-gu" class="red_btn">송파구</button>
+        <button id="btn_seongdong-gu" class="orange_btn">성동구</button>
         <button id="btn_yangcheon-gu" class="orange_btn">양천구</button>
         <button id="btn_bundang-gu" class="orange_btn">분당구</button>
         <button id="btn_jongno-jung-gu" class="yellow_btn">종로/중구</button>
