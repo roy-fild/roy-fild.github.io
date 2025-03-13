@@ -83,7 +83,7 @@
     function chkPrice(html, rows, key, subKeys) {
         var price = Number($("#sel_price option:selected").val());
         var v = Number(rows[key][subKeys[11]]);
-        if (price == 11) {
+        if (price == 15) {
             if (price <= v) {
                 chkPyung(html, rows, key, subKeys);
             }
@@ -278,7 +278,11 @@
                     <th>가격대</th>
                     <td>
                         <select id="sel_price">
-                            <option value="11">10억+</option>
+                            <option value="15">15억대+</option>
+                            <option value="14">14억대</option>
+                            <option value="13">13억대</option>
+                            <option value="12">12억대</option>
+                            <option value="11">11억대</option>
                             <option value="10">10억대</option>
                             <option value="9">9억대</option>
                             <option value="8" selected>8억대</option>
