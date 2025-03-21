@@ -451,6 +451,7 @@
                 let gapInput = parseFloat($('#filterGap').val().trim());
                 let filterSizeInput = $('#filterSize').val().trim();
                 let filterAptNmInput = $('#filterAptNm').val().trim();
+                let filterDongInput = $('#filterDong').val().trim();
 
                 $('tbody tr').each(function () {
                     let units = parseInt($(this).find('td:nth-child(6)').text().replace(/,/g, ''), 10);
@@ -458,6 +459,7 @@
                     let gap = parseFloat($(this).find('td').eq(10).text().trim());
                     let size = $(this).find('td').eq(7).text().trim();
                     let aptNm = $(this).find('td').eq(3).text().trim();
+                    let dong = $(this).find('td').eq(2).text().trim();
 
                     let showRow = true;
 
@@ -476,17 +478,20 @@
                     if (filterAptNmInput !== "" && !aptNm.includes(filterAptNmInput)) {
                         showRow = false;
                     }
+                    if (filterDongInput!== "" &&!dong.includes(filterDongInput)) {
+                        showRow = false;
+                    }
 
                     $(this).toggle(showRow);
                 });
             }
 
             $('#filter300').change(applyFilters);
-            $('#filterPrice, #filterGap, #filterSize, #filterAptNm').on("input", applyFilters);
+            $('#filterPrice, #filterGap, #filterSize, #filterAptNm, #filterDong').on("input", applyFilters);
 
 
             $('#btn_init').on('click', function () {
-                $('#filterPrice, #filterGap, #filterSize, #filterAptNm').val('');
+                $('#filterPrice, #filterGap, #filterSize, #filterAptNm, #filterDong').val('');
                 $('#filter300').prop('checked', false);
                 applyFilters();
             });
@@ -1189,7 +1194,9 @@
                 <tr>
                     <th style="width:80px"><input id="chk" type="checkbox" checked>59~84</input></th>
                     <th></th>
-                    <th></th>
+                    <th>
+                        <input id="filterDong" type="text" placeholder="동" style="width: 40px;">
+                    </th>
                     <th>
                         <input id="filterAptNm" type="text" placeholder="단지명" style="width: 180px;">
                     </th>
