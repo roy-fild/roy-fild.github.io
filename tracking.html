@@ -454,7 +454,7 @@
                 let filterDongInput = $('#filterDong').val().trim();
 
                 $('tbody tr').each(function () {
-                    let units = parseInt($(this).find('td:nth-child(7)').text().replace(/,/g, ''), 10);
+                    let units = parseInt($(this).find('td:nth-child(6)').text().replace(/,/g, ''), 10);
                     let price = parseFloat($(this).find('td').eq(9).text().trim());
                     let gap = parseFloat($(this).find('td').eq(11).text().trim());
                     let size = $(this).find('td').eq(8).text().trim();
@@ -626,11 +626,7 @@
                     url: reqUrl,
                     method: "GET",
                     success: function (res) {
-                        
-                        console.log(res);
                         var pCnt = Object.keys(res.result).length;
-
-                        console.log(pCnt);
                        
                         Object.keys(res.result).forEach(function(key){
                             loadPyeongInfo(pObj, key, id);
