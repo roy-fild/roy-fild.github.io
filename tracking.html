@@ -607,9 +607,7 @@
                 }
 
                 let mObj = {};
-                let jObj = {};
-
-                console.log(pObj);
+                let jObj = {};                
 
                 await loadData(mObj, jObj, id, '0'); // 동기적으로 실행
 
@@ -630,6 +628,8 @@
                     success: function (res) {
                         
                         var pCnt = Object.keys(res.result).length;
+
+                        // console.log(pCnt);
                        
                         for(var i=1 ; i<=pCnt; i++){                            
                             loadPyeongInfo(pObj, i, id);
