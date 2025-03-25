@@ -627,14 +627,14 @@
                     method: "GET",
                     success: function (res) {
                         
+                        console.log(res);
                         var pCnt = Object.keys(res.result).length;
 
-                        // console.log(pCnt);
+                        console.log(pCnt);
                        
-                        for(var i=1 ; i<=pCnt; i++){                            
-                            loadPyeongInfo(pObj, i, id);
-                        }
-
+                        Object.keys(res.result).forEach(function(key){
+                            loadPyeongInfo(pObj, key, id);
+                        });                        
                         resolve();
                     },
                     error: function () {
@@ -661,7 +661,7 @@
                             info.roomCount = res.result.roomCount;
                             info.bathRoomCount = res.result.bathRoomCount;                    
                             pObj[type] = info;                    
-                        }                        
+                        }                                                
                         resolve();
 
                     },
