@@ -634,7 +634,7 @@
                         resolve();
                     },
                     error: function () {
-                        console.log("방 정보 불러오기 실패")
+                        alert("방 정보 불러오기 실패")
                     }
                 });
             });
@@ -662,7 +662,7 @@
 
                     },
                     error: function () {
-                        console.log("방 상세 정보 불러오기 실패")
+                        alert("방 상세 정보 불러오기 실패")
                     }
                 });
             });
@@ -794,7 +794,7 @@
                 html += '<td><a href="https://new.land.naver.com/complexes/' + iObj.id + '" target="_blank">' + iObj.id + '</a></td>';              // ID(네이버)
                 html += '<td>' + iObj.gu + '</td>';              // 구
                 html += '<td>' + iObj.dong + '</td>';              // 동
-                html += '<td><a href="https://fin.land.naver.com/complexes/' + iObj.id + '?tradeTypes=A1&sortingType=%EB%82%AE%EC%9D%80%EA%B0%80%EA%B2%A9%EC%88%9C&tab=article" target="_blank">' + iObj.aptNm + '</td>';            // 단지
+                html += '<td><a href="https://fin.land.naver.com/complexes/' + iObj.id + '?tradeTypes=A1&sortingType=%EB%82%AE%EC%9D%80%EA%B0%80%EA%B2%A9%EC%88%9C&tab=article&articleSortingType=price_asc&articleTradeTypes=A1" target="_blank">' + iObj.aptNm + '</td>';            // 단지
                 html += '<td>' + iObj.year + '</td>';          // 연식
                 html += '<td>' + iObj.sd + '</td>';         // 세대
 
