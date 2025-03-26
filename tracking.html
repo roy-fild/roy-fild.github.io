@@ -655,7 +655,8 @@
                         if(Object.keys(res.result).length !== 0){
                             var type = res.result.name;
                             info.roomCount = res.result.roomCount;
-                            info.bathRoomCount = res.result.bathRoomCount;                    
+                            info.bathRoomCount = res.result.bathRoomCount;   
+                            info.typeNum = pCnt;              
                             pObj[type] = info;                    
                         }                                                
                         resolve();
@@ -790,24 +791,21 @@
                 var mPrice = getPrice(uniqueKeys[i], mObj);   // 매매가
                 var jPrice = getPrice(uniqueKeys[i], jObj);   // 전세가
 
+                // 평형
+                if (mObj.hasOwnProperty(uniqueKeys[i])) {
+                    pyeong = getSupplyType(uniqueKeys[i], mObj); 
+                } else {
+                    pyeong = getSupplyType(uniqueKeys[i], jObj);  
+                }
+
                 html += '<tr>';
                 html += '<td><a href="https://new.land.naver.com/complexes/' + iObj.id + '" target="_blank">' + iObj.id + '</a></td>';              // ID(네이버)
                 html += '<td>' + iObj.gu + '</td>';              // 구
                 html += '<td>' + iObj.dong + '</td>';              // 동
-                html += '<td><a href="https://fin.land.naver.com/complexes/' + iObj.id + '?tradeTypes=A1&sortingType=%EB%82%AE%EC%9D%80%EA%B0%80%EA%B2%A9%EC%88%9C&tab=article&articleSortingType=price_asc&articleTradeTypes=A1" target="_blank">' + iObj.aptNm + '</td>';            // 단지
+                html += '<td><a href="https://fin.land.naver.com/complexes/' + iObj.id + '?tradeTypes=A1&sortingType=%EB%82%AE%EC%9D%80%EA%B0%80%EA%B2%A9%EC%88%9C&tab=article&articleSortingType=price_asc&articleTradeTypes=A1'+ getTypeNum(pyeong, pObj) +'" target="_blank">' + iObj.aptNm + '</td>';            // 단지
                 html += '<td>' + iObj.year + '</td>';          // 연식
-                html += '<td>' + iObj.sd + '</td>';         // 세대
-
-                // 평형
-                if (mObj.hasOwnProperty(uniqueKeys[i])) {
-                    pyeong = getSupplyType(uniqueKeys[i], mObj); 
-                    html += '<td>' + pyeong + '</td>';
-                } else {
-                    pyeong = getSupplyType(uniqueKeys[i], jObj);
-                    html += '<td>' + pyeong + '</td>';
-                }
-                
-
+                html += '<td>' + iObj.sd + '</td>';         // 세대                
+                html += '<td>' + pyeong + '</td>';
                 html += '<td>' + getRoomInfo(pyeong, pObj) + '</td>';  // 방
                 html += '<td>' + uniqueKeys[i] + '</td>';  // 타입
                 html += '<td>' + mPrice + '</td>';  // 매매가
@@ -825,9 +823,15 @@
             $('#tbl_aptInfo tbody').append(html);
 
         }
+        function getTypeNum(key, json){
+            if (json.hasOwnProperty(key)) {
+                return '&articlePyeongTypeNumbers=' +json[key].typeNum;
+            } else {
+                return '';
+            }
+        }
 
         function getRoomInfo(key, json){
-
             if (json.hasOwnProperty(key)) {                
                 return json[key].roomCount +"|"+ json[key].bathRoomCount;
             } else {
