@@ -5,11 +5,14 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 
+    let aptData = []; // 전역 배열로 변경
+
     $(function () {
 
         // 검색
         $('#tb_btnSearch').on('click', function () {
             showLoadingBar();
+            aptData = []; // 검색할 때마다 초기화
             onSearch();
         });
 
@@ -98,19 +101,22 @@
 
         if (pyung == 20) {
             if (v < 30) {
-                crateHtml(html, rows, key, subKeys);
+                createHtml(html, rows, key, subKeys);
             }
         } else if (pyung == 30) {
             if (v >= 30) {
-                crateHtml(html, rows, key, subKeys);
+                createHtml(html, rows, key, subKeys);
             }
         } else {
-            crateHtml(html, rows, key, subKeys);
+            createHtml(html, rows, key, subKeys);
         }
+
+        // 모든 데이터 처리가 끝난 후 테이블 렌더링
+        renderTable();
     }
 
     // 테이블생성
-    function crateHtml(html, rows, key, subKeys) {
+    function createHtml(html, rows, key, subKeys) {
 
         var si = rows[key][subKeys[1]];    // 시
         var gu = rows[key][subKeys[2]];    // 구
@@ -134,29 +140,44 @@
         var roi = rows[key][subKeys[20]];    // 수익률
         var profit = rows[key][subKeys[21]];    // 수익금
 
-        html += "<tr>";
-        html += `<td>${si}</td>`;
-        html += `<td>${gu}</td>`;
-        html += `<td>${dong}</td>`;
-        html += `<td>${nm}</td>`;
-        html += `<td>${year}</td>`;
-        html += `<td>${saedae}</td>`;
-        html += `<td>${pyung}</td>`;
-        html += `<td>${structure}</td>`;
-        html += `<td style="color:#0000ff;">${price}</td>`;
-        html += `<td>${rent}</td>`;
-        html += `<td>${gap}</td>`;
-        html += `<td>${cvrtPersent(rentPriceRate)}</td>`;
-        html += `<td>${mCnt}</td>`;
-        html += `<td>${jCnt}</td>`;
-        html += `<td>${cvrtPersent(rentRate)}</td>`;
-        html += `<td>${high}</td>`;
-        html += `<td>${cvrtPersent(change)}</td>`;
-        html += `<td>${cvrtPersent(roi)}</td>`;
-        html += `<td>${profit}</td>`;
-        html += "</tr>";
+        // 객체 배열에 데이터 저장
+        aptData.push({
+            si, gu, dong, nm, year, saedae, pyung, structure, price, rent, gap,
+            rentPriceRate, mCnt, jCnt, rentRate, high, change, roi, profit
+        });
+    }
 
-        $('#tbl_aptInfo tbody').append(html);
+    // 정렬 후 테이블에 출력하는 함수
+    function renderTable() {
+        // 매매가(price) 기준으로 내림차순 정렬
+        aptData.sort((a, b) => b.price - a.price);
+
+        var html = "";
+        aptData.forEach(apt => {
+            html += "<tr>";
+            html += `<td>${apt.si}</td>`;
+            html += `<td>${apt.gu}</td>`;
+            html += `<td>${apt.dong}</td>`;
+            html += `<td>${apt.nm}</td>`;
+            html += `<td>${apt.year}</td>`;
+            html += `<td>${apt.saedae}</td>`;
+            html += `<td>${apt.pyung}</td>`;
+            html += `<td>${apt.structure}</td>`;
+            html += `<td style="color:#0000ff;">${apt.price}</td>`;
+            html += `<td>${apt.rent}</td>`;
+            html += `<td>${apt.gap}</td>`;
+            html += `<td>${cvrtPersent(apt.rentPriceRate)}</td>`;
+            html += `<td>${apt.mCnt}</td>`;
+            html += `<td>${apt.jCnt}</td>`;
+            html += `<td>${cvrtPersent(apt.rentRate)}</td>`;
+            html += `<td>${apt.high}</td>`;
+            html += `<td>${cvrtPersent(apt.change)}</td>`;
+            html += `<td>${cvrtPersent(apt.roi)}</td>`;
+            html += `<td>${apt.profit}</td>`;
+            html += "</tr>";
+        });
+
+        $('#tbl_aptInfo tbody').html(html); // 테이블 업데이트
     }
 
     function cvrtPersent(v) {
