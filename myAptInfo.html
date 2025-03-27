@@ -150,7 +150,9 @@
     // 정렬 후 테이블에 출력하는 함수
     function renderTable() {
         // 매매가(price) 기준으로 내림차순 정렬
-        aptData.sort((a, b) => b.price - a.price);
+        // aptData.sort((a, b) => b.price - a.price);
+        aptData.sort((a, b) => a.price - b.price);
+
 
         var html = "";
         aptData.forEach(apt => {
