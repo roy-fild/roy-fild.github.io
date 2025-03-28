@@ -1102,14 +1102,14 @@
 
                 $("#tbl_aptInfo tbody tr").each(function (index, element) {
                     var tblId = $(element).find("td").eq(0).text(); //  tabld ID                    
-                    var tblType = $(element).find("td").eq(7).text(); //  타입
-                    var tblMe = $(element).find("td").eq(8).text(); // 매매
-                    var tblJu = $(element).find("td").eq(9).text(); // 전세           
+                    var tblType = $(element).find("td").eq(8).text(); //  타입
+                    var tblMe = $(element).find("td").eq(9).text(); // 매매
+                    var tblJu = $(element).find("td").eq(10).text(); // 전세           
 
                     if (id === tblId) {
 
-                        mCnt = $(element).find("td").eq(12).text(); // 매
-                        jCnt = $(element).find("td").eq(13).text(); // 전
+                        mCnt = $(element).find("td").eq(13).text(); // 매
+                        jCnt = $(element).find("td").eq(14).text(); // 전
 
                         // 타입이 같고, 매매가 0이 아니면
                         if (aptType === extractNumbers(tblType)) {
@@ -1197,8 +1197,8 @@
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
 
-            const gu = $('#hdn_sel-gu').val();
-            const fileName = f +"_"+ gu + "_result.xlsx";
+            //const gu = $s('#hdn_sel-gu').val();
+            const fileName = f + "_result.xlsx";
             XLSX.writeFile(workbook, fileName);
         }
 
