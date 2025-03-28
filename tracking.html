@@ -1197,7 +1197,8 @@
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
 
-            const fileName = f + "_result.xlsx";
+            const gu = $('#hdn_sel-gu').val();
+            const fileName = f +"_"+ gu + "_result.xlsx";
             XLSX.writeFile(workbook, fileName);
         }
 
