@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>네이버 시세트레킹</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        #loadingBar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background-color: #f3f3f3;
+            z-index: 9999;
+        }
+
+        #loadingProgress {
+            height: 100%;
+            width: 0;
+            background-color: #4caf50;
+            transition: width 0.4s ease;
+        }
+
+        .red_btn {
+            background-color: red;
+            color: #e5e5e5;
+            margin-bottom: 5px;
+        }
+
+        .orange_btn {
+            background-color: #FFA500;
+            margin-bottom: 5px;
+        }
+
+        .yellow_btn {
+            background-color: yellow;
+            margin-bottom: 5px;
+        }
+
+        .green_btn {
+            background-color: green;
+            color: #e5e5e5;
+            margin-bottom: 5px;
+        }
+
+        .skyblue_btn {
+            background-color: skyblue;
+            margin-bottom: 5px;
+        }
+
+        .purple_btn {
+            background-color: rgb(128, 0, 128);
+            color: #e5e5e5;
+            margin-bottom: 5px;
+        }
+
+        .darkslategrey_btn {
+            background-color: rgb(47, 79, 79);
+            color: #e5e5e5;
+            margin-bottom: 5px;
+        }
+
+        .darkgoldenrod_btn {
+            background-color: rgb(233, 172, 17);
+            margin-bottom: 5px;
+        }
+
+        .olivedrab_btn {
+            background-color: rgb(107, 142, 35);
+            color: #e5e5e5;
+            margin-bottom: 5px;
+        }
+
+        .ligthseagreen_btn {
+            background-color: rgb(32, 178, 170);
+            margin-bottom: 5px;
+        }
+
+        .grey_btn {
+            background-color: rgb(128, 128, 128);
+            margin-bottom: 5px;
+        }
+
+        body {
+            padding: 1.5em;
+            background: #f5f5f5
+        }
+
+        table {
+            border: 1px #a39485 solid;
+            font-size: .9em;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, .25);
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 5px;
+            overflow: hidden;
+
+        }
+
+        th {
+            text-align: left;
+        }
+
+        thead {
+            font-weight: bold;
+            color: #fff;
+            background: #73685d;
+        }
+
+        td,
+        th {
+            padding: 1em .5em;
+            vertical-align: middle;
+            border-spacing: 1px;
+            border-style: none;
+            padding: 5px;
+        }
+
+        td {
+            border-bottom: 1px solid rgba(0, 0, 0, .1);
+            background: #fff;
+        }
+
+        a {
+            color: #73685d;
+        }
+
+        @media all and (max-width: 768px) {
+
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
+                display: block;
+            }
+
+            th {
+                text-align: right;
+            }
+
+            table {
+                position: relative;
+                padding-bottom: 0;
+                border: none;
+                box-shadow: 0 0 10px rgba(0, 0, 0, .2);
+            }
+
+            thead {
+                float: left;
+                white-space: nowrap;
+            }
+
+            tbody {
+                overflow-x: auto;
+                overflow-y: hidden;
+                position: relative;
+                white-space: nowrap;
+            }
+
+            tr {
+                display: inline-block;
+                vertical-align: top;
+            }
+
+            th {
+                border-bottom: 1px solid #a39485;
+            }
+
+            td {
+                border-bottom: 1px solid #e5e5e5;
+            }
+
+            .hide {
+                display: none;
+            }
+
+            .excel-container {
+                position: fixed;
+                right: 10px;
+                top: 10px;
+                z-index: 1000;
+                /* 다른 요소 위에 표시 */
+            }
+
+        }
+    </style>
+    <script>
+        $(document).ready(function () {
+
+            // 새창 띄우기
+            $('#btn_new_window').on('click', function (e) {
+                e.preventDefault();
+                var currentUrl = window.location.href;
+                window.open(currentUrl, '_blank');
+            });
+
+            // UpLoad용 엑셀파일 
+            $('#excelFile').on('change', function (event) {
+                showLoadingBar();
+                excelExport(event);
+            });
+
+            $('#cmpExcelFile').on('change', function (event) {
+                showLoadingBar();
+                compareExport(event);
+            });
+
+            // 정찰기(수도권)
+            $('#btn_observer-sudo').on('click', function () {
+                $('#hdn_sel-gu').val('정찰기-수도권');
+                let fileUrl = "https://roy-fild.github.io/file/tracking-list.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 정찰기(지방)
+            $('#btn_observer-jibang').on('click', function () {
+                $('#hdn_sel-gu').val('정찰기-지방');
+                let fileUrl = "https://roy-fild.github.io/file/tracking-jibang.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            /************************************
+             *  수도권
+             ************************************/
+
+            // 송파구
+            $('#btn_songpa-gu').on('click', function () {
+                $('#hdn_sel-gu').val('송파구');
+                let fileUrl = "https://roy-fild.github.io/file/songpa-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 성동구           
+            $('#btn_seongdong-gu').on('click', function () {
+                $('#hdn_sel-gu').val('성동구');
+                let fileUrl = "https://roy-fild.github.io/file/seongdong-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 양천구
+            $('#btn_yangcheon-gu').on('click', function () {
+                $('#hdn_sel-gu').val('양천구');
+                let fileUrl = "https://roy-fild.github.io/file/yangcheon-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 종로/중구
+            $('#btn_jongno-jung-gu').on('click', function () {
+                $('#hdn_sel-gu').val('종로중구');
+                let fileUrl = "https://roy-fild.github.io/file/jongno-jung-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 분당구
+            $('#btn_bundang-gu').on('click', function () {
+                $('#hdn_sel-gu').val('분당구');
+                let fileUrl = "https://roy-fild.github.io/file/bundang-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 동작구
+            $('#btn_dongjak-gu').on('click', function () {
+                $('#hdn_sel-gu').val('동작구');
+                let fileUrl = "https://roy-fild.github.io/file/dongjak-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+            // 영등포구
+            $('#btn_yeongdeungpo-gu').on('click', function () {
+                $('#hdn_sel-gu').val('영등포구');
+                let fileUrl = "https://roy-fild.github.io/file/yeongdeungpo-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 서대문구
+            $('#btn_seodaemun-gu').on('click', function () {
+                $('#hdn_sel-gu').val('서대문구');
+                let fileUrl = "https://roy-fild.github.io/file/seodaemun-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 성북구
+            $('#btn_seong-buk-gu').on('click', function () {
+                $('#hdn_sel-gu').val('성북구');
+                let fileUrl = "https://roy-fild.github.io/file/seong-buk-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 동대문구
+            $('#btn_dongdaemun-gu').on('click', function () {
+                $('#hdn_sel-gu').val('동대문구');
+                let fileUrl = "https://roy-fild.github.io/file/dongdaemun-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 관악구
+            $('#btn_gwanak-gu').on('click', function () {
+                $('#hdn_sel-gu').val('관악구');
+                let fileUrl = "https://roy-fild.github.io/file/gwanak-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 수지구
+            $('#btn_suji-gu').on('click', function () {
+                $('#hdn_sel-gu').val('수지구');
+                let fileUrl = "https://roy-fild.github.io/file/suji-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 동탄
+            $('#btn_dongtan').on('click', function () {
+                $('#hdn_sel-gu').val('동탄');
+                let fileUrl = "https://roy-fild.github.io/file/dongtan.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 수정/중원구
+            $('#btn_sujeong-jungwon-gu').on('click', function () {
+                $('#hdn_sel-gu').val('수정-중원구');
+                let fileUrl = "https://roy-fild.github.io/file/sujeong-jungwon-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            /************************************
+             *  지방 (광역시)
+             ************************************/
+
+            // 대전
+
+            // 서구
+            $('#btn_daejeon-seo-gu').on('click', function () {
+                $('#hdn_sel-gu').val('대전-서구');
+                let fileUrl = "https://roy-fild.github.io/file/daejeon-seo-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 유성구
+            $('#btn_daejeon-yuseong-gu').on('click', function () {
+                $('#hdn_sel-gu').val('대전-유성구');
+                let fileUrl = "https://roy-fild.github.io/file/daejeon-yuseong-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+
+            // 광주
+
+            // 북구
+            $('#btn_gwangju-buk-gu').on('click', function () {
+                $('#hdn_sel-gu').val('광주-북구');
+                let fileUrl = "https://roy-fild.github.io/file/gwangju-buk-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+
+            /************************************
+            *  지방 (중소도시)
+            ************************************/
+
+            // 청주
+            $('#btn_cheongju').on('click', function () {
+                $('#hdn_sel-gu').val('청주');
+                let fileUrl = "https://roy-fild.github.io/file/cheongju.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 전주
+            $('#btn_jeonju').on('click', function () {
+                $('#hdn_sel-gu').val('전주');
+                let fileUrl = "https://roy-fild.github.io/file/jeonju.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+            // 천안
+            $('#btn_cheonan').on('click', function () {
+                $('#hdn_sel-gu').val('천안');
+                let fileUrl = "https://roy-fild.github.io/file/cheonan.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
+
+
+            $('#excelDownload').on('click', function () {
+
+                let table = document.getElementById('tbl_aptInfo');
+
+                // 테이블에 데이터가 있는지 확인
+                let tbody = table.querySelector('tbody');
+                if (!tbody || tbody.rows.length === 0) {
+                    alert("테이블에 데이터가 없습니다.");
+                    return;
+                }
+
+                let wb = XLSX.utils.book_new();
+                let ws = XLSX.utils.table_to_sheet(table, { sheetStubs: true });  // table을 시트로 변환하면서 stub을 추가
+
+                // 열 너비 자동 조정
+                let colWidths = [];
+                let range = XLSX.utils.decode_range(ws['!ref']);
+
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    let maxWidth = 10;
+                    for (let R = range.s.r; R <= range.e.r; ++R) {
+                        let cell_address = XLSX.utils.encode_cell({ r: R, c: C });
+                        let cell = ws[cell_address];
+
+                        if (cell && cell.v) {
+                            let cellValue = String(cell.v);
+                            maxWidth = Math.max(maxWidth, cellValue.length + 2);
+                        }
+                    }
+                    colWidths.push({ wch: maxWidth });
+                }
+                ws['!cols'] = colWidths;
+
+                // 스타일 적용 (기본 적용 확인)
+                Object.keys(ws).forEach(cell => {
+                    if (ws[cell] && ws[cell].t) {
+                        ws[cell].s = {
+                            font: { name: "Arial", sz: 10 }  // Arial 폰트 + 크기 10
+                        };
+                    }
+                });
+                XLSX.utils.book_append_sheet(wb, ws, "아파트 정보");  // 시트 추가
+
+                var fileNm = $('#hdn_sel-gu').val() + '_시세_트래킹_' + getNowDate() + '.xlsx'
+                // 엑셀 파일로 저장
+                XLSX.writeFile(wb, fileNm);
+            });
+
+            // 기존 코드에 로딩바 추가
+            $('button').on('click', function () {
+                if ($(this).data('no-loading')) return;
+                showLoadingBar();
+            });
+
+            // 데이터 로딩이 완료된 후 로딩바 숨기기
+            $(document).ajaxStop(function () {
+                hideLoadingBar();
+            });
+
+
+            // Table 필터 
+            function applyFilters() {
+                let filter300Checked = $('#filter300').is(':checked');
+                let priceInput = parseFloat($('#filterPrice').val().trim());
+                let gapInput = parseFloat($('#filterGap').val().trim());
+                let filterSizeInput = $('#filterSize').val().trim();
+                let filterAptNmInput = $('#filterAptNm').val().trim();
+                let filterDongInput = $('#filterDong').val().trim();
+
+                $('tbody tr').each(function () {
+                    let units = parseInt($(this).find('td:nth-child(6)').text().replace(/,/g, ''), 10);
+                    let price = parseFloat($(this).find('td').eq(9).text().trim());
+                    let gap = parseFloat($(this).find('td').eq(11).text().trim());
+                    let size = $(this).find('td').eq(8).text().trim();
+                    let aptNm = $(this).find('td').eq(3).text().trim();
+                    let dong = $(this).find('td').eq(2).text().trim();
+
+                    let showRow = true;
+
+                    if (filter300Checked && units < 300) {
+                        showRow = false;
+                    }
+                    if (!isNaN(priceInput) && !(Math.floor(price) === Math.floor(priceInput) || price === priceInput)) {
+                        showRow = false;
+                    }
+                    if (!isNaN(gapInput) && !(Math.floor(gap) === Math.floor(gapInput) || gap === gapInput)) {
+                        showRow = false;
+                    }
+                    if (filterSizeInput !== "" && !size.includes(filterSizeInput)) {
+                        showRow = false;
+                    }
+                    if (filterAptNmInput !== "" && !aptNm.includes(filterAptNmInput)) {
+                        showRow = false;
+                    }
+                    if (filterDongInput!== "" &&!dong.includes(filterDongInput)) {
+                        showRow = false;
+                    }
+
+                    $(this).toggle(showRow);
+                });
+            }
+
+            $('#filter300').change(applyFilters);
+            $('#filterPrice, #filterGap, #filterSize, #filterAptNm, #filterDong').on("input", applyFilters);
+
+
+            $('#btn_init').on('click', function () {
+                $('#filterPrice, #filterGap, #filterSize, #filterAptNm, #filterDong').val('');
+                $('#filter300').prop('checked', false);
+                applyFilters();
+            });
+
+        });
+
+        function showLoadingBar() {
+            $('#loadingBar').show();
+            $('#loadingProgress').css('width', '0');
+            $('#loadingProgress').animate({ width: '100%' }, 1000); // 로딩바 애니메이션
+        }
+
+        function hideLoadingBar() {
+            $('#loadingProgress').css('width', '100%');
+            setTimeout(function () {
+                $('#loadingBar').hide();
+            }, 500); // 로딩바 숨김
+        }
+
+
+        /**
+         * Excel 파일에서 아파트 ID 가져오기
+         */
+        function btnExcelExport(fileUrl) {
+            document.title = `(${$('#hdn_sel-gu').val()})네이버 시세 트래킹`;
+            $('#tbl_aptInfo tbody').empty();
+            var aptArr = [];
+            $.ajax({
+                url: fileUrl,
+                method: "GET",
+                xhrFields: {
+                    responseType: "blob" // 바이너리 데이터로 가져오기
+                },
+                success: function (data) {
+                    let reader = new FileReader();
+                    reader.onload = function (e) {
+                        let arrayBuffer = e.target.result;
+                        let workBook = XLSX.read(arrayBuffer, { type: "array" });
+
+                        workBook.SheetNames.forEach(function (sheetName) {
+                            // console.log('SheetName: ' + sheetName);
+                            let rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
+                            var keys = Object.keys(rows);
+
+
+                            for (var i = 0; i < keys.length; i++) {
+                                var key = keys[i];
+                                var subKeys = Object.keys(rows[key]);
+
+                                var id = rows[key][subKeys[0]];    // id
+                                var aptNm = rows[key][subKeys[1]];    // 아파트명                                       
+
+                                aptArr.push(id);
+                            }
+                            // console.log(aptArr);
+                            requestNaver(aptArr);
+                        })
+
+                    };
+                    reader.readAsArrayBuffer(data);
+                },
+                error: function () {
+                    alert("엑셀 파일을 다운로드하는 중 오류가 발생했습니다.");
+                }
+            });
+        }
+
+
+        // 엑셀 자료 추출 (Upload 용)
+        function excelExport(event) {
+
+            $('#tbl_aptInfo tbody').empty();
+
+            var aptArr = [];
+
+            let input = event.target;
+            let reader = new FileReader();
+            reader.onload = function () {
+                let data = reader.result;
+                let workBook = XLSX.read(data, { type: 'binary' });
+                workBook.SheetNames.forEach(function (sheetName) {
+                    // console.log('SheetName: ' + sheetName);
+                    let rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
+                    var keys = Object.keys(rows);
+
+
+                    for (var i = 0; i < keys.length; i++) {
+                        var key = keys[i];
+                        var subKeys = Object.keys(rows[key]);
+
+                        var id = rows[key][subKeys[0]];    // id
+                        var aptNm = rows[key][subKeys[1]];    // 아파트명                                       
+
+                        aptArr.push(id);
+                    }
+                    // console.log(aptArr);
+                    requestNaver(aptArr);
+                })
+            };
+            reader.readAsBinaryString(input.files[0]);
+        }
+        // Naver 호출
+        async function requestNaver(aptArr) {
+
+            let bfId = "";
+            for (const id of aptArr) {
+                let iObj = {};
+                let pObj = {};
+                if (bfId !== id) {
+                    bfId = id;
+                    await loadPyeongList(pObj, id);                    
+                    await loadBaseData(iObj, id); // 동기적으로 실행
+                }
+
+                let mObj = {};
+                let jObj = {};                
+
+                await loadData(mObj, jObj, id, '0'); // 동기적으로 실행
+
+                createTableList(iObj, mObj, jObj, pObj); // loadData 완료 후 실행
+            }
+        }
+        
+        // 방 리스트정보
+        function loadPyeongList(pObj, id){
+            return new Promise((resolve, reject) => {
+                // 평 리스트 가져오기
+                var corsAllowUrl = "https://cors-anywhere.herokuapp.com/";
+                var reqUrl = corsAllowUrl + "https://fin.land.naver.com/front-api/v1/complex/building/pyeongList?complexNumber="+ id;
+
+                $.ajax({
+                    url: reqUrl,
+                    method: "GET",
+                    success: function (res) {
+                        var pCnt = Object.keys(res.result).length;
+                       
+                        Object.keys(res.result).forEach(function(key){
+                            loadPyeongInfo(pObj, key, id);
+                        });                        
+                        resolve();
+                    },
+                    error: function () {
+                        alert("방 정보 불러오기 실패")
+                    }
+                });
+            });
+        }
+
+        function loadPyeongInfo(pObj, pCnt, id){
+
+            return new Promise((resolve, reject) => {
+                var corsAllowUrl = "https://cors-anywhere.herokuapp.com/";
+                var reqUrl = corsAllowUrl + "https://fin.land.naver.com/front-api/v1/complex/pyeong?complexNumber="+ id +"&pyeongTypeNumber="+ pCnt;
+                
+
+                $.ajax({
+                    url: reqUrl,
+                    method: "GET",
+                    success: function (res) {                    
+                        var info = new Object();
+                        if(Object.keys(res.result).length !== 0){
+                            var type = res.result.name;
+                            info.roomCount = res.result.roomCount;
+                            info.bathRoomCount = res.result.bathRoomCount;   
+                            info.typeNum = pCnt;              
+                            pObj[type] = info;                    
+                        }                                                
+                        resolve();
+
+                    },
+                    error: function () {
+                        alert("방 상세 정보 불러오기 실패")
+                    }
+                });
+            });
+        }
+
+        function loadBaseData(iObj, id) {
+            return new Promise((resolve, reject) => {
+                var corsAllowUrl = "https://cors-anywhere.herokuapp.com/";
+                var reqUrl = corsAllowUrl + "https://fin.land.naver.com/complexes/" + id + "?tab=transaction&tradeType=A1&pyeongTypeNumber=1";
+
+                $.ajax({
+                    url: reqUrl,
+                    method: "GET",
+                    success: function (response) {
+                        //console.log(response);
+                        var addr = $(response).find('.HeaderBrandDepth-module_sub-name__t-5rA').text();
+                        var addrSplit = addr.split(' ');
+                        var gu = "";
+                        var dong = "";
+
+                        if (addrSplit.length > 2) {
+                            gu = addrSubstr(addrSplit[1]);
+                            dong = addrSubstr(addrSplit[2]);
+                        } else {
+                            gu = addrSubstr(addrSplit[0]);
+                            dong = addrSubstr(addrSplit[1]);
+                        }
+                        var aptNm = $(response).find('.ComplexSummary_name__vX3IN').text();
+                        var aptYearInfo = $(response).find('.ComplexSummary_information__3bhbo').find('li').eq(2).text();
+                        var aptYear = cvrtAptYear(aptYearInfo);
+                        var aptSedae = cvrtAptSaedae($(response).find('.ComplexSummary_information__3bhbo').find('li').eq(1).text());
+                        var mCnt = $(response).find('.ComplexSummary_area-list-button__0Hc4H').find('.ComplexSummary_count__tmidA').eq(0).text();
+                        var jCnt = $(response).find('.ComplexSummary_area-list-button__0Hc4H').find('.ComplexSummary_count__tmidA').eq(1).text();
+
+                        // console.log(iObj, id, aptNm, gu, dong, aptYear, aptSedae, mCnt, jCnt)
+
+                        setBaseInfo(iObj, id, aptNm, gu, dong, aptYear, aptSedae, mCnt, jCnt);
+                        resolve(); // 완료 시 resolve 호출
+                    },
+                    error: function () {
+                        var html = "";
+                        html += '<tr>';
+                        html += '<td colspan="16">[ ' + id + ' ] 번 단지 정보를 가져오는 데 실패했습니다.</td>';
+                        html += '</tr>';
+                        $('#tbl_aptInfo tbody').append(html);
+                        reject(); // 실패 시 reject 호출
+                    }
+                });
+            });
+        }
+
+        function loadData(mObj, jObj, id, pageCnt) {
+
+            return new Promise((resolve, reject) => {
+                var corsAllowUrl = "https://cors-anywhere.herokuapp.com/";
+                var reqUrl = corsAllowUrl + "https://fin.land.naver.com/front-api/v1/complex/article/list?complexNumber=" + id + "&userChannelType=PC&page=" + pageCnt;
+
+                $.ajax({
+                    url: reqUrl,
+                    method: "GET",
+                    dataType: "JSON",
+                    contentType: "application/json; charset=utf-8",
+                    success: function (res) {
+
+                        var aptName = "";
+                        var hasNextPage = res.result.hasNextPage;
+                        for (var i = 0; i < res.result.list.length; i++) {
+                            var result = res.result.list[i];
+                            var info = result.representativeArticleInfo;
+
+                            aptName = info.complexName;
+
+                            var dongName = info.dongName;   // 동 정보,
+                            var desc = info.articleDetail.articleFeatureDescription; // 물건 정보
+                            var tradeType = info.tradeType;    // 매매/전세
+                            var supplyType = info.spaceInfo.supplySpaceName; // 공급평형
+                            var spaceType = info.spaceInfo.exclusiveSpaceName;  // 타입
+                            var floorInfo = info.articleDetail.floorInfo;   // 층수
+                            var dealPrice = formatToEok(info.priceInfo.dealPrice);   // 매매가
+                            var rantPrice = formatToEok(info.priceInfo.warrantyPrice);   // 전세가
+
+
+                            // 저층 고층 제외
+                            if (chkFloor(floorInfo)) {
+                                floorInfo = `${dongName}(${floorInfo})`
+                                // 59, 84 만 체크
+                                if (chkBigType(spaceType)) {
+                                    if ('A1' === tradeType) {   // 매매
+                                        createObj(mObj, dealPrice, supplyType, spaceType, floorInfo, desc);
+                                    } else if ('B1' === tradeType) { // 전세
+                                        createObj(jObj, rantPrice, supplyType, spaceType, floorInfo, desc);
+                                    }
+                                }
+                            }
+                        }
+
+
+                        if (hasNextPage) {
+                            return loadData(mObj, jObj, id, parseInt(pageCnt) + 1).then(resolve).catch(reject);
+                        } else {
+                            resolve();
+                        }
+                    },
+                    error: function () {
+                        var html = "";
+                        html += '<tr>';
+                        html += '<td colspan="18">[ ' + id + ' ] 번 단지 정보를 가져오는 데 실패했습니다.</td>';
+                        html += '</tr>';
+                        $('#tbl_aptInfo tbody').append(html);
+                        reject();
+                    }
+                });
+            });
+        }
+
+
+        function createTableList(iObj, mObj, jObj, pObj) {
+
+            var uniqueKeys = getUniqueKeys(mObj, jObj);
+
+            var html = "";
+            var pyeong = "";
+            for (var i = 0; i < uniqueKeys.length; i++) {
+
+                var mPrice = getPrice(uniqueKeys[i], mObj);   // 매매가
+                var jPrice = getPrice(uniqueKeys[i], jObj);   // 전세가
+
+                // 평형
+                if (mObj.hasOwnProperty(uniqueKeys[i])) {
+                    pyeong = getSupplyType(uniqueKeys[i], mObj); 
+                } else {
+                    pyeong = getSupplyType(uniqueKeys[i], jObj);  
+                }
+
+                html += '<tr>';
+                html += '<td><a href="https://new.land.naver.com/complexes/' + iObj.id + '" target="_blank">' + iObj.id + '</a></td>';              // ID(네이버)
+                html += '<td>' + iObj.gu + '</td>';              // 구
+                html += '<td>' + iObj.dong + '</td>';              // 동
+                html += '<td><a href="https://fin.land.naver.com/complexes/' + iObj.id + '?tradeTypes=A1&sortingType=%EB%82%AE%EC%9D%80%EA%B0%80%EA%B2%A9%EC%88%9C&tab=article&articleSortingType=price_asc&articleTradeTypes=A1'+ getTypeNum(pyeong, pObj) +'" target="_blank">' + iObj.aptNm + '</td>';            // 단지
+                html += '<td>' + iObj.year + '</td>';          // 연식
+                html += '<td>' + iObj.sd + '</td>';         // 세대                
+                html += '<td>' + pyeong + '</td>';
+                html += '<td>' + getRoomInfo(pyeong, pObj) + '</td>';  // 방
+                html += '<td>' + uniqueKeys[i] + '</td>';  // 타입
+                html += '<td>' + mPrice + '</td>';  // 매매가
+                html += '<td>' + jPrice + '</td>';  // 전세가
+                html += '<td>' + getBalance(mPrice, jPrice) + '</td>';  // 차액
+                html += '<td>' + getPersent(mPrice, jPrice) + '</td>';  // 전세가율
+                html += '<td>' + iObj.mCnt + '</td>';  // 매매갯수
+                html += '<td>' + iObj.jCnt + '</td>';  // 매매갯수
+
+                html += '<td title="' + getDesc(uniqueKeys[i], mObj) + '">' + getFloor(uniqueKeys[i], mObj) + '</td>';  // 매매층
+                html += '<td title="' + getDesc(uniqueKeys[i], jObj) + '">' + getFloor(uniqueKeys[i], jObj) + '</td>';  // 전세층
+                html += '</tr>';
+            }
+
+            $('#tbl_aptInfo tbody').append(html);
+
+        }
+        function getTypeNum(key, json){
+            if (json.hasOwnProperty(key)) {
+                return '&articlePyeongTypeNumbers=' +json[key].typeNum;
+            } else {
+                return '';
+            }
+        }
+
+        function getRoomInfo(key, json){
+            if (json.hasOwnProperty(key)) {                
+                return json[key].roomCount +"|"+ json[key].bathRoomCount;
+            } else {
+                return '';
+            }
+        }
+
+
+        function getDesc(key, json) {
+            if (json.hasOwnProperty(key)) {
+                return json[key].desc;
+            } else {
+                return '';
+            }
+        }
+
+        function getPrice(key, json) {
+            if (json.hasOwnProperty(key)) {
+                return json[key].priceInfo;
+            } else {
+                return '0';
+            }
+        }
+
+        function getFloor(key, json) {
+            if (json.hasOwnProperty(key)) {
+                return json[key].floorInfo;
+            } else {
+                return '';
+            }
+        }
+
+        function getSize(key, json) {
+            if (json.hasOwnProperty(key)) {
+                return json[key].size;
+            } else {
+                return '';
+            }
+        }
+
+        function getSupplyType(key, json) {
+            if (json.hasOwnProperty(key)) {
+                return json[key].supplyType;
+            } else {
+                return '';
+            }
+        }
+
+        function getBalance(mPrice, jPrice) {
+            if (mPrice !== '0') {
+                return (parseFloat(mPrice) - parseFloat(jPrice)).toFixed(1);
+            } else {
+                return '0';
+            }
+        }
+
+        function getPersent(mPrice, jPrice) {
+            if (mPrice !== '0') {
+                return ((parseFloat(jPrice) / parseFloat(mPrice)) * 100).toFixed(1) + '%';
+            } else {
+                return '-';
+            }
+        }
+
+        function addrSubstr(text) {
+            return text.substring(0, text.length - 1);
+        }
+
+        function cvrtAptSaedae(text) {
+            return text.replace('세대', '').trim();
+        }
+
+        function cvrtAptYear(text) {
+            return text.substring(0, text.indexOf('.'));
+        }
+
+        // 층 변환
+        function chkFloor(f) {
+            var maxFloor = parseInt(f.substring(f.indexOf('/') + 1, f.length));
+            var nowFloor = f.substring(0, f.indexOf('/'));
+
+            var excludeFloors = [String(maxFloor), '1', '2', '3', '저'];
+
+            if (excludeFloors.includes(nowFloor)) return false;
+            return true;
+        }
+
+        // 중복되지 않는 키 추출 함수
+        function getUniqueKeys(json1, json2) {
+            var uniqueKeys = [];
+
+            // json1의 키 중 json2에 없는 키 찾기
+            $.each(json1, function (key) {
+                if (!(key in json2)) {
+                    uniqueKeys.push(key);  // json2에 없는 키를 uniqueKeys에 추가
+                }
+            });
+
+            // json2의 키 중 json1에 없는 키 찾기
+            $.each(json2, function (key) {
+                if (!(key in json1)) {
+                    uniqueKeys.push(key);  // json1에 없는 키를 uniqueKeys에 추가
+                }
+            });
+
+            // json1과 json2에 모두 존재하는 공통 키 찾기
+            $.each(json1, function (key) {
+                if (key in json2) {
+                    uniqueKeys.push(key);  // 공통 키를 uniqueKeys에 추가
+                }
+            });
+
+            // 중복된 키를 제거
+            uniqueKeys = [...new Set(uniqueKeys)];
+
+            uniqueKeys.sort();
+
+            return uniqueKeys;
+        }
+
+        function chkBigType(v) {
+            var chk = $('#chk').is(':checked');
+            if (chk) {
+                var match = extractNumbers(v);
+                if (parseInt(match) > 84 || parseInt(match) < 51) {
+                    return false;
+                } else {
+                    return true;
+                }
+            } else {
+                return true;
+            }
+        }
+
+        // 타입 숫자만 반환
+        function extractNumbers(str) {
+            return str.match(/\d+/g)?.join('') || '';
+        }
+
+
+        // 아파트 정보 입력
+        function createObj(obj, priceInfo, supplyType, spaceType, floorInfo, desc) {
+
+            spaceType = spaceType.trim();
+
+            if (!obj.hasOwnProperty(spaceType)) {
+                setNewInfo(obj, priceInfo, supplyType, spaceType, floorInfo, desc);
+            } else {
+                var bfPrice = obj[spaceType].priceInfo;
+                var afPrice = priceInfo;
+
+                if (parseFloat(bfPrice) > parseFloat(afPrice)) {
+                    setNewInfo(obj, priceInfo, supplyType, spaceType, floorInfo, desc);
+                }
+            }
+            // console.log(arr);
+            return obj;
+        }
+
+        function setNewInfo(obj, priceInfo, supplyType, spaceType, floorInfo, desc) {
+            var info = new Object();
+            info.priceInfo = priceInfo;
+            info.supplyType = supplyType;
+            info.floorInfo = floorInfo;
+            info.desc = desc;
+            obj[spaceType] = (info);
+        }
+
+        function setBaseInfo(obj, id, aptNm, gu, dong, year, sd, mCnt, jCnt) {
+            obj.id = id;
+            obj.aptNm = aptNm;
+            obj.gu = gu;
+            obj.dong = dong;
+            obj.year = year;
+            obj.sd = sd;
+            obj.mCnt = mCnt;
+            obj.jCnt = jCnt;
+        }
+
+        function formatToEok(value) {
+            if (typeof value !== "number" || isNaN(value)) return "Invalid Input";
+
+            let result = value / 100000000; // 억 단위 변환
+            return result % 1 === 0 ? result.toFixed(0) : result.toFixed(1); // 정수면 소수점 제거, 소수 있으면 유지
+        }
+
+        function getNowDate() {
+            let today = new Date();
+            let year = today.getFullYear();
+            let month = String(today.getMonth() + 1).padStart(2, "0"); // 1월 = 0이므로 +1
+            let day = String(today.getDate()).padStart(2, "0");
+            return currentDate = `${year}${month}${day}`;
+        }
+
+
+        /*
+         * 비교용 Excel 
+         */
+
+        // 엑셀 자료 추출 (Upload 용)
+        function compareExport(event) {
+
+            var aptArr = [];
+            let fileName = event.target.files[0].name.split(".").shift();
+            let input = event.target;
+            let reader = new FileReader();
+            reader.onload = function () {
+                let data = reader.result;
+                let workBook = XLSX.read(data, { type: 'binary' });
+                workBook.SheetNames.forEach(function (sheetName) {
+                    // console.log('SheetName: ' + sheetName);
+                    let rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
+                    var keys = Object.keys(rows);
+
+
+                    for (var i = 0; i < keys.length; i++) {
+                        var key = keys[i];
+                        var subKeys = Object.keys(rows[key]);
+
+                        var id = rows[key][subKeys[0]];    // id
+                        var aptNm = rows[key][subKeys[1]];    // 아파트명 
+                        var aptType = rows[key][subKeys[2]];    // 아파트 타입      
+                        var mePrice = rows[key][subKeys[3]];    // 매매가
+                        var juPrice = rows[key][subKeys[4]];    // 전세가        
+
+                        var info = id + "|" + aptNm + "|" + aptType + "|" + mePrice + "|" + juPrice;
+
+                        aptArr.push(info);
+                    }
+                    // console.log(aptArr);
+                    compareWithTable(aptArr, fileName);
+                })
+            };
+            reader.readAsBinaryString(input.files[0]);
+        }
+
+
+        function compareWithTable(aptArr, fileName) {
+
+            var titArr = [];
+
+            titArr.push("ID");
+            titArr.push("아파트명");
+            titArr.push("타입");
+            titArr.push("매매");
+            titArr.push("전세");
+            titArr.push("매");
+            titArr.push("전");
+
+            var contentsArr = [];
+
+            contentsArr.push(titArr);
+
+            for (i = 0; i < aptArr.length; i++) {
+                var rowArr = [];
+                var aptSplit = aptArr[i].split('|');
+                var id = aptSplit[0];
+                var aptNm = aptSplit[1];
+                var aptType = aptSplit[2];
+                var mePrice = aptSplit[3];
+                var juPrice = aptSplit[4];
+
+                var cmpMePrice = "";
+                var cmpJuPrice = "";
+
+                var mCnt = "";
+                var jCnt = "";
+
+                $("#tbl_aptInfo tbody tr").each(function (index, element) {
+                    var tblId = $(element).find("td").eq(0).text(); //  tabld ID                    
+                    var tblType = $(element).find("td").eq(8).text(); //  타입
+                    var tblMe = $(element).find("td").eq(9).text(); // 매매
+                    var tblJu = $(element).find("td").eq(10).text(); // 전세           
+
+                    if (id === tblId) {
+
+                        mCnt = $(element).find("td").eq(13).text(); // 매
+                        jCnt = $(element).find("td").eq(14).text(); // 전
+
+                        // 타입이 같고, 매매가 0이 아니면
+                        if (aptType === extractNumbers(tblType)) {
+                            if (Number(tblMe) !== 0) {
+                                if (cmpMePrice === "") {
+                                    cmpMePrice = tblMe;
+                                } else if (Number(cmpMePrice) >= Number(tblMe)) {
+                                    cmpMePrice = tblMe;
+                                }
+
+                            }
+                            if (Number(tblJu) !== 0) {
+                                if (cmpJuPrice === "") {
+                                    cmpJuPrice = tblJu;
+                                } else if (Number(cmpJuPrice) >= Number(tblJu)) {
+                                    cmpJuPrice = tblJu;
+                                }
+                            }
+                        }
+                    }
+                });
+                // 매매가 없으면 기존 매매가로 처리
+                // if (Number(cmpMePrice) == 0) {
+                //     cmpMePrice = mePrice;
+                // }
+
+                // 전세가 없으면 기존 전세가로 처리
+                // if (Number(cmpJuPrice) == 0) {
+                //     cmpJuPrice = juPrice;
+                // }
+
+                //console.log(cmpMePrice, cmpJuPrice);
+
+                rowArr.push(id);
+                rowArr.push(aptNm);
+                rowArr.push(aptType);
+                rowArr.push(cmpMePrice);
+                rowArr.push(cmpJuPrice);
+                rowArr.push(mCnt);
+                rowArr.push(jCnt);
+
+                contentsArr.push(rowArr);
+
+            }
+
+            downloadCSV(contentsArr, fileName);
+        }
+
+        // 평형 상세 변경
+        function cvrtDtlSz(v) {
+            return v.substring(0, v.indexOf(".")).trim();
+        }
+
+        function downloadCSV(contentsArr, f) {
+
+            const worksheet = XLSX.utils.aoa_to_sheet(contentsArr);
+
+            // 스타일 설정: 폰트 크기 9
+            Object.keys(worksheet).forEach(cell => {
+                if (cell[0] !== '!') {
+                    worksheet[cell].s = {
+                        font: { sz: 9 },
+                        alignment: { wrapText: true, horizontal: "right" } // 우측정렬
+                    };
+                }
+            });
+
+            // 열 너비 자동 조정 (개행 문자 및 한글 고려)
+            const colWidths = contentsArr[0].map((_, colIndex) => {
+                const maxWidth = contentsArr.reduce((max, row) => {
+                    const cellValue = row[colIndex] ? String(row[colIndex]) : "";
+                    const lines = cellValue.split(/\r?\n/); // 개행 문자 기준 분할
+                    const maxLineWidth = Math.max(...lines.map(line => {
+                        return line.split('').reduce((acc, char) => {
+                            return acc + (char.match(/[가-힣]/) ? 2 : 1); // 한글은 2배 너비로 계산
+                        }, 0);
+                    }));
+                    return Math.max(max, maxLineWidth);
+                }, 10); // 최소 너비 10 설정
+                return { wch: maxWidth + 2 }; // 여백을 추가하여 가독성 향상
+            });
+            worksheet['!cols'] = colWidths;
+
+            // 엑셀 파일 생성 (CSV 대신 XLSX 사용)
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+
+            const gu = $('#hdn_sel-gu').val();
+            const fileName = f +"_"+ gu + "_result.xlsx";
+            XLSX.writeFile(workbook, fileName);
+        }
+
+    </script>
+</head>
+
+<body>
+    <div id="loadingBar" style="display: none;">
+        <div id="loadingProgress"></div>
+    </div>
+    <div>
+        <!-- <button id="loadData">데이터 가져오기</button> -->
+        <a href="https://cors-anywhere.herokuapp.com" target='_blank'>START</a>
+        <a href="https://roy-fild.github.io/file/all_naver_apt_id_data.xlsx" download>Download</a>
+        <button id="btn_new_window" class="grey_btn" style="margin-right: 5%;">새창</button>
+        검색용 Excel <input type="file" id="excelFile" style="margin-bottom:5px;" />
+        비교용 Excel(ID/아파트명/타입/매매가/전세가) <input type="file" id="cmpExcelFile" style="margin-bottom:5px" />
+    </div>
+    <div>
+    </div>
+    <div>
+        <b>정찰기</b>
+        <button id="btn_observer-sudo" class="purple_btn">수도권</button>
+        <button id="btn_observer-jibang" class="purple_btn">지방</button>
+    </div>
+    <div>
+        <b>서울시(11)</b>
+        <input type="hidden" id="hdn_sel-gu" />
+        <button id="btn_songpa-gu" class="red_btn">송파구</button>
+        <button id="btn_seongdong-gu" class="orange_btn">성동구</button>
+        <button id="btn_yangcheon-gu" class="orange_btn">양천구</button>
+        <button id="btn_bundang-gu" class="orange_btn">분당구</button>
+        <button id="btn_jongno-jung-gu" class="yellow_btn">종로/중구</button>
+        <button id="btn_dongjak-gu" class="yellow_btn">동작구</button>
+        <button id="btn_yeongdeungpo-gu" class="yellow_btn">영등포구</button>
+        <button id="btn_seong-buk-gu" class="green_btn">성북구</button>
+        <button id="btn_dongdaemun-gu" class="green_btn">동대문구</button>
+        <button id="btn_seodaemun-gu" class="green_btn">서대문구</button>
+        <button id="btn_gwanak-gu" class="green_btn">관악구</button>
+    </div>
+    <div>
+        <b>수도권(3)</b>
+        <button id="btn_suji-gu" class="darkslategrey_btn">수지구</button>
+        <button id="btn_dongtan" class="darkslategrey_btn">동탄</button>
+        <button id="btn_sujeong-jungwon-gu" class="darkslategrey_btn">수정/중원구</button>
+    </div>
+    <div>
+        <b>광역시(3)</b>
+        <b>대전[145만]</b>
+        <button id="btn_daejeon-seo-gu" class="darkgoldenrod_btn">서구</button>
+        <button id="btn_daejeon-yuseong-gu" class="darkgoldenrod_btn">유성구</button>
+        <b>광주[143만]</b>
+        <button id="btn_gwangju-buk-gu" class="darkgoldenrod_btn">북구</button>
+    </div>
+    <div>
+        <b>지방(3)</b>
+        <button id="btn_cheongju" class="ligthseagreen_btn">청주[85만]흥덕구/청원구/상당구</button>
+        <button id="btn_jeonju" class="ligthseagreen_btn">전주[65만]덕진구/완산구</button>
+        <button id="btn_cheonan" class="ligthseagreen_btn">천안[66만]서북구/동남구</button>
+    </div>
+
+    <div class="excel-container" style="margin-left: 80%;">
+        <button id="excelDownload" class="green_btn">EXCEL</button>
+        <button id="btn_init" class="grey_btn" data-no-loading="true">초기화</button>
+    </div>
+    <div id="result">
+        <table id="tbl_aptInfo">
+            <thead>
+                <tr>
+                    <th style="width:80px"><input id="chk" type="checkbox" checked>59~84</input></th>
+                    <th></th>
+                    <th>
+                        <input id="filterDong" type="text" placeholder="동" style="width: 40px;">
+                    </th>
+                    <th>
+                        <input id="filterAptNm" type="text" placeholder="단지명" style="width: 180px;">
+                    </th>
+                    <th></th>
+                    <th style="width:80px"><input id="filter300" type="checkbox">300^</input></th>
+                    <th></th>
+                    <th></th>
+                    <th style="width:80px">
+                        <input id="filterSize" type="text" pattern="\\d*\\.?\\d*"
+                            oninput="this.value = this.value.replace(/[^0-9.]/g, '');" placeholder="타입"
+                            style="width: 40px;" maxlength="3">
+                    </th>
+                    <th><input type="text" inputmode="decimal" pattern="\\d*\\.?\\d*"
+                            oninput="this.value = this.value.replace(/[^0-9.]/g, '');" id="filterPrice"
+                            placeholder="매매가" style="width: 40px;" maxlength="4"></th>
+                    <th></th>
+                    <th><input type="text" inputmode="decimal" pattern="\\d*\\.?\\d*"
+                            oninput="this.value = this.value.replace(/[^0-9.]/g, '');" id="filterGap" placeholder="차액"
+                            style="width: 40px;" maxlength="4"></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                </tr>
+                <tr>
+                    <th>ID</th>
+                    <th>구</th>
+                    <th>동</th>
+                    <th>단지명</th>
+                    <th>연식</th>
+                    <th>세대</th>
+                    <th>평형</th>
+                    <th>방</th>
+                    <th>타입</th>
+                    <th>매매</th>
+                    <th>전세</th>
+                    <th>차액</th>
+                    <th>전세가율</th>
+                    <th>매매</th>
+                    <th>전세</th>
+                    <th>매/층</th>
+                    <th>전/층</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</body>
+
+</html>
