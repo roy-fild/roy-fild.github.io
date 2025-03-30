@@ -842,7 +842,7 @@
                 }else if(type === "30"){
                     type = "복합"
                 }
-                return `${type}|${json[key].roomCount}|${json[key].bathRoomCount}`;
+                return `${json[key].roomCount}|${json[key].bathRoomCount}|${type}`;
             } else {
                 return '';
             }
