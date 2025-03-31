@@ -305,6 +305,13 @@
                 btnExcelExport(fileUrl);
             });
 
+            // 은평구
+            $('#btn_eunpyeong-gu').on('click', function () {
+                $('#hdn_sel-gu').val('은평구');
+                let fileUrl = "https://roy-fild.github.io/file/eunpyeong-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
             // 수지구
             $('#btn_suji-gu').on('click', function () {
                 $('#hdn_sel-gu').val('수지구');
@@ -1234,7 +1241,7 @@
         <button id="btn_observer-jibang" class="purple_btn">지방</button>
     </div>
     <div>
-        <b>서울시(11)</b>
+        <b>서울시(12)</b>
         <input type="hidden" id="hdn_sel-gu" />
         <button id="btn_songpa-gu" class="red_btn">송파구</button>
         <button id="btn_seongdong-gu" class="orange_btn">성동구</button>
@@ -1247,6 +1254,7 @@
         <button id="btn_dongdaemun-gu" class="green_btn">동대문구</button>
         <button id="btn_seodaemun-gu" class="green_btn">서대문구</button>
         <button id="btn_gwanak-gu" class="green_btn">관악구</button>
+        <button id="btn_eunpyeong-gu" class="green_btn">은평구</button>
     </div>
     <div>
         <b>수도권(3)</b>
