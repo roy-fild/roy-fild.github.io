@@ -193,6 +193,18 @@
     <script>
         $(document).ready(function () {
 
+            // 버튼 개수 세기
+            var btnSeoulCnt = $("#div_seoul button").length;
+            var btnSuedoCnt = $("#div_suedo button").length;
+            var btnMetroCnt = $("#div_metro button").length;
+            var btnJibangCnt= $("#div_jibang button").length;
+    
+            // <b> 태그 내용 업데이트
+            $("#div_seoul > b").text("서울시(" + btnSeoulCnt + ")");    // 서울시
+            $("#div_suedo > b").text("수도권(" + btnSuedoCnt + ")");    // 수도권
+            $("#div_metro > b").eq(0).text("광역시(" + btnMetroCnt + ")");    // 광역시
+            $("#div_jibang > b").text("지방(" + btnJibangCnt + ")");    // 지방
+
             // 새창 띄우기
             $('#btn_new_window').on('click', function (e) {
                 e.preventDefault();
@@ -1240,8 +1252,8 @@
         <button id="btn_observer-sudo" class="purple_btn">수도권</button>
         <button id="btn_observer-jibang" class="purple_btn">지방</button>
     </div>
-    <div>
-        <b>서울시(12)</b>
+    <div id="div_seoul">
+        <b></b>
         <input type="hidden" id="hdn_sel-gu" />
         <button id="btn_songpa-gu" class="red_btn">송파구</button>
         <button id="btn_seongdong-gu" class="orange_btn">성동구</button>
@@ -1256,22 +1268,22 @@
         <button id="btn_gwanak-gu" class="green_btn">관악구</button>
         <button id="btn_eunpyeong-gu" class="green_btn">은평구</button>
     </div>
-    <div>
-        <b>수도권(3)</b>
+    <div id="div_suedo">
+        <b></b>
         <button id="btn_suji-gu" class="darkslategrey_btn">수지구</button>
         <button id="btn_dongtan" class="darkslategrey_btn">동탄</button>
         <button id="btn_sujeong-jungwon-gu" class="darkslategrey_btn">수정/중원구</button>
     </div>
-    <div>
-        <b>광역시(3)</b>
+    <div id="div_metro">
+        <b></b>
         <b>대전[145만]</b>
         <button id="btn_daejeon-seo-gu" class="darkgoldenrod_btn">서구</button>
         <button id="btn_daejeon-yuseong-gu" class="darkgoldenrod_btn">유성구</button>
         <b>광주[143만]</b>
         <button id="btn_gwangju-buk-gu" class="darkgoldenrod_btn">북구</button>
     </div>
-    <div>
-        <b>지방(3)</b>
+    <div id="div_jibang">
+        <b></b>
         <button id="btn_cheongju" class="ligthseagreen_btn">청주[85만]흥덕구/청원구/상당구</button>
         <button id="btn_jeonju" class="ligthseagreen_btn">전주[65만]덕진구/완산구</button>
         <button id="btn_cheonan" class="ligthseagreen_btn">천안[66만]서북구/동남구</button>
