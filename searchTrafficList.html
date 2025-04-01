@@ -289,14 +289,14 @@
             $.getJSON('https://roy-fild.github.io/json/traffic_id_data.json', function (data) {
 
                 var html = "";
-                var cnt = 0; 
+                var cnt = 0;
 
                 $.each(data, function (i, item) {
                     if (item.ID == id) {
 
                         html += '<tr>';
                         html += `<td>${nm}</td>`;
-                        html += `<td>${item.grade}</td>`;
+                        html += chkGrade(item.grade);
                         html += `<td>${item.gn}</td>`;
                         html += `<td>${item.city}</td>`;
                         html += `<td>${item.ye}</td>`;
@@ -311,7 +311,7 @@
                     }
                 });
 
-                if(cnt == 0){
+                if (cnt == 0) {
                     alert('등록된 교통정보가 없습니다.')
                 }
             });
@@ -382,6 +382,21 @@
 
         }
 
+        function chkGrade(g) {
+            var html = "";
+
+            if (g.match('S')) {
+                html = "<td style='text-align: center; background-color:red; color:white' >" + g + "</td>"
+            } else if (g.match('A')) {
+                html = "<td style='text-align: center; background-color:green; color:white' >" + g + "</td>"
+            } else if (g.match('B')) {
+                html = "<td style='text-align: center; background-color:blue; color:white' >" + g + "</td>"
+            } else {
+                html = "<td style='text-align: center; background-color:grey; color:white' >" + g + "</td>"
+            }
+            return html;
+        }
+
     </script>
 </head>
 
@@ -417,7 +432,7 @@
             <thead>
                 <tr>
                     <th>아파트</th>
-                    <th>등급</th>
+                    <th style="width:80px">등급</th>
                     <th>강남</th>
                     <th>도심</th>
                     <th>여의도</th>
