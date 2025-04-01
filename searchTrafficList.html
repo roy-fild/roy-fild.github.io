@@ -193,6 +193,28 @@
     <script>
         $(document).ready(function () {
 
+            $("th").css("cursor", "pointer");
+
+            $("th").click(function () {
+
+                var table = $(this).closest("table");
+                var columnIndex = $(this).index();
+                var rows = table.find("tbody tr").toArray();
+
+                rows.sort(function (a, b) {
+                    var cellA = $(a).children("td").eq(columnIndex).text();
+                    var cellB = $(b).children("td").eq(columnIndex).text();
+
+                    if ($.isNumeric(cellA) && $.isNumeric(cellB)) {
+                        return cellB - cellA;
+                    } else {
+                        return cellB.localeCompare(cellA);
+                    }
+                });
+
+                table.find("tbody").empty().append(rows);
+            });
+
             $('#sel_si').change(function () {
                 $('#sel_gu').empty().append('<option value="">----------</option>');
                 $('#sel_dong').empty().append('<option value="">----------</option>');
@@ -219,6 +241,10 @@
                 $('#sel_dong').empty().append('<option value="">----------</option>');
                 $('#sel_nm').empty().append('<option value="">----------</option>');
                 $('#tbl_aptInfo tbody').empty();
+            });
+            // 특정 td 클릭 시 해당 tr 삭제
+            $("table").on("click", "td.delete-cell", function () {
+                $(this).closest("tr").remove();
             });
 
             // 엑셀 출력
@@ -295,6 +321,7 @@
                     if (item.ID == id) {
 
                         html += '<tr>';
+                        html += '<td class="delete-cell">[Delete]</td>'
                         html += `<td>${nm}</td>`;
                         html += chkGrade(item.grade);
                         html += `<td>${item.gn}</td>`;
@@ -401,9 +428,9 @@
 </head>
 
 <body>
-    <div id="loadingBar" style="display: none;">
-        <div id="loadingProgress"></div>
-    </div>
+    <h3>아파트 교통 정보 비교 조회<small><i>
+                <font size=1>by 필디</font>
+            </i></small></h3>
     <div>
         <select id="sel_si" style="margin-bottom: 10px;">
             <option value="">시를 선택하세요.</option>
@@ -431,6 +458,7 @@
         <table id="tbl_aptInfo">
             <thead>
                 <tr>
+                    <th style="width:80px"></th>
                     <th>아파트</th>
                     <th style="width:80px">등급</th>
                     <th>강남</th>
