@@ -227,6 +227,7 @@
             $('#btn_observer-sudo').on('click', function () {
                 $('#hdn_sel-gu').val('정찰기-수도권');
                 let fileUrl = "https://roy-fild.github.io/file/tracking-list.xlsx"; // 다운로드할 엑셀 파일 URL
+                $('#chk').prop('checked', false);
                 btnExcelExport(fileUrl);
             });
 
@@ -234,6 +235,7 @@
             $('#btn_observer-jibang').on('click', function () {
                 $('#hdn_sel-gu').val('정찰기-지방');
                 let fileUrl = "https://roy-fild.github.io/file/tracking-jibang.xlsx"; // 다운로드할 엑셀 파일 URL
+                $('#chk').prop('checked', false);
                 btnExcelExport(fileUrl);
             });
 
