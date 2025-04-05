@@ -648,6 +648,7 @@
                     method: "GET",
                     success: function (res) {
                         var pCnt = Object.keys(res.result).length;
+                        console.log(res)
                        
                         Object.keys(res.result).forEach(function(key){
                             loadPyeongInfo(pObj, key, id);
@@ -741,7 +742,7 @@
 
             return new Promise((resolve, reject) => {
                 var corsAllowUrl = "https://cors-anywhere.herokuapp.com/";
-                var reqUrl = corsAllowUrl + "https://fin.land.naver.com/front-api/v1/complex/article/list?complexNumber=" + id + "&userChannelType=PC&page=" + pageCnt;
+                var reqUrl = corsAllowUrl + "https://fin.land.naver.com/front-api/v1/complex/article/list?complexNumber=" + id + "&dateDescending=false&userChannelType=PC&page=" + pageCnt;
 
                 $.ajax({
                     url: reqUrl,
