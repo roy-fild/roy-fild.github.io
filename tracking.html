@@ -197,8 +197,8 @@
             var btnSeoulCnt = $("#div_seoul button").length;
             var btnSuedoCnt = $("#div_suedo button").length;
             var btnMetroCnt = $("#div_metro button").length;
-            var btnJibangCnt= $("#div_jibang button").length;
-    
+            var btnJibangCnt = $("#div_jibang button").length;
+
             // <b> 태그 내용 업데이트
             $("#div_seoul > b").text("서울시(" + btnSeoulCnt + ")");    // 서울시
             $("#div_suedo > b").text("수도권(" + btnSuedoCnt + ")");    // 수도권
@@ -473,6 +473,7 @@
                 let filterSizeInput = $('#filterSize').val().trim();
                 let filterAptNmInput = $('#filterAptNm').val().trim();
                 let filterDongInput = $('#filterDong').val().trim();
+                let chkBigType = $('#chkBigType').is(':checked');
 
                 $('tbody tr').each(function () {
                     let units = parseInt($(this).find('td:nth-child(6)').text().replace(/,/g, ''), 10);
@@ -499,21 +500,28 @@
                     if (filterAptNmInput !== "" && !aptNm.includes(filterAptNmInput)) {
                         showRow = false;
                     }
-                    if (filterDongInput!== "" &&!dong.includes(filterDongInput)) {
+                    if (filterDongInput !== "" && !dong.includes(filterDongInput)) {
                         showRow = false;
+                    }
+
+                    if(chkBigType){
+                        var match = extractNumbers(size);
+                        if (parseInt(match) > 84 || parseInt(match) < 51) {
+                            showRow = false;
+                        }
                     }
 
                     $(this).toggle(showRow);
                 });
             }
 
-            $('#filter300').change(applyFilters);
+            $('#filter300, #chkBigType').change(applyFilters);
             $('#filterPrice, #filterGap, #filterSize, #filterAptNm, #filterDong').on("input", applyFilters);
 
 
             $('#btn_init').on('click', function () {
                 $('#filterPrice, #filterGap, #filterSize, #filterAptNm, #filterDong').val('');
-                $('#filter300').prop('checked', false);
+                $('#filter300, #chkBigType').prop('checked', false);
                 applyFilters();
             });
 
@@ -623,25 +631,25 @@
                 let pObj = {};
                 if (bfId !== id) {
                     bfId = id;
-                    await loadPyeongList(pObj, id);                    
+                    await loadPyeongList(pObj, id);
                     await loadBaseData(iObj, id); // 동기적으로 실행
                 }
 
                 let mObj = {};
-                let jObj = {};                
+                let jObj = {};
 
                 await loadData(mObj, jObj, id, '0'); // 동기적으로 실행
 
                 createTableList(iObj, mObj, jObj, pObj); // loadData 완료 후 실행
             }
         }
-        
+
         // 방 리스트정보
-        function loadPyeongList(pObj, id){
+        function loadPyeongList(pObj, id) {
             return new Promise((resolve, reject) => {
                 // 평 리스트 가져오기
                 var corsAllowUrl = "https://cors-anywhere.herokuapp.com/";
-                var reqUrl = corsAllowUrl + "https://fin.land.naver.com/front-api/v1/complex/building/pyeongList?complexNumber="+ id;
+                var reqUrl = corsAllowUrl + "https://fin.land.naver.com/front-api/v1/complex/building/pyeongList?complexNumber=" + id;
 
                 $.ajax({
                     url: reqUrl,
@@ -649,10 +657,10 @@
                     success: function (res) {
                         var pCnt = Object.keys(res.result).length;
                         console.log(res)
-                       
-                        Object.keys(res.result).forEach(function(key){
+
+                        Object.keys(res.result).forEach(function (key) {
                             loadPyeongInfo(pObj, key, id);
-                        });                        
+                        });
                         resolve();
                     },
                     error: function () {
@@ -662,26 +670,26 @@
             });
         }
         // 방상세정보
-        function loadPyeongInfo(pObj, pCnt, id){
+        function loadPyeongInfo(pObj, pCnt, id) {
 
             return new Promise((resolve, reject) => {
                 var corsAllowUrl = "https://cors-anywhere.herokuapp.com/";
-                var reqUrl = corsAllowUrl + "https://fin.land.naver.com/front-api/v1/complex/pyeong?complexNumber="+ id +"&pyeongTypeNumber="+ pCnt;
-                
+                var reqUrl = corsAllowUrl + "https://fin.land.naver.com/front-api/v1/complex/pyeong?complexNumber=" + id + "&pyeongTypeNumber=" + pCnt;
+
 
                 $.ajax({
                     url: reqUrl,
                     method: "GET",
-                    success: function (res) {                    
+                    success: function (res) {
                         var info = new Object();
-                        if(Object.keys(res.result).length !== 0){
+                        if (Object.keys(res.result).length !== 0) {
                             var type = res.result.name;
                             info.roomCount = res.result.roomCount;
-                            info.bathRoomCount = res.result.bathRoomCount;   
+                            info.bathRoomCount = res.result.bathRoomCount;
                             info.entranceType = res.result.entranceType;
-                            info.typeNum = pCnt;              
-                            pObj[type] = info;                    
-                        }                                                
+                            info.typeNum = pCnt;
+                            pObj[type] = info;
+                        }
                         resolve();
 
                     },
@@ -772,14 +780,12 @@
                             // 저층 고층 제외
                             if (chkFloor(floorInfo)) {
                                 floorInfo = `${dongName}(${floorInfo})`
-                                // 59, 84 만 체크
-                                if (chkBigType(spaceType)) {
-                                    if ('A1' === tradeType) {   // 매매
-                                        createObj(mObj, dealPrice, supplyType, spaceType, floorInfo, desc);
-                                    } else if ('B1' === tradeType) { // 전세
-                                        createObj(jObj, rantPrice, supplyType, spaceType, floorInfo, desc);
-                                    }
+                                if ('A1' === tradeType) {   // 매매
+                                    createObj(mObj, dealPrice, supplyType, spaceType, floorInfo, desc);
+                                } else if ('B1' === tradeType) { // 전세
+                                    createObj(jObj, rantPrice, supplyType, spaceType, floorInfo, desc);
                                 }
+
                             }
                         }
 
@@ -816,16 +822,16 @@
 
                 // 평형
                 if (mObj.hasOwnProperty(uniqueKeys[i])) {
-                    pyeong = getSupplyType(uniqueKeys[i], mObj); 
+                    pyeong = getSupplyType(uniqueKeys[i], mObj);
                 } else {
-                    pyeong = getSupplyType(uniqueKeys[i], jObj);  
+                    pyeong = getSupplyType(uniqueKeys[i], jObj);
                 }
 
                 html += '<tr>';
                 html += '<td><a href="https://new.land.naver.com/complexes/' + iObj.id + '" target="_blank">' + iObj.id + '</a></td>';              // ID(네이버)
                 html += '<td>' + iObj.gu + '</td>';              // 구
                 html += '<td>' + iObj.dong + '</td>';              // 동
-                html += '<td><a href="https://fin.land.naver.com/complexes/' + iObj.id + '?tradeTypes=A1&sortingType=%EB%82%AE%EC%9D%80%EA%B0%80%EA%B2%A9%EC%88%9C&tab=article&articleSortingType=price_asc&articleTradeTypes=A1'+ getTypeNum(pyeong, pObj) +'" target="_blank">' + iObj.aptNm + '</td>';            // 단지
+                html += '<td><a href="https://fin.land.naver.com/complexes/' + iObj.id + '?tradeTypes=A1&sortingType=%EB%82%AE%EC%9D%80%EA%B0%80%EA%B2%A9%EC%88%9C&tab=article&articleSortingType=price_asc&articleTradeTypes=A1' + getTypeNum(pyeong, pObj) + '" target="_blank">' + iObj.aptNm + '</td>';            // 단지
                 html += '<td>' + iObj.year + '</td>';          // 연식
                 html += '<td>' + iObj.sd + '</td>';         // 세대                
                 html += '<td>' + pyeong + '</td>';
@@ -846,22 +852,22 @@
             $('#tbl_aptInfo tbody').append(html);
 
         }
-        function getTypeNum(key, json){
+        function getTypeNum(key, json) {
             if (json.hasOwnProperty(key)) {
-                return '&articlePyeongTypeNumbers=' +json[key].typeNum;
+                return '&articlePyeongTypeNumbers=' + json[key].typeNum;
             } else {
                 return '';
             }
         }
 
-        function getRoomInfo(key, json){
-            if (json.hasOwnProperty(key)) {                
+        function getRoomInfo(key, json) {
+            if (json.hasOwnProperty(key)) {
                 var type = json[key].entranceType;
-                if(type === "10"){
+                if (type === "10") {
                     type = "계";
-                }else if(type === "20"){
+                } else if (type === "20") {
                     type = "복"
-                }else if(type === "30"){
+                } else if (type === "30") {
                     type = "복합"
                 }
                 return `${json[key].roomCount}|${json[key].bathRoomCount}|${type}`;
@@ -983,23 +989,25 @@
             return uniqueKeys;
         }
 
-        function chkBigType(v) {
-            var chk = $('#chk').is(':checked');
-            if (chk) {
-                var match = extractNumbers(v);
-                if (parseInt(match) > 84 || parseInt(match) < 51) {
-                    return false;
-                } else {
-                    return true;
-                }
-            } else {
-                return true;
-            }
-        }
+        // function chkBigType(v) {
+        //     var chk = $('#chk').is(':checked');
+        //     if (chk) {
+        //         var match = extractNumbers(v);
+        //         if (parseInt(match) > 84 || parseInt(match) < 51) {
+        //             return false;
+        //         } else {
+        //             return true;
+        //         }
+        //     } else {
+        //         return true;
+        //     }
+        // }
 
         // 타입 숫자만 반환
         function extractNumbers(str) {
-            return str.match(/\d+/g)?.join('') || '';
+            //return str.match(/\d+/g)?.join('') || '';
+            const match = str.match(/^\d+/);
+            return match ? match[0] : '';
         }
 
 
@@ -1300,7 +1308,7 @@
         <table id="tbl_aptInfo">
             <thead>
                 <tr>
-                    <th style="width:80px"><input id="chk" type="checkbox">59~84</input></th>
+                    <th style="width:80px"><input id="chkBigType" type="checkbox">59~84</input></th>
                     <th></th>
                     <th>
                         <input id="filterDong" type="text" placeholder="동" style="width: 40px;">
