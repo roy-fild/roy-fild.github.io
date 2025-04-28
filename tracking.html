@@ -709,7 +709,7 @@
                     url: reqUrl,
                     method: "GET",
                     success: function (response) {
-                        //console.log(response);
+                        console.log(response);
                         var addr = $(response).find('.HeaderBrandDepth-module_sub-name__t-5rA').text();
                         var addrSplit = addr.split(' ');
                         var gu = "";
@@ -722,12 +722,12 @@
                             gu = addrSubstr(addrSplit[0]);
                             dong = addrSubstr(addrSplit[1]);
                         }
-                        var aptNm = $(response).find('.ComplexSummary_name__vX3IN').text();
-                        var aptYearInfo = $(response).find('.ComplexSummary_information__3bhbo').find('li').eq(2).text();
+                        var aptNm = $(response).find('.ComplexSummary_name__z0aZ7').text();
+                        var aptYearInfo = $(response).find('.ComplexSummary_information__R5OGG').find('ul').eq(0).find('li').eq(2).text();
                         var aptYear = cvrtAptYear(aptYearInfo);
-                        var aptSedae = cvrtAptSaedae($(response).find('.ComplexSummary_information__3bhbo').find('li').eq(1).text());
-                        var mCnt = $(response).find('.ComplexSummary_area-list-button__0Hc4H').find('.ComplexSummary_count__tmidA').eq(0).text();
-                        var jCnt = $(response).find('.ComplexSummary_area-list-button__0Hc4H').find('.ComplexSummary_count__tmidA').eq(1).text();
+                        var aptSedae = cvrtAptSaedae($(response).find('.ComplexSummary_information__R5OGG').find('ul').eq(0).find('li').eq(1).text());
+                        var mCnt = $(response).find('.ComplexSummary_area-list-button__3Eglr').find('.ComplexSummary_count__GFHb9').eq(0).text();
+                        var jCnt = $(response).find('.ComplexSummary_area-list-button__3Eglr').find('.ComplexSummary_count__GFHb9').eq(1).text();
 
                         // console.log(iObj, id, aptNm, gu, dong, aptYear, aptSedae, mCnt, jCnt)
 
