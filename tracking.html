@@ -1093,10 +1093,11 @@
                         var id = rows[key][subKeys[0]];    // id
                         var aptNm = rows[key][subKeys[1]];    // 아파트명 
                         var aptType = rows[key][subKeys[2]];    // 아파트 타입      
-                        var mePrice = rows[key][subKeys[3]];    // 매매가
-                        var juPrice = rows[key][subKeys[4]];    // 전세가        
+                        // var mePrice = rows[key][subKeys[3]];    // 매매가
+                        // var juPrice = rows[key][subKeys[4]];    // 전세가        
 
-                        var info = id + "|" + aptNm + "|" + aptType + "|" + mePrice + "|" + juPrice;
+                        // var info = id + "|" + aptNm + "|" + aptType + "|" + mePrice + "|" + juPrice;
+                        var info = id + "|" + aptNm + "|" + aptType;
 
                         aptArr.push(info);
                     }
@@ -1130,8 +1131,8 @@
                 var id = aptSplit[0];
                 var aptNm = aptSplit[1];
                 var aptType = aptSplit[2];
-                var mePrice = aptSplit[3];
-                var juPrice = aptSplit[4];
+                // var mePrice = aptSplit[3];
+                // var juPrice = aptSplit[4];
 
                 var cmpMePrice = "";
                 var cmpJuPrice = "";
@@ -1254,7 +1255,7 @@
         <a href="https://roy-fild.github.io/file/all_naver_apt_id_data.xlsx" download>Download</a>
         <button id="btn_new_window" class="grey_btn" style="margin-right: 5%;">새창</button>
         검색용 Excel <input type="file" id="excelFile" style="margin-bottom:5px;" />
-        비교용 Excel(ID/아파트명/타입/매매가/전세가) <input type="file" id="cmpExcelFile" style="margin-bottom:5px" />
+        비교용 Excel(ID/아파트명/타입) <input type="file" id="cmpExcelFile" style="margin-bottom:5px" />
     </div>
     <div>
     </div>
