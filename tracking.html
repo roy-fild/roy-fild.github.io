@@ -326,6 +326,13 @@
                 btnExcelExport(fileUrl);
             });
 
+            // 중랑구
+            $('#btn_jungnang-gu').on('click', function (){
+                $('#hdn_sel-gu').val('중랑구');
+                let fileUrl = "https://roy-fild.github.io/file/jungnang-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
             // 수지구
             $('#btn_suji-gu').on('click', function () {
                 $('#hdn_sel-gu').val('수지구');
@@ -1279,6 +1286,7 @@
         <button id="btn_seodaemun-gu" class="green_btn">서대문구</button>
         <button id="btn_gwanak-gu" class="green_btn">관악구</button>
         <button id="btn_eunpyeong-gu" class="skyblue_btn">은평구</button>
+        <button id="btn_jungnang-gu" class="skyblue_btn">중랑구</button>
     </div>
     <div id="div_suedo">
         <b></b>
