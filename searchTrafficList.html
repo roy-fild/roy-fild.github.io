@@ -322,15 +322,15 @@
 
                         html += '<tr>';
                         html += '<td class="delete-cell">[Delete]</td>'
-                        html += `<td>${nm}</td>`;
+                        html += `<td style="text-align: center">${nm}</td>`;
                         html += chkGrade(item.grade);
-                        html += `<td>${item.gn}</td>`;
-                        html += `<td>${item.city}</td>`;
-                        html += `<td>${item.ye}</td>`;
-                        html += `<td>${item.fan}</td>`;
-                        html += `<td>${item.ge}</td>`;
-                        html += `<td>${item.mg}</td>`;
-                        html += `<td>${item.dmc}</td>`;
+                        html += addTimeColor(item.gn);
+                        html += addTimeColor(item.city);
+                        html += addTimeColor(item.ye);
+                        html += addTimeColor(item.fan);
+                        html += addTimeColor(item.ge);
+                        html += addTimeColor(item.mg);
+                        html += addTimeColor(item.dmc);
                         html += '</tr>';
 
                         $('#tbl_aptInfo tbody').append(html);
@@ -421,6 +421,18 @@
             return html;
         }
 
+        function addTimeColor(t){
+            var html = "";
+            if(Number(t) < 31){
+                html = "<td style='text-align: center; color:blue' >" + t + "</td>" 
+            }else if(Number(t) > 60){
+                html = "<td style='text-align: center; color:red' >" + t + "</td>" 
+            }else{
+                html = "<td style='text-align: center;' >" + t + "</td>" 
+            }
+            return html;
+        }
+
     </script>
 </head>
 
@@ -456,15 +468,15 @@
             <thead>
                 <tr>
                     <th style="width:80px"></th>
-                    <th>아파트</th>
-                    <th style="width:80px">등급</th>
-                    <th>강남</th>
-                    <th>도심</th>
-                    <th>여의도</th>
-                    <th>판교</th>
-                    <th>G밸리</th>
-                    <th>마곡</th>
-                    <th>DMC</th>
+                    <th style="text-align:center">아파트</th>
+                    <th style="width:80px;text-align:center">등급</th>
+                    <th style="text-align:center">강남</th>
+                    <th style="text-align:center">도심</th>
+                    <th style="text-align:center">여의도</th>
+                    <th style="text-align:center">판교</th>
+                    <th style="text-align:center">G밸리</th>
+                    <th style="text-align:center">마곡</th>
+                    <th style="text-align:center">DMC</th>
                 </tr>
             </thead>
             <tbody>
