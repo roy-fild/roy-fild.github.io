@@ -8,3 +8,4 @@ myAptInfo            - 아파트 가격대 조회 (개인용) <br/>
 traking              - 개별시세따기 (개발중) 배포금지 <br/>
 calMatrix            - 매매가 대비 투자금 Excel 생성 <br/>
 searchTrafficList.html - 아파트 교통 정보 비교 조회 <br/>
+searcSchoolGradeList - 연도별 중학교 학업성취율 조회 <br/>
