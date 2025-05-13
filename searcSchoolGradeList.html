@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>중학교 학업성취율 조회</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        #loadingBar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background-color: #f3f3f3;
+            z-index: 9999;
+        }
+
+        #loadingProgress {
+            height: 100%;
+            width: 0;
+            background-color: #4caf50;
+            transition: width 0.4s ease;
+        }
+
+        .red_btn {
+            background-color: red;
+            color: #e5e5e5;
+            margin-bottom: 5px;
+        }
+
+        .orange_btn {
+            background-color: #FFA500;
+            margin-bottom: 5px;
+        }
+
+        .yellow_btn {
+            background-color: yellow;
+            margin-bottom: 5px;
+        }
+
+        .green_btn {
+            background-color: green;
+            color: #e5e5e5;
+            margin-bottom: 5px;
+        }
+
+        .skyblue_btn {
+            background-color: skyblue;
+            margin-bottom: 5px;
+        }
+
+        .purple_btn {
+            background-color: rgb(128, 0, 128);
+            color: #e5e5e5;
+            margin-bottom: 5px;
+        }
+
+        .darkslategrey_btn {
+            background-color: rgb(47, 79, 79);
+            color: #e5e5e5;
+            margin-bottom: 5px;
+        }
+
+        .darkgoldenrod_btn {
+            background-color: rgb(233, 172, 17);
+            margin-bottom: 5px;
+        }
+
+        .olivedrab_btn {
+            background-color: rgb(107, 142, 35);
+            color: #e5e5e5;
+            margin-bottom: 5px;
+        }
+
+        .ligthseagreen_btn {
+            background-color: rgb(32, 178, 170);
+            margin-bottom: 5px;
+        }
+
+        .grey_btn {
+            background-color: rgb(128, 128, 128);
+            margin-bottom: 5px;
+        }
+
+        body {
+            padding: 1.5em;
+            background: #f5f5f5
+        }
+
+        table {
+            border: 1px #a39485 solid;
+            font-size: .9em;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, .25);
+            width: 100%;
+            border-collapse: collapse;
+            border-radius: 5px;
+            overflow: hidden;
+
+        }
+
+        th {
+            text-align: left;
+        }
+
+        thead {
+            font-weight: bold;
+            color: #fff;
+            background: #73685d;
+        }
+
+        td,
+        th {
+            padding: 1em .5em;
+            vertical-align: middle;
+            border-spacing: 1px;
+            border-style: none;
+            padding: 5px;
+        }
+
+        td {
+            border-bottom: 1px solid rgba(0, 0, 0, .1);
+            background: #fff;
+        }
+
+        a {
+            color: #73685d;
+        }
+
+        @media all and (max-width: 768px) {
+
+            table,
+            thead,
+            tbody,
+            th,
+            td,
+            tr {
+                display: block;
+            }
+
+            th {
+                text-align: right;
+            }
+
+            table {
+                position: relative;
+                padding-bottom: 0;
+                border: none;
+                box-shadow: 0 0 10px rgba(0, 0, 0, .2);
+            }
+
+            thead {
+                float: left;
+                white-space: nowrap;
+            }
+
+            tbody {
+                overflow-x: auto;
+                overflow-y: hidden;
+                position: relative;
+                white-space: nowrap;
+            }
+
+            tr {
+                display: inline-block;
+                vertical-align: top;
+            }
+
+            th {
+                border-bottom: 1px solid #a39485;
+            }
+
+            td {
+                border-bottom: 1px solid #e5e5e5;
+            }
+
+            .hide {
+                display: none;
+            }
+
+            .excel-container {
+                position: fixed;
+                right: 10px;
+                top: 10px;
+                z-index: 1000;
+                /* 다른 요소 위에 표시 */
+            }
+
+        }
+    </style>
+    <script>
+        $(document).ready(function () {
+
+            onSearch();
+
+            $("th").css("cursor", "pointer");
+
+            // 정렬
+            $("th").click(function () {
+
+                var table = $(this).closest("table");
+                var columnIndex = $(this).index();
+                var rows = table.find("tbody tr").toArray();
+
+                rows.sort(function (a, b) {
+                    var cellA = $(a).children("td").eq(columnIndex).text();
+                    var cellB = $(b).children("td").eq(columnIndex).text();
+
+                    if ($.isNumeric(cellA) && $.isNumeric(cellB)) {
+                        return cellB - cellA;
+                    } else {
+                        return cellB.localeCompare(cellA);
+                    }
+                });
+
+                table.find("tbody").empty().append(rows);
+            });
+
+            $('#sel_year').change(function () {
+                $('#sel_gu').empty().append('<option value="">----------</option>');
+                $('#sel_dong').empty().append('<option value="">----------</option>');
+                onSearch();
+            });
+            $('#sel_si').change(function () {
+                $('#sel_gu').empty().append('<option value="">----------</option>');
+
+                onSearch();
+            });
+
+            $('#btn_search').on('click', function () {
+                getSchoolData();
+            });
+
+            // 초기화
+            $('#btn_init').on('click', function () {
+                $('#sel_gu').empty().append('<option value="">----------</option>');
+                $('#sel_si').empty().append('<option value="">----------</option>');
+                $('#tbl_schoolInfo tbody').empty();
+            });
+
+
+            // 엑셀 출력
+            $('#excelDownload').on('click', function () {
+
+                let table = document.getElementById('tbl_schoolInfo');
+
+                // 테이블에 데이터가 있는지 확인
+                let tbody = table.querySelector('tbody');
+                if (!tbody || tbody.rows.length === 0) {
+                    alert("테이블에 데이터가 없습니다.");
+                    return;
+                }
+
+                let wb = XLSX.utils.book_new();
+                let ws = XLSX.utils.table_to_sheet(table, { sheetStubs: true });  // table을 시트로 변환하면서 stub을 추가
+
+                // 열 너비 자동 조정
+                let colWidths = [];
+                let range = XLSX.utils.decode_range(ws['!ref']);
+
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    let maxWidth = 10;
+                    for (let R = range.s.r; R <= range.e.r; ++R) {
+                        let cell_address = XLSX.utils.encode_cell({ r: R, c: C });
+                        let cell = ws[cell_address];
+
+                        if (cell && cell.v) {
+                            let cellValue = String(cell.v);
+                            maxWidth = Math.max(maxWidth, cellValue.length + 2);
+                        }
+                    }
+                    colWidths.push({ wch: maxWidth });
+                }
+                ws['!cols'] = colWidths;
+
+                // 스타일 적용 (기본 적용 확인)
+                Object.keys(ws).forEach(cell => {
+                    if (ws[cell] && ws[cell].t) {
+                        ws[cell].s = {
+                            font: { name: "Arial", sz: 10 }  // Arial 폰트 + 크기 10
+                        };
+                    }
+                });
+                XLSX.utils.book_append_sheet(wb, ws, "학교정보");  // 시트 추가
+
+                var fileNm = '중학교학업성췰율정보' + getNowDate() + '.xlsx'
+                // 엑셀 파일로 저장
+                XLSX.writeFile(wb, fileNm);
+            });
+        });
+
+        function getNowDate() {
+            let today = new Date();
+            let year = today.getFullYear();
+            let month = String(today.getMonth() + 1).padStart(2, "0"); // 1월 = 0이므로 +1
+            let day = String(today.getDate()).padStart(2, "0");
+            return currentDate = `${year}${month}${day}`;
+        }
+
+        function getSchoolData() {
+
+            var yr = $('#sel_year').val();
+            var si = $('#sel_si').val();
+            var gu = $('#sel_gu').val();
+
+            $.getJSON('https://roy-fild.github.io/json/schoolGradeInfo.json', function (data) {
+
+                var html = "";
+                var cnt = 0;
+
+                $.each(data, function (i, item) {
+
+                    // console.log(item);
+                    if (item.year === Number(yr)
+                        && item.si.includes(si)
+                        && item.addr1.includes(gu)) {
+
+                        html = "";
+
+                        html += '<tr>';
+                        html += `<td style="text-align: center">${item.si}</td>`;
+                        html += `<td style="text-align: center">${item.addr1}</td>`;
+                        html += `<td style="text-align: center">${item.addr2}</td>`;
+                        html += `<td style="text-align: center">${item.school}</td>`;
+                        html += `<td style="text-align: center">${chkNull(item.kor)}</td>`;
+                        html += `<td style="text-align: center">${chkNull(item.eng)}</td>`;
+                        html += `<td style="text-align: center">${chkNull(item.math)}</td>`;
+                        html += `<td style="text-align: center">${chkNull(item.avg)}</td>`;
+                        html += `<td style="text-align: center">${chkNull(item.tot)}</td>`;
+                        html += `<td style="text-align: center">${chkNull(item.spec)}</td>`;
+                        html += '</tr>';
+
+                        $('#tbl_schoolInfo tbody').append(html);
+                        cnt++;
+                        //}
+                    }
+                });
+
+                if (cnt == 0) {
+                    alert('등록된 교통정보가 없습니다.')
+                }
+            });
+        }
+
+        function chkNull(v) {
+            if (v === null || v === undefined) return '';
+
+            // 문자열 형태로 "null", "undefined" 등도 제거
+            const str = String(v).trim().toLowerCase();
+            return (str === 'null' || str === 'undefined' || str === '') ? '' : v;
+        }
+
+        function onSearch() {
+
+            var yr = $('#sel_year').val();
+            var si = $('#sel_si').val();
+            var gu = $('#sel_gu').val();
+
+
+            $.getJSON('https://roy-fild.github.io/json/schoolGradeInfo.json', function (data) {
+
+                $.each(data, function (i, item) {
+
+                    var siSet = new Set();
+                    var guSet = new Set();
+
+                    if (item.year === Number(yr)) {
+                        $.each(data, function (i, item) {
+                            siSet.add(item.si)
+                        });
+
+                        // 시
+                        if (si === "") {
+
+                            // 기존 옵션 초기화 후 새로운 옵션 추가
+                            $('#sel_si').empty().append('<option value="">선택하세요</option>');
+                            siSet.forEach(function (si) {
+                                $('#sel_si').append(`<option value="${si}">${si}</option>`);
+                            });
+                        }
+
+                        // addr1
+                        if (si !== "" && gu === "") {
+                            $.each(data, function (i, item) {
+                                if (item.year === Number(yr) && item.si.includes(si)) {
+                                    guSet.add(item.addr1); // 중복 방지
+                                }
+                            });
+
+                            // 기존 옵션 초기화 후 새로운 옵션 추가
+                            $('#sel_gu').empty().append('<option value="">선택하세요</option>');
+                            guSet.forEach(function (gu) {
+                                $('#sel_gu').append(`<option value="${gu}">${gu}</option>`);
+                            });
+                        }
+                    }
+                });
+            });
+        }
+
+
+    </script>
+</head>
+
+<body>
+    <h3>중학교 학업성취율 조회(2021-2024 2학기기준)<small><i>
+                <font size=1>by 필디</font>
+            </i></small></h3>
+    <div>
+
+        <select id="sel_year" style="margin-bottom: 10px;">
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+            <option value="2022">2022</option>
+            <option value="2022">2021</option>
+        </select>
+        <select id="sel_si">
+            <option value="">----------</option>
+        </select>
+        <select id="sel_gu">
+            <option value="">----------</option>
+        </select>
+        <button id="btn_init" class="grey_btn" data-no-loading="true">초기화</button>
+    </div>
+    <div class="excel-container" style="margin-left: 80%;">
+        <button id="btn_search" class="olivedrab_btn" data-no-loading="true">검색</button>
+        <button id="excelDownload" class="green_btn">EXCEL</button>
+
+    </div>
+
+    <div id="result">
+        <table id="tbl_schoolInfo">
+            <thead>
+                <tr>
+                    <th style="text-align:center">시</th>
+                    <th style="text-align:center">구</th>
+                    <th style="text-align:center">동</th>
+                    <th style="text-align:center">학교명</th>
+                    <th style="text-align:center">국어</th>
+                    <th style="text-align:center">영어</th>
+                    <th style="text-align:center">수학</th>
+                    <th style="text-align:center">평균</th>
+                    <th style="text-align:center">재학생수</th>
+                    <th style="text-align:center">특목고</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</body>
+
+</html>
