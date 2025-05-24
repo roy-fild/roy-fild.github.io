@@ -730,6 +730,7 @@
                             dong = addrSubstr(addrSplit[1]);
                         }
                         var aptNm = $(response).find('.ComplexSummary_name__z0aZ7').text();
+                        aptNm = clearAptNm(aptNm);
                         var aptYearInfo = $(response).find('.ComplexSummary_information__R5OGG').find('ul').eq(0).find('li').eq(2).text();
                         var aptYear = cvrtAptYear(aptYearInfo);
                         var aptSedae = cvrtAptSaedae($(response).find('.ComplexSummary_information__R5OGG').find('ul').eq(0).find('li').eq(1).text());
@@ -751,6 +752,10 @@
                     }
                 });
             });
+        }
+        
+        function clearAptNm(aptNm){
+            return aptNm.replace(/VR투어/g, '');
         }
 
         function loadData(mObj, jObj, id, pageCnt) {
