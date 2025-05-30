@@ -327,7 +327,7 @@
             });
 
             // 중랑구
-            $('#btn_jungnang-gu').on('click', function (){
+            $('#btn_jungnang-gu').on('click', function () {
                 $('#hdn_sel-gu').val('중랑구');
                 let fileUrl = "https://roy-fild.github.io/file/jungnang-gu.xlsx"; // 다운로드할 엑셀 파일 URL
                 btnExcelExport(fileUrl);
@@ -511,7 +511,7 @@
                         showRow = false;
                     }
 
-                    if(chkBigType){
+                    if (chkBigType) {
                         var match = extractNumbers(size);
                         if (parseInt(match) > 84 || parseInt(match) < 51) {
                             showRow = false;
@@ -530,6 +530,19 @@
                 $('#filterPrice, #filterGap, #filterSize, #filterAptNm, #filterDong').val('');
                 $('#filter300, #chkBigType').prop('checked', false);
                 applyFilters();
+            });
+
+            $('#tbl_aptInfo').on('click', 'tr td:nth-child(16), tr td:nth-child(17)', function() {
+                const text = $(this).attr('title');
+                if (!text) return;
+
+                const temp = $('<textarea>');
+                $('body').append(temp);
+                temp.val(text).select();
+                document.execCommand('copy');
+                temp.remove();
+
+                alert(text);
             });
 
         });
@@ -753,8 +766,8 @@
                 });
             });
         }
-        
-        function clearAptNm(aptNm){
+
+        function clearAptNm(aptNm) {
             return aptNm.replace(/VR투어/g, '');
         }
 
