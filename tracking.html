@@ -674,7 +674,11 @@
                 await loadData(mObj, jObj, id, '0'); // 동기적으로 실행
 
                 createTableList(iObj, mObj, jObj, pObj); // loadData 완료 후 실행
+
+                aptRowCnt();
             }
+
+            
         }
 
         // 방 리스트정보
@@ -1280,6 +1284,17 @@
             XLSX.writeFile(workbook, fileName);
         }
 
+        function aptRowCnt(){
+            const names = new Set();
+
+            $('#tbl_aptInfo tbody tr').each(function() {
+            const name = $(this).find('td:first').text().trim();
+            names.add(name);
+            });
+
+            $('#aptCnt').text(`TOTAL: ${names.size}`);
+        }
+
     </script>
 </head>
 
@@ -1344,6 +1359,7 @@
     <div class="excel-container" style="margin-left: 80%;">
         <button id="excelDownload" class="green_btn">EXCEL</button>
         <button id="btn_init" class="grey_btn" data-no-loading="true">초기화</button>
+        <span id="aptCnt"></span>
     </div>
     <div id="result">
         <table id="tbl_aptInfo">
