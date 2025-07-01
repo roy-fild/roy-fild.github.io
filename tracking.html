@@ -423,6 +423,13 @@
                 btnExcelExport(fileUrl);
             });
 
+            // 포항 북구
+            $('#btn_pohang-si-buk-gu').on('click', function(){
+                $('#hdn_sel-gu').val('포항-북구');
+                let fileUrl = "https://roy-fild.github.io/file/pohang-si-buk-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
 
 
             $('#excelDownload').on('click', function () {
@@ -1354,6 +1361,7 @@
         <button id="btn_cheongju" class="ligthseagreen_btn">청주[85만]흥덕구/청원구/상당구</button>
         <button id="btn_jeonju" class="ligthseagreen_btn">전주[65만]덕진구/완산구</button>
         <button id="btn_cheonan" class="ligthseagreen_btn">천안[66만]서북구/동남구</button>
+        <button id="btn_pohang-si-buk-gu" class="ligthseagreen_btn">포항-북구[27만]</button>
     </div>
 
     <div class="excel-container" style="margin-left: 80%;">
