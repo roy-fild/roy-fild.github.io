@@ -97,8 +97,8 @@
             if(v == aptNm){            
                 var p = line[3]; // 평수
                 var s = line[4]; // 매매가
-                var j = line[5]; // 전세가
-                var ctnt = p + '/' + s + '/' + j;
+                var j = (line[5] === '0') ? '' : '/' + line[5]; // 전세가
+                var ctnt = p + '/' + s + j;
                 aptCtntArr.push(ctnt);
             }
         }
