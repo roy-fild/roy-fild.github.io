@@ -191,6 +191,14 @@
         }
     </style>
     <script>
+
+        const engToKor = {
+            'r': 'ㄱ', 'R': 'ㄲ', 's': 'ㄴ', 'e': 'ㄷ', 'E': 'ㄸ', 'f': 'ㄹ', 'a': 'ㅁ', 'q': 'ㅂ', 'Q': 'ㅃ',
+            't': 'ㅅ', 'T': 'ㅆ', 'd': 'ㅇ', 'w': 'ㅈ', 'W': 'ㅉ', 'c': 'ㅊ', 'z': 'ㅋ', 'x': 'ㅌ', 'v': 'ㅍ', 'g': 'ㅎ',
+            'k': 'ㅏ', 'o': 'ㅐ', 'i': 'ㅑ', 'O': 'ㅒ', 'j': 'ㅓ', 'p': 'ㅔ', 'u': 'ㅕ', 'P': 'ㅖ', 'h': 'ㅗ',
+            'y': 'ㅛ', 'n': 'ㅜ', 'b': 'ㅠ', 'm': 'ㅡ', 'l': 'ㅣ'
+        };
+
         $(document).ready(function () {
 
             // 버튼 개수 세기
@@ -359,13 +367,13 @@
             });
 
             // 안양시-동안구
-            $('#btn_anyang-si-dongan-gu').on('click', function() {
+            $('#btn_anyang-si-dongan-gu').on('click', function () {
                 $('#hdn_sel-gu').val('동안구');
                 let fileUrl = "https://roy-fild.github.io/file/anyang-si-dongan-gu.xlsx"; // 다운로드할 엑셀 파일 URL
                 btnExcelExport(fileUrl);
             });
 
-            
+
 
             /************************************
              *  지방 (광역시)
@@ -424,7 +432,7 @@
             });
 
             // 포항 북구
-            $('#btn_pohang-si-buk-gu').on('click', function(){
+            $('#btn_pohang-si-buk-gu').on('click', function () {
                 $('#hdn_sel-gu').val('포항-북구');
                 let fileUrl = "https://roy-fild.github.io/file/pohang-si-buk-gu.xlsx"; // 다운로드할 엑셀 파일 URL
                 btnExcelExport(fileUrl);
@@ -552,7 +560,7 @@
                 applyFilters();
             });
 
-            $('#tbl_aptInfo').on('click', 'tr td:nth-child(16), tr td:nth-child(17)', function() {
+            $('#tbl_aptInfo').on('click', 'tr td:nth-child(16), tr td:nth-child(17)', function () {
                 const text = $(this).attr('title');
                 if (!text) return;
 
@@ -563,6 +571,14 @@
                 temp.remove();
 
                 alert(text);
+            });
+
+
+
+            $('#filterAptNm, #filterDong').on('input', function () {
+                const eng = $(this).val();
+                const converted = convertToHangul(eng);
+                $(this).val(converted);
             });
 
         });
@@ -578,6 +594,16 @@
             setTimeout(function () {
                 $('#loadingBar').hide();
             }, 500); // 로딩바 숨김
+        }
+
+
+        function convertToHangul(input) {
+            let result = '';
+            for (let i = 0; i < input.length; i++) {
+                const ch = input[i];
+                result += engToKor[ch] || ch;
+            }
+            return result;
         }
 
 
@@ -685,7 +711,7 @@
                 aptRowCnt();
             }
 
-            
+
         }
 
         // 방 리스트정보
@@ -1291,12 +1317,12 @@
             XLSX.writeFile(workbook, fileName);
         }
 
-        function aptRowCnt(){
+        function aptRowCnt() {
             const names = new Set();
 
-            $('#tbl_aptInfo tbody tr').each(function() {
-            const name = $(this).find('td:first').text().trim();
-            names.add(name);
+            $('#tbl_aptInfo tbody tr').each(function () {
+                const name = $(this).find('td:first').text().trim();
+                names.add(name);
             });
 
             $('#aptCnt').text(`TOTAL: ${names.size}`);
