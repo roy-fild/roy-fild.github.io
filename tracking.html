@@ -921,6 +921,7 @@
 
                 html += '<td title="' + getDesc(uniqueKeys[i], mObj) + '">' + getFloor(uniqueKeys[i], mObj) + '</td>';  // 매매층
                 html += '<td title="' + getDesc(uniqueKeys[i], jObj) + '">' + getFloor(uniqueKeys[i], jObj) + '</td>';  // 전세층
+                html += '<td>' + getDesc(uniqueKeys[i], mObj) + '</td>';  // 설명
                 html += '</tr>';
             }
 
@@ -954,7 +955,12 @@
 
         function getDesc(key, json) {
             if (json.hasOwnProperty(key)) {
-                return json[key].desc;
+                var result = json[key].desc;
+                if(result !== undefined){
+                    return result;
+                }else{
+                    return '';
+                }
             } else {
                 return '';
             }
@@ -1428,6 +1434,7 @@
                     <th></th>
                     <th></th>
                     <th></th>
+                    <th></th>
                 </tr>
                 <tr>
                     <th>ID</th>
@@ -1447,6 +1454,7 @@
                     <th>전세</th>
                     <th>매/층</th>
                     <th>전/층</th>
+                    <th>설명(매매)</th>
                 </tr>
             </thead>
             <tbody>
