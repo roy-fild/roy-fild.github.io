@@ -352,6 +352,13 @@
                 btnExcelExport(fileUrl);
             });
 
+            // 수원시-영통구
+            $('#btn_suwon-si-yeongtong-gu').on('click', function(){
+                $('#hdn_sel-gu').val('영통구');
+                let fileUrl = "https://roy-fild.github.io/file/suwon-si-yeongtong-gu.xlsx"; // 다운로드할 엑셀 파일 URL
+                btnExcelExport(fileUrl);
+            });
+
             // 동탄
             $('#btn_dongtan').on('click', function () {
                 $('#hdn_sel-gu').val('동탄');
@@ -1376,6 +1383,7 @@
     <div id="div_suedo">
         <b></b>
         <button id="btn_suji-gu" class="darkslategrey_btn">수지구</button>
+        <button id="btn_suwon-si-yeongtong-gu" class="darkslategrey_btn">수원시-영통구</button>
         <button id="btn_dongtan" class="darkslategrey_btn">동탄</button>
         <button id="btn_sujeong-jungwon-gu" class="darkslategrey_btn">수정/중원구</button>
         <button id="btn_anyang-si-dongan-gu" class="darkslategrey_btn">안양시-동안구</button>
