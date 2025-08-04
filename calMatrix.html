@@ -48,27 +48,62 @@
 
     function convertAptInfo(aptArr, fileName) {
 
+        var selectedValue = $('input[name="option"]:checked').val();  
+
         var price = 20;    // 매매가 
         var contentsArr = [];
 
         var titArr = [];       // 투자금
         titArr.push(" ");
-        for (var i = 1; i <= 15; i++) {
-            var tit = i + '억대';
-            titArr.push(tit)
+
+        // 수도권
+        if(selectedValue === '1'){
+            for (var i = 1; i <= 15; i++) {
+                var tit = i + '억대';
+                titArr.push(tit)
+            }
+        // 지방
+        }else{
+            //price = 10;
+            for (var i = 0.1; i <= 3; i+=0.1) {
+                var tit = (i*10).toFixed(0)  + '천';
+                console.log(tit);
+                titArr.push(tit);
+            }
         }
 
         contentsArr.push(titArr);
 
-        while (price > 1.4) {
+        // 수도권
+        if(selectedValue === '1'){
+            while (price > 1.4) {
+
+                var rowArr = [];
+                rowArr.push(price);
+
+                if (price == 20) {
+                    rowArr = chkHighPrice(aptArr, rowArr);
+                } else {
+                    rowArr = chkPrice(price, aptArr, rowArr);
+                }
+
+                price = price - 0.1;
+                price = price.toFixed(1);
+
+                contentsArr.push(rowArr);
+
+            }
+        // 지방
+        }else{
+           while (price > 1.4) {
 
             var rowArr = [];
             rowArr.push(price);
 
-            if (price == 20) {
-                rowArr = chkHighPrice(aptArr, rowArr);
+            if (price == 10) {
+                rowArr = chkHighPriceForSmall(aptArr, rowArr);
             } else {
-                rowArr = chkPrice(price, aptArr, rowArr);
+                rowArr = chkPriceForSmall(price, aptArr, rowArr);
             }
 
             price = price - 0.1;
@@ -76,16 +111,17 @@
 
             contentsArr.push(rowArr);
 
+        } 
         }
         // console.log(contentsArr);
 
         downloadCSV(contentsArr, fileName);
 
     }
+
+    /******************수도권*********************/
     // 고가
     function chkHighPrice(aptArr, rowArr) {
-
-        console.log("row");
 
         for (var j = 1; j <= 15; j++) {
             var label = "";
@@ -144,6 +180,66 @@
         return rowArr;
     }
 
+     /******************지방*********************/
+     // 고가
+    function chkHighPriceForSmall(aptArr, rowArr) {
+
+        for (var j = 0.1; j <= 3; j+=0.1) {
+            var label = "";
+            for (var i = 0; i < aptArr.length; i++) {
+                var info = aptArr[i].split('|');
+
+                var me = info[0]; // 매매가
+                var ju = info[1]; // 전세가
+                var la = info[2]; // 라벨                        
+
+                // 차액
+                var s = Number(me) - Number(ju);
+                s = s.toFixed(1);
+
+                // 투자금 일치 가격이 높을경우
+                if (j == s && Number(me) > 9.9) {
+                    if (label != '') {
+                        label += "\n"
+                    }
+                    label += la;
+                }
+            }
+            rowArr.push(label);
+        }
+
+        return rowArr;
+    }
+
+    function chkPriceForSmall(price, aptArr, rowArr) {
+
+        for (var j = 0.1; j <= 3; j+=0.1) {
+            var label = "";
+            for (var i = 0; i < aptArr.length; i++) {
+                var info = aptArr[i].split('|');
+
+                var me = info[0]; // 매매가
+                var ju = info[1]; // 전세가
+                var la = info[2]; // 라벨        
+
+                // 차액
+                var s = Number(me) - Number(ju);
+                s = s.toFixed(1);
+
+                // 투자금 일치 가격이 같을경우
+                if (j == s && Number(me).toFixed(1) == Number(price)) {
+                    if (label != '') {
+                        label += "\n"
+                    }
+                    label += la;
+                }
+            }
+            rowArr.push(label);
+            //rowArr.push(",");
+        }
+        //.log(labelRow);
+        return rowArr;
+    }
 
     function downloadCSV(contentsArr, f) {
 
@@ -197,6 +293,13 @@
         <font size=1>by 필디</font>
     </i></small>
     <br />
+    <label>
+        <input type="radio" name="option" value="1" checked>수도권
+    </label>
+    <label>
+        <input type="radio" name="option" value="2">지방
+    </label>
+    <br/>
     <div>
         매매가/전세가/라벨
     </div>
