@@ -20,20 +20,24 @@
         #apt_tables table {
             border: 1px solid #ccc;
             border-collapse: collapse;
-            /* border-spacing 완전히 제거 */
+            /* 테두리 간격 제거 */
             margin: 0;
-            /* 공백 제거 */
+            table-layout: auto;
+            /* 셀 내용에 맞춰 자동 폭 */
             width: auto;
-            min-width: 150px;
+            /* 강제 폭 제거 */
+            min-width: unset;
+            /* 최소 폭 제한 해제 */
             cursor: pointer;
         }
 
         #apt_tables th,
-        #apt_tables td {            
+        #apt_tables td {
             border: 1px solid #ccc;
             padding: 5px;
             text-align: center;
             box-sizing: border-box;
+            white-space: nowrap; /* 줄바꿈 방지, 가로폭 최소화 */
         }
     </style>
     <script>
