@@ -5,31 +5,31 @@
     <link href="./style2.css" rel="stylesheet" type="text/css" />
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.15.5/xlsx.full.min.js"></script>
+    <!-- html2canvas 추가 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         #apt_tables {
             display: flex;
             flex-wrap: wrap;
             /* 줄바꿈 가능 */
-            gap: 10px;
+            gap: 0;
             align-items: flex-start;
             /* 각 테이블의 위쪽을 맞추고 높이 강제 안 맞춤 */
         }
 
         #apt_tables table {
-            display: inline-block;
-            /* 표로 동작하지 않게 함 */
             border: 1px solid #ccc;
-            border-collapse: separate;
-            /* border-collapse 제거 */
-            border-spacing: 0;
+            border-collapse: collapse;
+            /* border-spacing 완전히 제거 */
+            margin: 0;
+            /* 공백 제거 */
             width: auto;
             min-width: 150px;
+            cursor: pointer;
         }
 
         #apt_tables th,
-        #apt_tables td {
-            display: block;
-            /* 한 줄씩 블록 처리 */
+        #apt_tables td {            
             border: 1px solid #ccc;
             padding: 5px;
             text-align: center;
@@ -38,6 +38,27 @@
     </style>
     <script>
         $(function () { });
+        // 동적으로 생성된 table 클릭 시 이미지로 변환 후 클립보드 복사
+        $(document).on("click", "#apt_tables table", function () {
+            let tableElement = this;
+
+            html2canvas(tableElement).then(canvas => {
+                canvas.toBlob(blob => {
+                    if (navigator.clipboard && navigator.clipboard.write) {
+                        navigator.clipboard.write([
+                            new ClipboardItem({ "image/png": blob })
+                        ]).then(() => {
+                            alert("테이블 이미지가 클립보드에 복사되었습니다.");
+                        }).catch(err => {
+                            console.error("클립보드 복사 실패:", err);
+                            alert("클립보드 복사 실패");
+                        });
+                    } else {
+                        alert("이 브라우저에서는 이미지 클립보드 복사를 지원하지 않습니다.");
+                    }
+                });
+            });
+        });
 
         function isImgFile(file) {
             var ext = file.name.split(".").pop().toLowerCase();
@@ -205,6 +226,7 @@
         <span style="background-color: #d3d3d3;">2억대</span>
         <span style="background-color: #ffffff;">기타</span>
     </div>
+    <div>생성된 라벨을 마우스를 클릭하면 클립보드에 복사가 되면 ctrl+v 로 이미지 처럼 바로 붙혀 넣을 수 있습니다.</div>
     <div id="apt_cnt"></div>
 
     <!-- 테이블 출력 영역 -->
