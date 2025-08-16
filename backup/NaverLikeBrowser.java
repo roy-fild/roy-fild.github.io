@@ -18,6 +18,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -114,14 +120,55 @@ public class NaverLikeBrowser {
 				"pohang-si-buk-gu",		// 포항시_북구
 		};
 
-		for(String fileUrl : fileUrls) {
-			
-			fileUrl = String.format("%s%s.xlsx", prefix, fileUrl);
-			
-			readExcelFileFromUrl(fileUrl); // Excel 읽어 오기
-		}
+		// ===== 멀티스레드: 파일 단위 병렬 처리 =====
+        final int cores = Math.max(2, Runtime.getRuntime().availableProcessors());
+        // 외부 API 부하/차단을 고려해 너무 크게 잡지 않도록: 코어 수 또는 6 중 작은 값
+        final int poolSize = Math.min(cores, 6);
+        ExecutorService es = Executors.newFixedThreadPool(poolSize);
 
-	}
+        List<Future<Void>> futures = new ArrayList<>();
+        long t0 = System.nanoTime();
+
+        for (String name : fileUrls) {
+            final String fileUrl = String.format("%s%s.xlsx", prefix, name);
+            Callable<Void> task = () -> {
+                try {
+                    readExcelFileFromUrl(fileUrl); // Excel 읽고, 네이버 조회하고, 엑셀로 내보내기
+                } catch (Throwable th) {
+                    // 개별 작업 실패해도 다른 작업은 계속되도록
+                    log.error("작업 실패: {}", fileUrl, th);
+                }
+                return null;
+            };
+            futures.add(es.submit(task));
+        }
+
+        // 모든 작업 완료 대기
+        for (Future<Void> f : futures) {
+            try {
+                f.get();
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                log.error("대기 중 인터럽트", ie);
+            } catch (ExecutionException ee) {
+                log.error("작업 예외", ee.getCause());
+            }
+        }
+
+        es.shutdown();
+        es.awaitTermination(5, TimeUnit.MINUTES);
+
+        long t1 = System.nanoTime();
+        log.info("모든 파일 처리 완료. 총 소요: {} ms (poolSize={})", (t1 - t0) / 1_000_000, poolSize);
+        
+        
+        // AS-IS 순차
+//		for(String fileUrl : fileUrls) {	
+//			fileUrl = String.format("%s%s.xlsx", prefix, fileUrl);
+//			readExcelFileFromUrl(fileUrl); // Excel 읽어 오기
+//		}
+    }
+
 
 	// 1.github 에 있는 Excel 파일 조회
 	public static void readExcelFileFromUrl(String fileUrl) {
