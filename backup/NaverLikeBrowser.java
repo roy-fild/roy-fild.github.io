@@ -504,20 +504,21 @@ public class NaverLikeBrowser {
 			final int COL_APTNM = 3;
 			final int COL_YEAR = 4;
 			final int COL_SD = 5;
-			final int COL_TYPE = 6;
-			final int COL_ROOM = 7; // subinfo.info
-			final int COL_DEAL = 8; // 매매가
-			final int COL_RENT = 9; // 전세가
-			final int COL_DIFF = 10; // 차액 <-- 먼저
-			final int COL_RATE = 11; // 전세가율(%) <-- 그 다음
-			final int COL_M = 12; // 매
-			final int COL_J = 13; // 전
-			final int COL_M_FR = 14; // 매/층
-			final int COL_J_FR = 15; // 매/층
-			final int COL_DESC = 16; // 설명
+			final int COL_SPACE = 6;
+			final int COL_TYPE = 7;
+			final int COL_ROOM = 8; // subinfo.info
+			final int COL_DEAL = 9; // 매매가
+			final int COL_RENT = 10; // 전세가
+			final int COL_DIFF = 11; // 차액 <-- 먼저
+			final int COL_RATE = 12; // 전세가율(%) <-- 그 다음
+			final int COL_M = 13; // 매
+			final int COL_J = 14; // 전
+			final int COL_M_FR = 15; // 매/층
+			final int COL_J_FR = 16; // 매/층
+			final int COL_DESC = 17; // 설명
 
 			// 헤더: "차액"이 "전세가율(%)"보다 먼저
-			String[] headers = { "ID", "구", "동", "단지", "연식", "세대", "타입", "방", "매매가", "전세가", "차액", "전세가율(%)", "매", "전",
+			String[] headers = { "ID", "구", "동", "단지", "연식", "세대", "타입","유형", "방", "매매가", "전세가", "차액", "전세가율(%)", "매", "전",
 					"매/층","전/층", "설명" };
 
 			int r = 0;
@@ -578,7 +579,8 @@ public class NaverLikeBrowser {
 					row.createCell(COL_APTNM).setCellValue(aptNm);
 					row.createCell(COL_YEAR).setCellValue(year);
 					row.createCell(COL_SD).setCellValue(sd);
-					row.createCell(COL_TYPE).setCellValue(subSpace);
+					row.createCell(COL_SPACE).setCellValue(subSpace);
+					row.createCell(COL_TYPE).setCellValue(subType);
 					row.createCell(COL_ROOM).setCellValue(subInfoInfo);
 
 					if (dealBD != null) {
