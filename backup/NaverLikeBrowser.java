@@ -13,6 +13,8 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -75,7 +77,8 @@ public class NaverLikeBrowser {
 	public static void main(String[] args) throws Exception {
 
 //		String fileUrl = "https://roy-fild.github.io/file/suji-gu.xlsx"; // 수지구
-		String fileUrl = "https://roy-fild.github.io/file/seong-buk-gu.xlsx"; // 성북구
+//		String fileUrl = "https://roy-fild.github.io/file/seong-buk-gu.xlsx"; // 성북구
+		String fileUrl = "https://roy-fild.github.io/file/suwon-si-yeongtong-gu.xlsx"; // 영통구
 //		String fileUrl = "https://roy-fild.github.io/file/case-test.xlsx"; // TEST용
 
 		readExcelFileFromUrl(fileUrl); // Excel 읽어 오기
@@ -166,7 +169,7 @@ public class NaverLikeBrowser {
 			
 			String fileName = extractBaseName(fileUrl);
 
-			Path out = Path.of(String.format("%s.xlsx", fileName));
+			Path out = Path.of(String.format("%s_%s.xlsx", fileName,getNowDate()));
 			export(baseArr, out);
 			System.out.println("엑셀 생성 완료: " + out.toAbsolutePath());
 
@@ -333,6 +336,9 @@ public class NaverLikeBrowser {
 				String roomCnt = result.get("roomCount").toString();
 				String batchRoom = result.get("bathRoomCount").toString();
 				String entranceType = getEntranceName(result.get("entranceType").toString()); // 10:계 20:복 30:복합
+				
+				double exclusiveArea = result.getDouble("exclusiveArea");
+				int intExclusiveArea = (int) exclusiveArea;
 
 //			    System.out.println(entranceType +"|"+ roomCnt+"|"+batchRoom);
 
@@ -340,6 +346,7 @@ public class NaverLikeBrowser {
 
 				pObj.put("key", key);
 				pObj.put("type", type);
+				pObj.put("space", Integer.toString(intExclusiveArea));
 				pObj.put("info", info);
 
 				subArr.put(pObj);
@@ -462,6 +469,7 @@ public class NaverLikeBrowser {
 		JSONObject p = new JSONObject();
 
 		p.put("priceInfo", priceInfo);
+		p.put("spaceType", spaceType);
 		p.put("supplyType", supplyType);
 		p.put("floorInfo", floorInfo);
 		p.put("desc", desc);
@@ -504,11 +512,13 @@ public class NaverLikeBrowser {
 			final int COL_RATE = 11; // 전세가율(%) <-- 그 다음
 			final int COL_M = 12; // 매
 			final int COL_J = 13; // 전
-			final int COL_DESC = 14; // 설명
+			final int COL_M_FR = 14; // 매/층
+			final int COL_J_FR = 15; // 매/층
+			final int COL_DESC = 16; // 설명
 
 			// 헤더: "차액"이 "전세가율(%)"보다 먼저
 			String[] headers = { "ID", "구", "동", "단지", "연식", "세대", "타입", "방", "매매가", "전세가", "차액", "전세가율(%)", "매", "전",
-					"설명" };
+					"매/층","전/층", "설명" };
 
 			int r = 0;
 			Row hr = sheet.createRow(r++);
@@ -544,6 +554,7 @@ public class NaverLikeBrowser {
 						continue;
 
 					String subType = s.optString("type", "");
+					String subSpace = s.optString("space", "");
 					String subInfoInfo = s.optString("info", "");
 
 					JSONObject dealItem = findBySupplyType(dealInfo, subType);
@@ -552,6 +563,8 @@ public class NaverLikeBrowser {
 					String dealPriceStr = dealItem != null ? dealItem.optString("priceInfo", "") : "";
 					String rentPriceStr = rentItem != null ? rentItem.optString("priceInfo", "") : "";
 					String dealDesc = dealItem != null ? dealItem.optString("desc", "") : "";
+					String dealFrInfoStr = dealItem != null ? dealItem.optString("floorInfo", "") : "";
+					String rentFrInfoStr = rentItem != null ? rentItem.optString("floorInfo", "") : "";
 
 					BigDecimal dealBD = toBD(dealPriceStr);
 					BigDecimal rentBD = toBD(rentPriceStr);
@@ -565,7 +578,7 @@ public class NaverLikeBrowser {
 					row.createCell(COL_APTNM).setCellValue(aptNm);
 					row.createCell(COL_YEAR).setCellValue(year);
 					row.createCell(COL_SD).setCellValue(sd);
-					row.createCell(COL_TYPE).setCellValue(subType);
+					row.createCell(COL_TYPE).setCellValue(subSpace);
 					row.createCell(COL_ROOM).setCellValue(subInfoInfo);
 
 					if (dealBD != null) {
@@ -606,6 +619,8 @@ public class NaverLikeBrowser {
 
 					row.createCell(COL_M).setCellValue(mCnt);
 					row.createCell(COL_J).setCellValue(jCnt);
+					row.createCell(COL_M_FR).setCellValue(dealFrInfoStr);
+					row.createCell(COL_J_FR).setCellValue(rentFrInfoStr);
 					row.createCell(COL_DESC).setCellValue(dealDesc);
 				}
 			}
@@ -815,5 +830,14 @@ public class NaverLikeBrowser {
             return "";
         }
     }
+	
+	public static String getNowDate() {
+		LocalDate today = LocalDate.now();
+        // 원하는 포맷 정의 (yyyyMMdd)
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        // 포맷 적용
+        return today.format(formatter);
+        
+	}
 
 }
