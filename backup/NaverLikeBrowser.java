@@ -75,13 +75,51 @@ public class NaverLikeBrowser {
 	private static final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20)).build();
 
 	public static void main(String[] args) throws Exception {
+		
 
 //		String fileUrl = "https://roy-fild.github.io/file/suji-gu.xlsx"; // 수지구
 //		String fileUrl = "https://roy-fild.github.io/file/seong-buk-gu.xlsx"; // 성북구
-		String fileUrl = "https://roy-fild.github.io/file/suwon-si-yeongtong-gu.xlsx"; // 영통구
+//		String fileUrl = "https://roy-fild.github.io/file/suwon-si-yeongtong-gu.xlsx"; // 영통구
 //		String fileUrl = "https://roy-fild.github.io/file/case-test.xlsx"; // TEST용
+		
+		String prefix = "https://roy-fild.github.io/file/";
+		
+		String[] fileUrls = {
+				"songpa-gu",			// 송파구
+				"yeongdeungpo-gu",		// 영등포구
+				"yangcheon-gu",			// 양천구
+				"jongno-jung-gu",		// 종로/중구
+				"dongjak-gu",			// 동작구		
+				"seong-buk-gu",			// 성북구
+				"dongdaemun-gu",		// 동대분구
+				"seodaemun-gu",			// 서대문구
+				"gwanak-gu",			// 관악구
+				"eunpyeong-gu",			// 은평구
+				"jungnang-gu",			// 중랑구
+				// 수도권
+				"suji-gu",				// 수지구
+				"bundang-gu.",			// 성남시_분당구
+				"anyang-si-dongan-gu",	// 안양시_동안구
+				"suwon-si-yeongtong-gu",// 수원시_영통구
+				"dongtan",				// 화성시_동탄	
+				"sujeong-jungwon-gu",	// 성남시_수정/증원구
+				// 광역시
+				"daejeon-seo-gu",		// 대전_서구
+				"daejeon-yuseong-gu", 	// 대전_유성구
+				"gwangju-buk-gu",		// 광주_북구
+				// 중소도시
+				"cheonan",				// 천안시
+				"cheongju",				// 청주
+				"jeonju",				// 전주
+				"pohang-si-buk-gu",		// 포항시_북구
+		};
 
-		readExcelFileFromUrl(fileUrl); // Excel 읽어 오기
+		for(String fileUrl : fileUrls) {
+			
+			fileUrl = String.format("%s%s.xlsx", prefix, fileUrl);
+			
+			readExcelFileFromUrl(fileUrl); // Excel 읽어 오기
+		}
 
 	}
 
