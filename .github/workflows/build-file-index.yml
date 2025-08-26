@@ -1,0 +1,39 @@
+name: Build file index for tracking/result
+
+on:
+  push:
+    paths:
+      - 'tracking/result/**'     # 이 경로에 변경이 있을 때만 실행
+  workflow_dispatch: {}          # 수동 실행도 가능
+
+permissions:
+  contents: write                # 리포지토리에 다시 커밋/푸시할 권한
+
+jobs:
+  build-index:
+    # 액션이 생성한 커밋으로 인한 재실행(루프) 방지
+    if: github.actor != 'github-actions[bot]'
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate fileList.json
+        run: |
+          node -v
+          node scripts/build-file-index.js
+
+      - name: Commit & Push fileList.json
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update fileList.json [skip ci]"
+          file_pattern: "tracking/result/fileList.json"
