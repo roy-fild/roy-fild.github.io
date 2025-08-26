@@ -363,6 +363,13 @@
                 getTrackingResult(gu);
             });
 
+            // 수원시-영통구
+             $('#btn_suwon-si-yeongtong-gu').on('click', function () {
+                $('#hdn_sel-gu').val('영통구');
+                let gu = "suwon-si-yeongtong-gu"; // 다운로드할 엑셀 파일 URL
+                getTrackingResult(gu);
+            });
+
             /************************************
              * 경기도
              ************************************/
@@ -915,6 +922,7 @@
         <button id="btn_dongtan" class="darkslategrey_btn">동탄</button>
         <button id="btn_sujeong-jungwon-gu" class="darkslategrey_btn">수정/중원구</button>
         <button id="btn_anyang-si-dongan-gu" class="darkslategrey_btn">안양시-동안구</button>
+        <button id="btn_suwon-si-yeongtong-gu" class="darkslategrey_btn">수원시-영통구</button>
     </div>
     <div id="div_metro">
         <b></b>
