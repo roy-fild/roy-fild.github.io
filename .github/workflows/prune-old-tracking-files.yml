@@ -1,0 +1,74 @@
+name: Prune old tracking result files
+
+on:
+  push:
+    paths:
+      - 'tracking/result/*.xlsx'   # 이 폴더 안 엑셀 변경에만 반응
+  workflow_dispatch:               # 필요 시 수동 실행도 가능
+
+permissions:
+  contents: write                  # 삭제/커밋/푸시를 위해 필요
+
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prune old files (keep only latest per prefix)
+        run: |
+          set -euo pipefail
+
+          DIR="tracking/result"
+          cd "$DIR"
+
+          # 파이썬 스크립트: prefix_YYYYMMDD.xlsx 패턴만 대상으로 그룹핑
+          python3 - << 'PY'
+import os, re, sys
+from collections import defaultdict
+
+pattern = re.compile(r'^(?P<prefix>.+)_(?P<date>\d{8})\.xlsx$')
+by_prefix = defaultdict(list)
+
+for fn in os.listdir('.'):
+    m = pattern.match(fn)
+    if not m:
+        continue
+    prefix = m.group('prefix')
+    date = m.group('date')
+    by_prefix[prefix].append((date, fn))
+
+to_delete = []
+for prefix, items in by_prefix.items():
+    # 날짜 문자열(yyyymmdd) 비교로 최신 결정
+    latest = max(items, key=lambda x: x[0])[1]
+    for date, fn in items:
+        if fn != latest:
+            to_delete.append(fn)
+
+if not to_delete:
+    print("No files to delete.")
+else:
+    print("Deleting:", ", ".join(sorted(to_delete)))
+    for fn in to_delete:
+        try:
+            os.remove(fn)
+        except FileNotFoundError:
+            pass
+PY
+
+      - name: Commit and push if changes
+        run: |
+          set -euo pipefail
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add tracking/result/*.xlsx || true
+            git commit -m "chore: keep only latest *_yyyymmdd.xlsx per prefix in tracking/result"
+            git push
+          else
+            echo "No changes to commit."
+          fi
