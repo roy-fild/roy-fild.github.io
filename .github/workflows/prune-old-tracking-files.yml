@@ -4,14 +4,15 @@ on:
   push:
     paths:
       - 'tracking/result/*.xlsx'   # 이 폴더 안 엑셀 변경에만 반응
-  workflow_dispatch:               # 필요 시 수동 실행도 가능
+  workflow_dispatch:               # 수동 실행 가능
 
 permissions:
-  contents: write                  # 삭제/커밋/푸시를 위해 필요
+  contents: write                  # 삭제/커밋/푸시 권한
 
 jobs:
   prune:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -25,9 +26,9 @@ jobs:
           DIR="tracking/result"
           cd "$DIR"
 
-          # 파이썬 스크립트: prefix_YYYYMMDD.xlsx 패턴만 대상으로 그룹핑
-          python3 - << 'PY'
-import os, re, sys
+          # prefix_YYYYMMDD.xlsx 패턴만 대상으로 그룹핑 후 최신만 남기기
+          python3 - <<'PY'
+import os, re
 from collections import defaultdict
 
 pattern = re.compile(r'^(?P<prefix>.+)_(?P<date>\d{8})\.xlsx$')
@@ -63,10 +64,11 @@ PY
       - name: Commit and push if changes
         run: |
           set -euo pipefail
+
           if [[ -n "$(git status --porcelain)" ]]; then
             git config user.name  "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add tracking/result/*.xlsx || true
+            git add -A
             git commit -m "chore: keep only latest *_yyyymmdd.xlsx per prefix in tracking/result"
             git push
           else
