@@ -192,12 +192,6 @@
     </style>
     <script>
 
-        const engToKor = {
-            'r': 'ㄱ', 'R': 'ㄲ', 's': 'ㄴ', 'e': 'ㄷ', 'E': 'ㄸ', 'f': 'ㄹ', 'a': 'ㅁ', 'q': 'ㅂ', 'Q': 'ㅃ',
-            't': 'ㅅ', 'T': 'ㅆ', 'd': 'ㅇ', 'w': 'ㅈ', 'W': 'ㅉ', 'c': 'ㅊ', 'z': 'ㅋ', 'x': 'ㅌ', 'v': 'ㅍ', 'g': 'ㅎ',
-            'k': 'ㅏ', 'o': 'ㅐ', 'i': 'ㅑ', 'O': 'ㅒ', 'j': 'ㅓ', 'p': 'ㅔ', 'u': 'ㅕ', 'P': 'ㅖ', 'h': 'ㅗ',
-            'y': 'ㅛ', 'n': 'ㅜ', 'b': 'ㅠ', 'm': 'ㅡ', 'l': 'ㅣ'
-        };
 
         function getLatestFile(baseName) {
             const listUrl = "https://roy-fild.github.io/tracking/result/fileList.json";
@@ -602,14 +596,6 @@
                 alert(text);
             });
 
-
-
-            $('#filterAptNm, #filterDong').on('input', function () {
-                const eng = $(this).val();
-                const converted = convertToHangul(eng);
-                $(this).val(converted);
-            });
-
         });
 
         function showLoadingBar() {
@@ -623,16 +609,6 @@
             setTimeout(function () {
                 $('#loadingBar').hide();
             }, 500); // 로딩바 숨김
-        }
-
-
-        function convertToHangul(input) {
-            let result = '';
-            for (let i = 0; i < input.length; i++) {
-                const ch = input[i];
-                result += engToKor[ch] || ch;
-            }
-            return result;
         }
 
         function getNowDate() {
@@ -838,13 +814,13 @@
                                         me: row[9],
                                         ju: row[10],
                                         rate: '',
-                                        mj: row[11],
-                                        mCnt: row[12],
-                                        jCnt: row[13],
-                                        mFr: row[14],
-                                        jFr: row[15],
-                                        desc: row[16],
-                                        szKey: row[17]
+                                        mj: '',
+                                        mCnt: row[13],
+                                        jCnt: row[14],
+                                        mFr: row[15],
+                                        jFr: row[16],
+                                        desc: row[17],
+                                        szKey: row[18]
                                     });
                                 }
                             });
@@ -864,6 +840,9 @@
 
         // 비교 출력 (매매/전세 각각 최저가, 매매 우선 병합 출력)
         function comparing(compareList, resultList) {
+            console.log(compareList);
+            console.log(resultList);
+
             $('#tbl_aptInfo tbody').empty();
 
             const toNum = (v) => {
@@ -943,6 +922,8 @@
                 const jFr = (bestRent && bestRent.jFr) ? bestRent.jFr : (base ? base.jFr : "");
                 const desc = (bestSale && bestSale.desc) ? bestSale.desc : (base ? base.desc : "");
                 const szKey = base ? base.szKey : "";
+
+                console.log(mCnt);
 
                 createTableList(
                     id, gu, dong, nm, yr, sd,
