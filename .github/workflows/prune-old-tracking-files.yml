@@ -19,52 +19,58 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Prune old files (keep only latest per prefix)
+      - name: Keep only latest *_YYYYMMDD.xlsx per prefix
+        shell: bash
         run: |
           set -euo pipefail
 
           DIR="tracking/result"
           cd "$DIR"
 
-          # prefix_YYYYMMDD.xlsx 패턴만 대상으로 그룹핑 후 최신만 남기기
-          python3 - <<'PY'
-import os, re
-from collections import defaultdict
+          # 대상 파일 목록(패턴: *_YYYYMMDD.xlsx)
+          mapfile -t FILES < <(find . -maxdepth 1 -type f -name '*_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].xlsx' -printf '%f\n' | sort)
 
-pattern = re.compile(r'^(?P<prefix>.+)_(?P<date>\d{8})\.xlsx$')
-by_prefix = defaultdict(list)
+          if [[ ${#FILES[@]} -eq 0 ]]; then
+            echo "No matching files."
+            exit 0
+          fi
 
-for fn in os.listdir('.'):
-    m = pattern.match(fn)
-    if not m:
-        continue
-    prefix = m.group('prefix')
-    date = m.group('date')
-    by_prefix[prefix].append((date, fn))
+          # prefix별 최신 날짜만 남기고 나머지 삭제 목록 계산 (awk 이용)
+          TO_DELETE=$(printf '%s\n' "${FILES[@]}" | awk '
+            function max(a,b){return a>b?a:b}
+            match($0,/^(.*)_([0-9]{8})\.xlsx$/,m){
+              pref=m[1]; d=m[2];
+              if (!(pref in maxd) || d>maxd[pref]) {
+                maxd[pref]=d; latest[pref]=$0
+              }
+              all[pref]=all[pref] " " $0
+            }
+            END{
+              for (p in all){
+                n=split(all[p], arr, " ");
+                for(i=1;i<=n;i++){
+                  f=arr[i];
+                  if(f!="" && f != latest[p]) print f
+                }
+              }
+            }')
 
-to_delete = []
-for prefix, items in by_prefix.items():
-    # 날짜 문자열(yyyymmdd) 비교로 최신 결정
-    latest = max(items, key=lambda x: x[0])[1]
-    for date, fn in items:
-        if fn != latest:
-            to_delete.append(fn)
-
-if not to_delete:
-    print("No files to delete.")
-else:
-    print("Deleting:", ", ".join(sorted(to_delete)))
-    for fn in to_delete:
-        try:
-            os.remove(fn)
-        except FileNotFoundError:
-            pass
-PY
+          if [[ -z "${TO_DELETE}" ]]; then
+            echo "Nothing to delete."
+          else
+            echo "Deleting:"
+            echo "${TO_DELETE}" | sed 's/^/  - /'
+            # 실제 삭제
+            while IFS= read -r f; do
+              [[ -z "$f" ]] && continue
+              rm -f -- "$f"
+            done <<< "${TO_DELETE}"
+          fi
 
       - name: Commit and push if changes
+        shell: bash
         run: |
           set -euo pipefail
-
           if [[ -n "$(git status --porcelain)" ]]; then
             git config user.name  "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
