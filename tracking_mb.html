@@ -236,7 +236,7 @@
     </div>
 
     <!-- 서울/수도권/광역시/지방 버튼 영역 (생략 없이 기존과 동일하게 추가) -->
-    <div id="div_seoul">
+    <div class="btn-row" id="div_seoul">
         <b></b>
         <input type="hidden" id="hdn_sel-gu" />
         <button id="btn_songpa-gu" class="red_btn">송파구</button>
@@ -253,7 +253,7 @@
         <button id="btn_eunpyeong-gu" class="skyblue_btn">은평구</button>
         <button id="btn_jungnang-gu" class="skyblue_btn">중랑구</button>
     </div>
-    <div id="div_suedo">
+    <div class="btn-row" id="div_suedo">
         <b></b>
         <button id="btn_suji-gu" class="darkslategrey_btn">수지구</button>
         <button id="btn_dongtan" class="darkslategrey_btn">동탄</button>
@@ -261,7 +261,7 @@
         <button id="btn_anyang-si-dongan-gu" class="darkslategrey_btn">안양시-동안구</button>
         <button id="btn_suwon-si-yeongtong-gu" class="darkslategrey_btn">수원시-영통구</button>
     </div>
-    <div id="div_metro">
+    <div class="btn-row" id="div_metro">
         <b></b>
         <b>대전[145만]</b>
         <button id="btn_daejeon-seo-gu" class="darkgoldenrod_btn">서구</button>
@@ -269,7 +269,7 @@
         <b>광주[143만]</b>
         <button id="btn_gwangju-buk-gu" class="darkgoldenrod_btn">북구</button>
     </div>
-    <div id="div_jibang">
+    <div class="btn-row" id="div_jibang">
         <b></b>
         <button id="btn_cheongju" class="ligthseagreen_btn">청주[85만]흥덕구/청원구/상당구</button>
         <button id="btn_jeonju" class="ligthseagreen_btn">전주[65만]덕진구/완산구</button>
@@ -291,7 +291,42 @@
 
     <div id="result" class="table-wrap">
         <table id="tbl_aptInfo">
-            <thead>
+            <thead> <!-- ▼ 필터 입력 행 (복구됨) -->
+                <tr class="filter-row">
+                    <th style="width:80px"><label style="display:flex;align-items:center;gap:.35rem;"><input
+                                id="chkBigType" type="checkbox">59~84</label></th>
+                    <th></th>
+                    <th><input id="filterDong" type="text" placeholder="동" style="max-width:80px;"></th>
+                    <th><input id="filterAptNm" type="text" placeholder="단지명" style="max-width:180px;"></th>
+                    <th></th>
+                    <th style="width:90px"><label style="display:flex;align-items:center;gap:.35rem;"><input
+                                id="filter300" type="checkbox">300^</label></th>
+                    <th></th>
+                    <th></th>
+                    <th style="width:90px">
+                        <input id="filterSize" type="text" inputmode="numeric" pattern="\\d*\\.?\\d*"
+                            oninput="this.value=this.value.replace(/[^0-9.]/g,'');" placeholder="타입"
+                            style="max-width:70px;" maxlength="3">
+                    </th>
+                    <th>
+                        <input id="filterPrice" type="text" inputmode="decimal" pattern="\\d*\\.?\\d*"
+                            oninput="this.value=this.value.replace(/[^0-9.]/g,'');" placeholder="매매가"
+                            style="max-width:70px;" maxlength="4">
+                    </th>
+                    <th></th>
+                    <th>
+                        <input id="filterGap" type="text" inputmode="decimal" pattern="\\d*\\.?\\d*"
+                            oninput="this.value=this.value.replace(/[^0-9.]/g,'');" placeholder="차액"
+                            style="max-width:70px;" maxlength="4">
+                    </th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                </tr>
+                <!-- ▼ 컬럼 헤더 행 -->
                 <tr>
                     <th>ID</th>
                     <th>구</th>
