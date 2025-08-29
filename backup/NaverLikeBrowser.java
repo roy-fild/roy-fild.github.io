@@ -1,4 +1,4 @@
-package inv.req;
+package inv;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileOutputStream;
@@ -18,6 +18,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -45,7 +46,7 @@ import org.slf4j.LoggerFactory;
 //@Slf4j
 public class NaverLikeBrowser {
 
-	private static final Logger log = LoggerFactory.getLogger(NaverLikeBrowser.class);
+	private static final Logger log = LoggerFactory.getLogger(NaverLikeBrowserTEST.class);
 
 	static final String UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 			+ "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
@@ -56,11 +57,13 @@ public class NaverLikeBrowser {
 			.connectTimeout(Duration.ofSeconds(15)).build();
 
 	static HttpRequest.Builder base(String url) {
-		return HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(30)).header("User-Agent", UA)
-				.header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
-				.header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7");
-		// 금지 헤더 넣지 마세요: Host, Connection, Content-Length, Upgrade, Expect 등
+	    return HttpRequest.newBuilder(URI.create(url))
+	        .timeout(Duration.ofSeconds(30))
+	        .header("User-Agent", UA)
+	        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	        .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7");
 	}
+
 
 	// 2) 웜업: 같은 도메인에서 아무 페이지 하나 먼저 열어 쿠키 확보
 	static void warmup() throws Exception {
@@ -76,16 +79,22 @@ public class NaverLikeBrowser {
 
 	public static void main(String[] args) throws Exception {
 		
+
+//		String fileUrl = "https://roy-fild.github.io/file/suji-gu.xlsx"; // 수지구
+//		String fileUrl = "https://roy-fild.github.io/file/seong-buk-gu.xlsx"; // 성북구
+//		String fileUrl = "https://roy-fild.github.io/file/suwon-si-yeongtong-gu.xlsx"; // 영통구
+//		String fileUrl = "https://roy-fild.github.io/file/case-test.xlsx"; // TEST용
+		
 		String prefix = "https://roy-fild.github.io/file/";
 		
 		String[] fileUrls = {
-				
-				
-				// 정찰기				
-//				"tracking-list"			// 수도권
+				// 정찰기
+//				"tracking-list",		// 수도권
 //				"tracking-jibang",		// 지방
+				
 				// 서울시
 //				"songpa-gu",			// 송파구
+				"seongdong-gu",			// 성동구
 //				"yeongdeungpo-gu",		// 영등포구
 //				"yangcheon-gu",			// 양천구
 //				"jongno-jung-gu",		// 종로/중구
@@ -96,33 +105,72 @@ public class NaverLikeBrowser {
 //				"gwanak-gu",			// 관악구
 //				"eunpyeong-gu",			// 은평구
 //				"jungnang-gu",			// 중랑구
-				// 수도권
-				"suji-gu",				// 수지구
-//				"bundang-gu.",			// 성남시_분당구
+//				
+//				// 수도권
+//				"suji-gu",				// 수지구
+//				"bundang-gu",			// 성남시_분당구
 //				"anyang-si-dongan-gu",	// 안양시_동안구
 //				"suwon-si-yeongtong-gu",// 수원시_영통구
 //				"dongtan",				// 화성시_동탄	
 //				"sujeong-jungwon-gu",	// 성남시_수정/증원구
-				// 광역시
+//				
+//				// 광역시
 //				"daejeon-seo-gu",		// 대전_서구
 //				"daejeon-yuseong-gu", 	// 대전_유성구
 //				"gwangju-buk-gu",		// 광주_북구
-				// 중소도시
+//				
+//				// 중소도시
 //				"cheonan",				// 천안시
 //				"cheongju",				// 청주
 //				"jeonju",				// 전주
 //				"pohang-si-buk-gu",		// 포항시_북구
-		};   
+		};
+
+		// ===== 멀티스레드: 파일 단위 병렬 처리 =====
+//        final int cores = Math.max(2, Runtime.getRuntime().availableProcessors());
+//        // 외부 API 부하/차단을 고려해 너무 크게 잡지 않도록: 코어 수 또는 6 중 작은 값
+//        final int poolSize = Math.min(cores, 6);
+//        ExecutorService es = Executors.newFixedThreadPool(poolSize);
+//
+//        List<Future<Void>> futures = new ArrayList<>();
+//        long t0 = System.nanoTime();
+//
+//        for (String name : fileUrls) {
+//            final String fileUrl = String.format("%s%s.xlsx", prefix, name);
+//            Callable<Void> task = () -> {
+//                try {
+//                    readExcelFileFromUrl(fileUrl); // Excel 읽고, 네이버 조회하고, 엑셀로 내보내기
+//                } catch (Throwable th) {
+//                    // 개별 작업 실패해도 다른 작업은 계속되도록
+//                    log.error("작업 실패: {}", fileUrl, th);
+//                }
+//                return null;
+//            };
+//            futures.add(es.submit(task));
+//        }
+//
+//        // 모든 작업 완료 대기
+//        for (Future<Void> f : futures) {
+//            try {
+//                f.get();
+//            } catch (InterruptedException ie) {
+//                Thread.currentThread().interrupt();
+//                log.error("대기 중 인터럽트", ie);
+//            } catch (ExecutionException ee) {
+//                log.error("작업 예외", ee.getCause());
+//            }
+//        }
+//
+//        es.shutdown();
+//        es.awaitTermination(5, TimeUnit.MINUTES);
+//
+//        long t1 = System.nanoTime();
+//        log.info("모든 파일 처리 완료. 총 소요: {} ms (poolSize={})", (t1 - t0) / 1_000_000, poolSize);
+        
         
         // AS-IS 순차
 		for(String fileUrl : fileUrls) {	
 			fileUrl = String.format("%s%s.xlsx", prefix, fileUrl);
-			
-//			fileUrl = "https://roy-fild.github.io/file/suji-gu.xlsx"; // 수지구
-//			fileUrl = "https://roy-fild.github.io/file/seong-buk-gu.xlsx"; // 성북구
-//			fileUrl = "https://roy-fild.github.io/file/suwon-si-yeongtong-gu.xlsx"; // 영통구
-//			fileUrl = "https://roy-fild.github.io/file/case-test.xlsx"; // TEST용
-			
 			readExcelFileFromUrl(fileUrl); // Excel 읽어 오기
 		}
     }
@@ -401,86 +449,153 @@ public class NaverLikeBrowser {
 	}
 
 	// 5 매/전가 조회
-	public static void getPriceData(String id, JSONArray baseArr, int startPage) {
+	public static void getPriceData(String id, JSONArray baseArr, int ignoredStartPage) {
+	    JSONObject mObj = new JSONObject(); // 매매
+	    JSONObject jObj = new JSONObject(); // 전세
 
-		JSONObject mObj = new JSONObject();
-		JSONObject jObj = new JSONObject();
+	    try {
+	        // 세션 워밍업 (쿠키/세션 확보)
+	        warmup();
 
-		try {
-			warmup();
+	        final String endpoint = "https://fin.land.naver.com/front-api/v1/complex/article/list";
+	        final int size = 30;                    // 한 번에 받아올 개수
+	        final String sortType = "RANKING_DESC"; // 혹은 "PRICE_ASC" 등 화면과 일치시키세요.
+	        JSONArray lastInfo = new JSONArray();   // 서버 응답에서 반환되는 lastInfo를 이어서 사용
+	        boolean hasNext = true;                 // 다음 페이지 존재 여부(안 오면 size로 추정)
 
-			int page = startPage;
-			boolean hasNext;
+	        while (hasNext) {
+	            // 1) 페이로드 구성 (브라우저 페이로드 스키마와 일치)
+	            JSONObject payload = new JSONObject()
+	                    .put("complexNumber", id)
+	                    .put("tradeTypes", new JSONArray())      // 필요하면 ["A1"] 등으로
+	                    .put("pyeongTypes", new JSONArray())     // 필요하면 ["84"] 등으로
+	                    .put("dongNumbers", new JSONArray())     // 필요하면 ["101"] 등으로
+	                    .put("userChannelType", "PC")
+	                    .put("articleSortType", sortType)
+	                    .put("seed", "")
+	                    .put("lastInfo", lastInfo)               // 첫 호출은 빈 배열, 이후 응답값 주입
+	                    .put("size", size);
 
-			do {
-				String url = "https://fin.land.naver.com/front-api/v1/complex/article/list" + "?complexNumber=" + id
-						+ "&dateDescending=false" + "&userChannelType=PC" + "&page=" + page;
+	            HttpRequest req = HttpRequest.newBuilder(URI.create(endpoint))
+	                    .timeout(Duration.ofSeconds(30))
+	                    .header("User-Agent", UA)
+	                    .header("Accept", "application/json, text/plain, */*")
+	                    .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+	                    .header("Origin", "https://fin.land.naver.com")
+	                    .header("Referer", "https://fin.land.naver.com/complexes/" + id + "?tab=article")
+	                    .header("X-Requested-With", "XMLHttpRequest")
+	                    .header("Sec-Fetch-Site", "same-origin")
+	                    .header("Sec-Fetch-Mode", "cors")
+	                    .header("Sec-Fetch-Dest", "empty")
+	                    .header("Content-Type", "application/json;charset=UTF-8")
+	                    .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
+	                    .build();
 
-				HttpRequest req = base(url).header("Accept", "application/json")
-						.header("Referer", "https://fin.land.naver.com/complexes/" + id + "?tab=article").GET().build();
+	            HttpResponse<String> res = sendWithRetry429(req, 4); // 429/5xx 재시도
+	            if (res.statusCode() != 200) {
+	                System.out.println("[getPriceData:POST] HTTP " + res.statusCode()
+	                        + " body preview: " + res.body().substring(0, Math.min(800, res.body().length())));
+	                break;
+	            }
 
-				HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
-				if (res.statusCode() != 200) {
-					System.out.println("[loadData] HTTP " + res.statusCode() + " body preview: "
-							+ res.body().substring(0, Math.min(800, res.body().length())));
-					return;
-				}
+	            JSONObject root = new JSONObject(res.body());
+	            JSONObject result = root.getJSONObject("result");
+	            JSONArray list = result.optJSONArray("list");
 
-				JSONObject root = new JSONObject(res.body());
-				JSONObject result = root.getJSONObject("result");
+	            if (list == null || list.length() == 0) {
+	                break;
+	            }
 
-//				log.debug("{}", result);
+	            for (int i = 0; i < list.length(); i++) {
+	                JSONObject item = list.getJSONObject(i);
+	                JSONObject info = item.getJSONObject("representativeArticleInfo");
 
-				JSONArray list = result.optJSONArray("list");
-				if (list == null || list.length() == 0) {
-					break; // 더 처리할게 없음
-				}
+	                String dongName = info.optString("dongName", "");
+	                JSONObject detail = info.optJSONObject("articleDetail");
+	                JSONObject space = info.optJSONObject("spaceInfo");
+	                JSONObject price = info.optJSONObject("priceInfo");
 
-				for (int i = 0; i < list.length(); i++) {
-					JSONObject item = list.getJSONObject(i);
-					JSONObject info = item.getJSONObject("representativeArticleInfo");
+	                String desc = (detail != null) ? detail.optString("articleFeatureDescription", "") : "";
+	                String tradeType = info.optString("tradeType", ""); // A1(매매) / B1(전세)
+	                String supplyType = (space != null) ? space.optString("supplySpaceName", "") : "";
+	                String spaceType = (space != null) ? space.optString("exclusiveSpaceName", "") : "";
+	                String floorInfo = (detail != null) ? detail.optString("floorInfo", "") : "";
 
-					String dongName = info.optString("dongName", "");
-					JSONObject detail = info.optJSONObject("articleDetail");
-					JSONObject space = info.optJSONObject("spaceInfo");
-					JSONObject price = info.optJSONObject("priceInfo");
+	                String dealPrice = formatToEok((price != null) ? price.opt("dealPrice") : null);
+	                String rentPrice = formatToEok((price != null) ? price.opt("warrantyPrice") : null);
 
-					String desc = (detail != null) ? detail.optString("articleFeatureDescription", "") : ""; // 물건 정보
-					String tradeType = info.optString("tradeType", ""); // 매/전 구분
-					String supplyType = (space != null) ? space.optString("supplySpaceName", "") : ""; // 공급펴형
-					String spaceType = (space != null) ? space.optString("exclusiveSpaceName", "") : ""; // 타입
-					String floorInfo = (detail != null) ? detail.optString("floorInfo", "") : ""; // 층수
+	                if (chkFloor(floorInfo)) {
+	                    String floor = dongName + "(" + floorInfo + ")";
+	                    if ("A1".equals(tradeType)) {
+	                        createObj(mObj, dealPrice, supplyType, spaceType, floor, desc);
+	                    } else if ("B1".equals(tradeType)) {
+	                        createObj(jObj, rentPrice, supplyType, spaceType, floor, desc);
+	                    }
+	                }
+	            }
 
-					String dealPrice = formatToEok((price != null) ? price.opt("dealPrice") : null); // 매매가
-					String rentPrice = formatToEok((price != null) ? price.opt("warrantyPrice") : null); // 전세가
+	            // 2) 다음 페이징 준비
+	            // 서버가 hasNextPage를 주면 그대로 사용, 아니면 list 길이로 추정
+	            hasNext = result.optBoolean("hasNextPage",
+	                        list.length() >= size || result.optBoolean("hasMore", false));
 
-//					String logInfo = String.format("%s, %s,%s,%s,%s,%s,%s,", dongName, tradeType, supplyType, spaceType,
-//							floorInfo, dealPrice, rentPrice);
+	            // 서버가 next를 위해 lastInfo를 내려주면 이어붙여서 다음 요청에 사용
+	            Object li = result.opt("lastInfo");
+	            if (li instanceof JSONArray) {
+	                lastInfo = (JSONArray) li;
+	            } else if (li != null) {
+	                // 혹시 객체/문자열로 내려오면 배열로 감싸서 사용
+	                lastInfo = new JSONArray().put(li);
+	            } else {
+	                // 내려오지 않으면 관성적으로 종료 조건을 size로만 판단
+	                if (list.length() < size) hasNext = false;
+	            }
 
-//					System.out.println(logInfo);
+	            // 레이트 리밋 완화 간격
+	            Thread.sleep(1500);
+	        }
 
-					if (chkFloor(floorInfo)) {
-						String floor = dongName + "(" + floorInfo + ")";
-						if ("A1".equals(tradeType)) {
-							createObj(mObj, dealPrice, supplyType, spaceType, floor, desc);
-						} else if ("B1".equals(tradeType)) {
-							createObj(jObj, rentPrice, supplyType, spaceType, floor, desc);
-						}
-					}
-				}
+	        JSONObject subObj = pickOneById(baseArr, id);
+	        if (subObj == null) {
+	            subObj = new JSONObject().put("id", id);
+	            baseArr.put(subObj);
+	        }
+	        subObj.put("dealInfo", mObj);
+	        subObj.put("rentInfo", jObj);
 
-				hasNext = result.optBoolean("hasNextPage", false);
-				page++;
-			} while (hasNext);
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	    }
+	}
 
-			JSONObject subObj = pickOneById(baseArr, id);
+	/** 429/5xx 재시도 (Retry-After 존중 + 지수 백오프 + 지터) */
+	private static HttpResponse<String> sendWithRetry429(HttpRequest req, int maxRetry) throws Exception {
+	    long base = 1200L;
+	    for (int attempt = 0; attempt <= maxRetry; attempt++) {
+	        HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
+	        int code = res.statusCode();
+	        if (code == 200) return res;
 
-			subObj.put("dealInfo", mObj);
-			subObj.put("rentInfo", jObj);
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+	        if (code == 429 || (code >= 500 && code < 600)) {
+	            if (attempt == maxRetry) return res;
+	            Optional<String> ra = res.headers().firstValue("Retry-After");
+	            long sleepMs;
+	            if (ra.isPresent()) {
+	                try {
+	                    sleepMs = Long.parseLong(ra.get().trim()) * 1000L;
+	                } catch (NumberFormatException nfe) {
+	                    sleepMs = base * (1L << attempt);
+	                }
+	            } else {
+	                sleepMs = base * (1L << attempt) + (long)(Math.random() * 600 + 200);
+	            }
+	            System.out.println("Retry after " + sleepMs + " ms (status " + code + ", attempt " + (attempt+1) + ")");
+	            Thread.sleep(Math.min(sleepMs, 10_000L));
+	            continue;
+	        }
+	        return res; // 그 외 코드는 그대로 반환
+	    }
+	    throw new IllegalStateException("retry exhausted");
 	}
 
 	// 가격 비교 후 삽입
@@ -552,17 +667,18 @@ public class NaverLikeBrowser {
 			final int COL_ROOM = 8; // subinfo.info
 			final int COL_DEAL = 9; // 매매가
 			final int COL_RENT = 10; // 전세가
-			final int COL_DIFF = 11; // 차액 <-- 먼저
-			final int COL_RATE = 12; // 전세가율(%) <-- 그 다음
+			final int COL_DIFF = 11; // 차액 
+			final int COL_RATE = 12; // 전세가율(%) 
 			final int COL_M = 13; // 매
 			final int COL_J = 14; // 전
 			final int COL_M_FR = 15; // 매/층
 			final int COL_J_FR = 16; // 매/층
 			final int COL_DESC = 17; // 설명
+			final int COL_KEY = 18; // 방(KEY)
 
 			// 헤더: "차액"이 "전세가율(%)"보다 먼저
 			String[] headers = { "ID", "구", "동", "단지", "연식", "세대", "타입","유형", "방", "매매가", "전세가", "차액", "전세가율(%)", "매", "전",
-					"매/층","전/층", "설명" };
+					"매/층","전/층", "설명", "key" };
 
 			int r = 0;
 			Row hr = sheet.createRow(r++);
@@ -600,6 +716,7 @@ public class NaverLikeBrowser {
 					String subType = s.optString("type", "");
 					String subSpace = s.optString("space", "");
 					String subInfoInfo = s.optString("info", "");
+					String subKey = s.optString("key", "");
 
 					JSONObject dealItem = findBySupplyType(dealInfo, subType);
 					JSONObject rentItem = findBySupplyType(rentInfo, subType);
@@ -625,6 +742,7 @@ public class NaverLikeBrowser {
 					row.createCell(COL_SPACE).setCellValue(subSpace);
 					row.createCell(COL_TYPE).setCellValue(subType);
 					row.createCell(COL_ROOM).setCellValue(subInfoInfo);
+					row.createCell(COL_KEY).setCellValue(subKey);
 
 					if (dealBD != null) {
 						Cell dc = row.createCell(COL_DEAL);
