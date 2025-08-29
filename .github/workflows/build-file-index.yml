@@ -9,14 +9,27 @@ on:
 permissions:
   contents: write                # 리포지토리에 다시 커밋/푸시할 권한
 
+# (선택) 같은 브랜치에서 여러 번 푸시되면 진행 중 워크플로우를 취소하고 최신만 실행
+concurrency:
+  group: build-index-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-index:
     # 액션이 생성한 커밋으로 인한 재실행(루프) 방지
     if: github.actor != 'github-actions[bot]'
-
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      DELAY_SECONDS: 600   # 600초 = 10분
 
     steps:
+      - name: Delay 10 minutes
+        run: |
+          echo "Delaying for $DELAY_SECONDS seconds..."
+          sleep "$DELAY_SECONDS"
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
