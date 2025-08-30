@@ -249,6 +249,76 @@
                 min-width: 900px
             }
         }
+
+        @media (max-width: 768px) {
+
+            /* 테이블을 화면폭에 맞게 */
+            table {
+                min-width: 0 !important;
+                /* 기존 min-width 해제 */
+                width: 100%;
+                table-layout: fixed;
+                /* 셀 폭 균등 배분 */
+            }
+
+            th,
+            td {
+                padding: .32rem .28rem;
+                font-size: .8rem;
+            }
+
+            /* 숨길 컬럼: 1(ID), 8(유형), 9(방), 14(매매개수), 15(전세개수), 16(매/층), 17(전/층), 18(설명) */
+            /* 헤더(필터행 제외) */
+            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(1),
+            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(2),
+            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(8),
+            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(9),
+            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(14),
+            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(15),
+            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(16),
+            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(17),
+            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(18),
+            /* 본문 */
+            #tbl_aptInfo tbody tr td:nth-child(1),
+            #tbl_aptInfo tbody tr td:nth-child(2),
+            #tbl_aptInfo tbody tr td:nth-child(8),
+            #tbl_aptInfo tbody tr td:nth-child(9),
+            #tbl_aptInfo tbody tr td:nth-child(14),
+            #tbl_aptInfo tbody tr td:nth-child(15),
+            #tbl_aptInfo tbody tr td:nth-child(16),
+            #tbl_aptInfo tbody tr td:nth-child(17),
+            #tbl_aptInfo tbody tr td:nth-child(18) {
+                display: none;
+            }
+
+            /* 필터행도 동일하게 숨김 (필요 컬럼만 유지) */
+            #tbl_aptInfo thead tr.filter-row th:nth-child(1),
+            #tbl_aptInfo thead tr.filter-row th:nth-child(2),
+            #tbl_aptInfo thead tr.filter-row th:nth-child(8),
+            #tbl_aptInfo thead tr.filter-row th:nth-child(9),
+            #tbl_aptInfo thead tr.filter-row th:nth-child(14),
+            #tbl_aptInfo thead tr.filter-row th:nth-child(15),
+            #tbl_aptInfo thead tr.filter-row th:nth-child(16),
+            #tbl_aptInfo thead tr.filter-row th:nth-child(17),
+            #tbl_aptInfo thead tr.filter-row th:nth-child(18) {
+                display: none;
+            }
+
+            /* 단지명은 좀 더 넓게 */
+            #tbl_aptInfo thead tr th:nth-child(4),
+            #tbl_aptInfo tbody tr td:nth-child(4) {
+                width: 28%;
+            }
+
+            /* 동/단지명 텍스트가 길면 줄바꿈 허용(선택) */
+            #tbl_aptInfo thead tr th:nth-child(3),
+            #tbl_aptInfo thead tr th:nth-child(4),
+            #tbl_aptInfo tbody tr td:nth-child(3),
+            #tbl_aptInfo tbody tr td:nth-child(4) {
+                white-space: normal;
+                word-break: keep-all;
+            }
+        }
     </style>
 </head>
 
