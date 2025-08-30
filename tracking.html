@@ -1017,8 +1017,7 @@
 
 
             $('#btn_init').on('click', function () {
-                $('#filterPrice, #filterGap, #filterSize, #filterAptNm, #filterDong').val('');
-                $('#filter300, #chkBigType').prop('checked', false);
+                filterInit();
                 applyFilters();
             });
 
@@ -1060,14 +1059,18 @@
 
         // 트래킹 / 비교 선택
         function beforeSearch(gu) {
-            $('#filterPrice, #filterGap, #filterSize, #filterAptNm, #filterDong').val('');
-            $('#filter300, #chkBigType').prop('checked', false);
+            filterInit();
             var selectedVal = $("input[name='option']:checked").val();
             if (selectedVal === 't') {
                 getTrackingResult(gu);
             } else {
                 getCompareList(gu);
             }
+        }
+
+        function filterInit(){
+            $('#filterPrice, #filterGap, #filterSize, #filterAptNm, #filterDong').val('');
+            $('#filter300, #chkBigType').prop('checked', false);
         }
 
         /**
