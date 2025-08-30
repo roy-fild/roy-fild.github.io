@@ -514,7 +514,7 @@
         <div class="right-btns">
             <button id="excelDownload" class="green_btn">EXCEL</button>
             <button id="btn_init" class="grey_btn" data-no-loading="true">초기화</button>
-            
+
         </div>
     </div>
 
@@ -1060,6 +1060,8 @@
 
         // 트래킹 / 비교 선택
         function beforeSearch(gu) {
+            $('#filterPrice, #filterGap, #filterSize, #filterAptNm, #filterDong').val('');
+            $('#filter300, #chkBigType').prop('checked', false);
             var selectedVal = $("input[name='option']:checked").val();
             if (selectedVal === 't') {
                 getTrackingResult(gu);
