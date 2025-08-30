@@ -537,7 +537,7 @@
                     let units = parseInt($(this).find('td:nth-child(6)').text().replace(/,/g, ''), 10);
                     let price = parseFloat($(this).find('td').eq(9).text().trim());
                     let gap = parseFloat($(this).find('td').eq(11).text().trim());
-                    let size = $(this).find('td').eq(8).text().trim();
+                    let size = $(this).find('td').eq(6).text().trim();
                     let aptNm = $(this).find('td').eq(3).text().trim();
                     let dong = $(this).find('td').eq(2).text().trim();
 
@@ -1084,13 +1084,13 @@
                     </th>
                     <th></th>
                     <th style="width:80px"><input id="filter300" type="checkbox">300^</input></th>
-                    <th></th>
-                    <th></th>
                     <th style="width:80px">
                         <input id="filterSize" type="text" pattern="\\d*\\.?\\d*"
-                            oninput="this.value = this.value.replace(/[^0-9.]/g, '');" placeholder="타입"
-                            style="width: 40px;" maxlength="3">
+                        oninput="this.value = this.value.replace(/[^0-9.]/g, '');" placeholder="타입"
+                        style="width: 40px;" maxlength="3">
                     </th>
+                    <th></th>
+                    <th></th>
                     <th><input type="text" inputmode="decimal" pattern="\\d*\\.?\\d*"
                             oninput="this.value = this.value.replace(/[^0-9.]/g, '');" id="filterPrice"
                             placeholder="매매가" style="width: 40px;" maxlength="4"></th>
