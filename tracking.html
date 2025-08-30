@@ -231,6 +231,29 @@
             /* .88rem → .8rem */
         }
 
+        .table-wrap {
+            position: relative;
+            /* 배지 절대배치 기준 */
+        }
+
+        /* TOTAL 배지 */
+        #aptCntBadge {
+            position: absolute;
+            top: 3px;
+            /* 위쪽 여백 */
+            left: 8px;
+            /* 좌측 여백 */
+            background: #fff;
+            border: 1px solid #e5e5e5;
+            border-radius: 12px;
+            padding: .15rem .45rem;
+            font-size: .78rem;
+            color: #555;
+            box-shadow: var(--shadow);
+            pointer-events: none;
+            /* 클릭 방해 안 하도록 */
+        }
+
 
         @media (max-width: 768px) {
             body {
@@ -413,6 +436,10 @@
             #aptCnt {
                 font-size: .65rem;
             }
+
+            #aptCntBadge {
+                font-size: .7rem;
+            }
         }
     </style>
 </head>
@@ -482,7 +509,6 @@
         <div class="left-span">
             <button id="btn_toggle" class="grey_btn" data-no-loading="true">▲ 접기</button>
             <span id="update"></span>
-            <span id="aptCnt" style="margin-left:10px;"></span>
         </div>
         <div class="right-btns">
             <button id="excelDownload" class="green_btn">EXCEL</button>
@@ -491,6 +517,7 @@
     </div>
 
     <div id="result" class="table-wrap">
+        <div id="aptCntBadge"></div>
         <table id="tbl_aptInfo">
             <thead> <!-- ▼ 필터 입력 행 (복구됨) -->
                 <tr class="filter-row">
@@ -1380,7 +1407,8 @@
                 names.add(name);
             });
 
-            $('#aptCnt').text(`TOTAL: ${names.size}`);
+            // $('#aptCnt').text(`TOTAL: ${names.size}`);
+            $('#aptCntBadge').text(`TOTAL: ${names.size}`)
         }
 
     </script>
