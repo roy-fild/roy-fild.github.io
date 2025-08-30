@@ -508,11 +508,13 @@
     <div class="excel-container">
         <div class="left-span">
             <button id="btn_toggle" class="grey_btn" data-no-loading="true">▲ 접기</button>
+            <button id="btn_sort" class="grey_btn" data-no-loading="true">정렬</button>
             <span id="update"></span>
         </div>
         <div class="right-btns">
             <button id="excelDownload" class="green_btn">EXCEL</button>
             <button id="btn_init" class="grey_btn" data-no-loading="true">초기화</button>
+            
         </div>
     </div>
 
@@ -909,6 +911,25 @@
                 var fileNm = $('#hdn_sel-gu').val() + '_시세_트래킹_' + getNowDate() + '.xlsx'
                 // 엑셀 파일로 저장
                 XLSX.writeFile(wb, fileNm);
+            });
+
+            // 정렬 버튼 클릭 이벤트
+            $('#btn_sort').on('click', function () {
+                const $tbody = $('#tbl_aptInfo tbody');
+                const $rows = $tbody.find('tr').get();
+
+                $rows.sort(function (a, b) {
+                    // 10번째 컬럼(td index=9)이 "매매" (0부터 시작)
+                    const aPrice = parseFloat($(a).find('td').eq(9).text().replace(/,/g, '')) || 0;
+                    const bPrice = parseFloat($(b).find('td').eq(9).text().replace(/,/g, '')) || 0;
+
+                    // 내림차순 (큰 값이 먼저)
+                    return bPrice - aPrice;
+                });
+
+                $.each($rows, function (i, row) {
+                    $tbody.append(row); // 정렬된 순서대로 다시 추가
+                });
             });
 
             // 기존 코드에 로딩바 추가
