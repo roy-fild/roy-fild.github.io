@@ -405,6 +405,14 @@
             #filterGap {
                 max-width: 60px !important;
             }
+
+            #update {
+                font-size: .65rem;
+            }
+
+            #aptCnt {
+                font-size: .65rem;
+            }
         }
     </style>
 </head>
@@ -1018,7 +1026,7 @@
         function getTrackingResult(gu) {
             getLatestFile(gu).then(function (fileUrl) {
                 var formattedDate = extractFormattedDate(fileUrl);
-                $('#update').text(`최종업데이트: ${formattedDate}`);
+                $('#update').text(`(${$('#hdn_sel-gu').val()})최종업데이트: ${formattedDate}`);
                 document.title = `(${$('#hdn_sel-gu').val()})시세 트래킹`;
                 $('#tbl_aptInfo tbody').empty();
 
