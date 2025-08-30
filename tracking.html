@@ -372,6 +372,39 @@
                 white-space: nowrap;
                 /* 타입은 한 줄 유지 */
             }
+
+            /* thead 필터 input 공통 */
+            #tbl_aptInfo thead input {
+                font-size: .75rem;
+                /* 글자 크기 살짝 축소 */
+                padding: .2rem .25rem;
+                /* 안쪽 여백 줄임 */
+            }
+
+            /* 동 */
+            #filterDong {
+                max-width: 60px !important;
+            }
+
+            /* 단지명 */
+            #filterAptNm {
+                max-width: 120px !important;
+            }
+
+            /* 타입 */
+            #filterSize {
+                max-width: 50px !important;
+            }
+
+            /* 매매가 */
+            #filterPrice {
+                max-width: 60px !important;
+            }
+
+            /* 차액 */
+            #filterGap {
+                max-width: 60px !important;
+            }
         }
     </style>
 </head>
@@ -986,7 +1019,7 @@
             getLatestFile(gu).then(function (fileUrl) {
                 var formattedDate = extractFormattedDate(fileUrl);
                 $('#update').text(`최종업데이트: ${formattedDate}`);
-                document.title = `(${$('#hdn_sel-gu').val()})네이버 시세 트래킹`;
+                document.title = `(${$('#hdn_sel-gu').val()})시세 트래킹`;
                 $('#tbl_aptInfo tbody').empty();
 
                 $.ajax({
