@@ -250,25 +250,71 @@
             }
         }
 
+        /* ▼ 모바일(≤768px): 겹침 방지 - 가로 스크롤 허용 + 줄바꿈 */
         @media (max-width: 768px) {
 
-            /* 테이블을 화면폭에 맞게 */
+            /* 테이블을 화면보다 넓게 두고 스크롤로 보게 하기 */
+            .table-wrap {
+                overflow-x: auto;
+            }
+
             table {
-                min-width: 0 !important;
-                /* 기존 min-width 해제 */
-                width: 100%;
-                table-layout: fixed;
-                /* 셀 폭 균등 배분 */
+                min-width: 1200px !important;
+                /* 넉넉한 최소폭 */
+                width: max-content;
+                /* 내용에 맞춰 확장 */
+                table-layout: auto;
+                /* 고정 레이아웃 해제 */
             }
 
             th,
             td {
-                padding: .32rem .28rem;
-                font-size: .8rem;
+                padding: .36rem .34rem;
+                font-size: .82rem;
+                line-height: 1.3;
+                /* 행 높이 확보 */
+                vertical-align: top;
+                /* 여러 줄일 때 윗쪽 정렬 */
+                white-space: nowrap;
+                /* 기본은 줄바꿈 안 함(숫자 깔끔) */
             }
 
-            /* 숨길 컬럼: 1(ID), 8(유형), 9(방), 14(매매개수), 15(전세개수), 16(매/층), 17(전/층), 18(설명) */
-            /* 헤더(필터행 제외) */
+            /* 텍스트가 긴 칼럼(동, 단지명)은 줄바꿈 허용 */
+            #tbl_aptInfo thead tr th:nth-child(3),
+            #tbl_aptInfo thead tr th:nth-child(4),
+            #tbl_aptInfo tbody tr td:nth-child(3),
+            #tbl_aptInfo tbody tr td:nth-child(4) {
+                white-space: normal;
+                word-break: keep-all;
+                /* 한국어 단어 단위로 줄바꿈 */
+            }
+
+            /* 단지명은 폭을 조금 더 */
+            #tbl_aptInfo thead tr th:nth-child(4),
+            #tbl_aptInfo tbody tr td:nth-child(4) {
+                min-width: 220px;
+            }
+
+            /* (필요 시) 숫자 칼럼들은 고정 폭으로 깔끔하게 */
+            #tbl_aptInfo thead tr th:nth-child(10),
+            #tbl_aptInfo tbody tr td:nth-child(10),
+            /* 매매 */
+            #tbl_aptInfo thead tr th:nth-child(11),
+            #tbl_aptInfo tbody tr td:nth-child(11),
+            /* 전세 */
+            #tbl_aptInfo thead tr th:nth-child(12),
+            #tbl_aptInfo tbody tr td:nth-child(12),
+            /* 차액 */
+            #tbl_aptInfo thead tr th:nth-child(13),
+            #tbl_aptInfo tbody tr td:nth-child(13)
+
+            /* 전세가율 */
+                {
+                min-width: 84px;
+                text-align: right;
+            }
+
+            /* ───── 여기 아래는 기존에 숨기던 칼럼 그대로 유지 ───── */
             #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(1),
             #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(2),
             #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(8),
@@ -278,7 +324,6 @@
             #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(16),
             #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(17),
             #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(18),
-            /* 본문 */
             #tbl_aptInfo tbody tr td:nth-child(1),
             #tbl_aptInfo tbody tr td:nth-child(2),
             #tbl_aptInfo tbody tr td:nth-child(8),
@@ -291,7 +336,6 @@
                 display: none;
             }
 
-            /* 필터행도 동일하게 숨김 (필요 컬럼만 유지) */
             #tbl_aptInfo thead tr.filter-row th:nth-child(1),
             #tbl_aptInfo thead tr.filter-row th:nth-child(2),
             #tbl_aptInfo thead tr.filter-row th:nth-child(8),
@@ -302,21 +346,6 @@
             #tbl_aptInfo thead tr.filter-row th:nth-child(17),
             #tbl_aptInfo thead tr.filter-row th:nth-child(18) {
                 display: none;
-            }
-
-            /* 단지명은 좀 더 넓게 */
-            #tbl_aptInfo thead tr th:nth-child(4),
-            #tbl_aptInfo tbody tr td:nth-child(4) {
-                width: 28%;
-            }
-
-            /* 동/단지명 텍스트가 길면 줄바꿈 허용(선택) */
-            #tbl_aptInfo thead tr th:nth-child(3),
-            #tbl_aptInfo thead tr th:nth-child(4),
-            #tbl_aptInfo tbody tr td:nth-child(3),
-            #tbl_aptInfo tbody tr td:nth-child(4) {
-                white-space: normal;
-                word-break: keep-all;
             }
         }
     </style>
