@@ -252,19 +252,18 @@
 
         /* ▼ 모바일(≤768px): 겹침 방지 - 가로 스크롤 허용 + 줄바꿈 */
         @media (max-width: 768px) {
-
-            /* 테이블을 화면보다 넓게 두고 스크롤로 보게 하기 */
             .table-wrap {
                 overflow-x: auto;
+                /* 필요할 때만 가로 스크롤 */
             }
 
             table {
-                min-width: 1200px !important;
-                /* 넉넉한 최소폭 */
-                width: max-content;
-                /* 내용에 맞춰 확장 */
+                min-width: 0 !important;
+                /* 강제 최소폭 제거 */
+                width: auto;
+                /* 내용에 맞게 */
                 table-layout: auto;
-                /* 고정 레이아웃 해제 */
+                /* 글자 길이에 따라 폭 자동 */
             }
 
             th,
@@ -272,49 +271,21 @@
                 padding: .36rem .34rem;
                 font-size: .82rem;
                 line-height: 1.3;
-                /* 행 높이 확보 */
                 vertical-align: top;
-                /* 여러 줄일 때 윗쪽 정렬 */
                 white-space: nowrap;
-                /* 기본은 줄바꿈 안 함(숫자 깔끔) */
+                /* 기본은 줄바꿈 안 함 */
             }
 
-            /* 텍스트가 긴 칼럼(동, 단지명)은 줄바꿈 허용 */
+            /* 동, 단지명은 줄바꿈 허용 */
             #tbl_aptInfo thead tr th:nth-child(3),
             #tbl_aptInfo thead tr th:nth-child(4),
             #tbl_aptInfo tbody tr td:nth-child(3),
             #tbl_aptInfo tbody tr td:nth-child(4) {
                 white-space: normal;
                 word-break: keep-all;
-                /* 한국어 단어 단위로 줄바꿈 */
             }
 
-            /* 단지명은 폭을 조금 더 */
-            #tbl_aptInfo thead tr th:nth-child(4),
-            #tbl_aptInfo tbody tr td:nth-child(4) {
-                min-width: 220px;
-            }
-
-            /* (필요 시) 숫자 칼럼들은 고정 폭으로 깔끔하게 */
-            #tbl_aptInfo thead tr th:nth-child(10),
-            #tbl_aptInfo tbody tr td:nth-child(10),
-            /* 매매 */
-            #tbl_aptInfo thead tr th:nth-child(11),
-            #tbl_aptInfo tbody tr td:nth-child(11),
-            /* 전세 */
-            #tbl_aptInfo thead tr th:nth-child(12),
-            #tbl_aptInfo tbody tr td:nth-child(12),
-            /* 차액 */
-            #tbl_aptInfo thead tr th:nth-child(13),
-            #tbl_aptInfo tbody tr td:nth-child(13)
-
-            /* 전세가율 */
-                {
-                min-width: 84px;
-                text-align: right;
-            }
-
-            /* ───── 여기 아래는 기존에 숨기던 칼럼 그대로 유지 ───── */
+            /* ─ 숨길 칼럼은 그대로 유지 ─ */
             #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(1),
             #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(2),
             #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(8),
@@ -346,6 +317,60 @@
             #tbl_aptInfo thead tr.filter-row th:nth-child(17),
             #tbl_aptInfo thead tr.filter-row th:nth-child(18) {
                 display: none;
+            }
+
+            /* 동 */
+            #tbl_aptInfo thead tr th:nth-child(3),
+            #tbl_aptInfo tbody tr td:nth-child(3) {
+                width: 60px;
+                /* 기본 폭 */
+                max-width: 70px;
+                /* 상한 */
+                white-space: normal;
+                /* 줄바꿈 허용 */
+                word-break: keep-all;
+                text-align: center;
+            }
+
+            /* 단지명: 조금 더 좁게, 최대 2줄 */
+            #tbl_aptInfo thead tr th:nth-child(4),
+            #tbl_aptInfo tbody tr td:nth-child(4) {
+                width: 110px;
+                /* 이전보다 더 줄임 */
+                max-width: 120px;
+                white-space: normal;
+                word-break: keep-all;
+            }
+
+            #tbl_aptInfo tbody tr td:nth-child(4) a {
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                /* 최대 2줄 */
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+
+            /* 세대 */
+            #tbl_aptInfo thead tr th:nth-child(6),
+            #tbl_aptInfo tbody tr td:nth-child(6) {
+                width: 50px;
+                /* 좁게 */
+                max-width: 50px;
+                text-align: right;
+                /* 숫자 우측정렬 */
+                white-space: nowrap;
+                text-align: center;
+            }
+
+            /* 타입 */
+            #tbl_aptInfo thead tr th:nth-child(7),
+            #tbl_aptInfo tbody tr td:nth-child(7) {
+                width: 56px;
+                /* 더 좁게 */
+                max-width: 64px;
+                text-align: center;
+                white-space: nowrap;
+                /* 타입은 한 줄 유지 */
             }
         }
     </style>
