@@ -508,7 +508,7 @@
     <div class="excel-container">
         <div class="left-span">
             <button id="btn_toggle" class="grey_btn" data-no-loading="true">▲ 접기</button>
-            <button id="btn_sort" class="grey_btn" data-no-loading="true">정렬</button>
+            <button id="btn_sort" class="grey_btn" data-no-loading="true">정렬 ▼</button>
             <span id="update"></span>
         </div>
         <div class="right-btns">
@@ -913,23 +913,32 @@
                 XLSX.writeFile(wb, fileNm);
             });
 
-            // 정렬 버튼 클릭 이벤트
+            // 정렬 토글 상태: desc(내림차순) 시작
+            $('#btn_sort').data('order', 'desc');
+
+            function parsePrice(text) {
+                const n = parseFloat(String(text).replace(/,/g, ''));
+                return isNaN(n) ? -Infinity : n; // 숫자 아님은 제일 뒤로
+            }
+
             $('#btn_sort').on('click', function () {
+                const $btn = $(this);
+                const current = $btn.data('order') || 'desc';
+                const next = current === 'desc' ? 'asc' : 'desc';
+                $btn.data('order', next);
+                $btn.text(next === 'desc' ? '정렬 ▼' : '정렬 ▲');
+
                 const $tbody = $('#tbl_aptInfo tbody');
-                const $rows = $tbody.find('tr').get();
+                const rows = $tbody.find('tr').get();
 
-                $rows.sort(function (a, b) {
-                    // 10번째 컬럼(td index=9)이 "매매" (0부터 시작)
-                    const aPrice = parseFloat($(a).find('td').eq(9).text().replace(/,/g, '')) || 0;
-                    const bPrice = parseFloat($(b).find('td').eq(9).text().replace(/,/g, '')) || 0;
-
-                    // 내림차순 (큰 값이 먼저)
-                    return bPrice - aPrice;
+                rows.sort(function (a, b) {
+                    const aPrice = parsePrice($(a).find('td').eq(9).text());
+                    const bPrice = parsePrice($(b).find('td').eq(9).text());
+                    return next === 'desc' ? (bPrice - aPrice) : (aPrice - bPrice);
                 });
 
-                $.each($rows, function (i, row) {
-                    $tbody.append(row); // 정렬된 순서대로 다시 추가
-                });
+                // 현재 화면에 나온(필터로 숨겨진 것도 포함) 행들을 정렬 순서대로 재배치
+                $.each(rows, function (_, row) { $tbody.append(row); });
             });
 
             // 기존 코드에 로딩바 추가
@@ -1068,7 +1077,7 @@
             }
         }
 
-        function filterInit(){
+        function filterInit() {
             $('#filterPrice, #filterGap, #filterSize, #filterAptNm, #filterDong').val('');
             $('#filter300, #chkBigType').prop('checked', false);
         }
