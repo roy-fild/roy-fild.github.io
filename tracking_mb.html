@@ -684,11 +684,19 @@
                 hideLoadingBar();
             });
 
+            function toNum(v) {
+                if (v === null || v === undefined) return NaN;
+                const s = String(v).replace(/[^\d.\-]/g, '').trim();
+                const n = parseFloat(s);
+                return isNaN(n) ? NaN : n;
+            }
+
 
             // Table 필터 
             function applyFilters() {
                 let filter300Checked = $('#filter300').is(':checked');
-                let priceInput = parseFloat($('#filterPrice').val().trim());
+                let priceRawInput = $('#filterPrice').val().trim();
+                let priceInput = toNum(priceRawInput);
                 let gapInput = parseFloat($('#filterGap').val().trim());
                 let filterSizeInput = $('#filterSize').val().trim();
                 let filterAptNmInput = $('#filterAptNm').val().trim();
@@ -698,7 +706,8 @@
                 $('tbody tr').each(function () {
                     let units = parseInt($(this).find('td:nth-child(6)').text().replace(/,/g, ''), 10);
                     let price = parseFloat($(this).find('td').eq(9).text().trim());
-                    let gap = parseFloat($(this).find('td').eq(11).text().trim());
+                    let gapRawInput = $('#filterGap').val().trim();
+                    let gapInput = toNum(gapRawInput);
                     let size = $(this).find('td').eq(6).text().trim();
                     let aptNm = $(this).find('td').eq(3).text().trim();
                     let dong = $(this).find('td').eq(2).text().trim();
@@ -708,11 +717,20 @@
                     if (filter300Checked && units < 300) {
                         showRow = false;
                     }
-                    if (!isNaN(priceInput) && !(Math.floor(price) === Math.floor(priceInput) || price === priceInput)) {
-                        showRow = false;
+                    // === price 비교 ===
+                    if (!isNaN(priceInput)) {
+                        const hasDecimal = priceRawInput.includes('.');
+                        const priceMatch = hasDecimal ? (price === priceInput)
+                            : (Math.floor(price) === Math.floor(priceInput));
+                        if (!priceMatch) showRow = false;
                     }
-                    if (!isNaN(gapInput) && !(Math.floor(gap) === Math.floor(gapInput) || gap === gapInput)) {
-                        showRow = false;
+                    if (!isNaN(gapInput)) {
+                        // gap 입력에 소수점이 없으면 정수부 매칭(3 → 3.x 전부 포함)
+                        // 소수점이 있으면 완전일치(예: 3.5 → 3.5만)
+                        const hasDecimal = gapRawInput.includes('.');
+                        const gapMatch = hasDecimal ? (gap === gapInput)
+                            : (Math.floor(gap) === Math.floor(gapInput));
+                        if (!gapMatch) showRow = false;
                     }
                     if (filterSizeInput !== "" && !size.includes(filterSizeInput)) {
                         showRow = false;

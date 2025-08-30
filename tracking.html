@@ -522,12 +522,20 @@
                 hideLoadingBar();
             });
 
+            function toNum(v) {
+                if (v === null || v === undefined) return NaN;
+                const s = String(v).replace(/[^\d.\-]/g, '').trim();
+                const n = parseFloat(s);
+                return isNaN(n) ? NaN : n;
+            }
 
             // Table 필터 
             function applyFilters() {
                 let filter300Checked = $('#filter300').is(':checked');
-                let priceInput = parseFloat($('#filterPrice').val().trim());
-                let gapInput = parseFloat($('#filterGap').val().trim());
+                let priceRawInput = $('#filterPrice').val().trim();
+                let priceInput = toNum(priceRawInput);
+                let gapRawInput = $('#filterGap').val().trim();
+                let gapInput = toNum(gapRawInput);
                 let filterSizeInput = $('#filterSize').val().trim();
                 let filterAptNmInput = $('#filterAptNm').val().trim();
                 let filterDongInput = $('#filterDong').val().trim();
@@ -546,11 +554,20 @@
                     if (filter300Checked && units < 300) {
                         showRow = false;
                     }
-                    if (!isNaN(priceInput) && !(Math.floor(price) === Math.floor(priceInput) || price === priceInput)) {
-                        showRow = false;
+                    // === price 비교 ===
+                    if (!isNaN(priceInput)) {
+                        const hasDecimal = priceRawInput.includes('.');
+                        const priceMatch = hasDecimal ? (price === priceInput)
+                            : (Math.floor(price) === Math.floor(priceInput));
+                        if (!priceMatch) showRow = false;
                     }
-                    if (!isNaN(gapInput) && !(Math.floor(gap) === Math.floor(gapInput) || gap === gapInput)) {
-                        showRow = false;
+                    if (!isNaN(gapInput)) {
+                        // gap 입력에 소수점이 없으면 정수부 매칭(3 → 3.x 전부 포함)
+                        // 소수점이 있으면 완전일치(예: 3.5 → 3.5만)
+                        const hasDecimal = gapRawInput.includes('.');
+                        const gapMatch = hasDecimal ? (gap === gapInput)
+                            : (Math.floor(gap) === Math.floor(gapInput));
+                        if (!gapMatch) showRow = false;
                     }
                     if (filterSizeInput !== "" && !size.includes(filterSizeInput)) {
                         showRow = false;
@@ -913,7 +930,7 @@
                     : "";
 
 
-    
+
 
                 // 개수/층/설명: 매매 우선, 전세는 전세행에서. 없으면 공백
                 const mCnt = (bestSale && bestSale.mCnt) ? bestSale.mCnt : (base ? base.mCnt : "");
@@ -1086,8 +1103,8 @@
                     <th style="width:80px"><input id="filter300" type="checkbox">300^</input></th>
                     <th style="width:80px">
                         <input id="filterSize" type="text" pattern="\\d*\\.?\\d*"
-                        oninput="this.value = this.value.replace(/[^0-9.]/g, '');" placeholder="타입"
-                        style="width: 40px;" maxlength="3">
+                            oninput="this.value = this.value.replace(/[^0-9.]/g, '');" placeholder="타입"
+                            style="width: 40px;" maxlength="3">
                     </th>
                     <th></th>
                     <th></th>
