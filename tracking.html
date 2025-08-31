@@ -68,6 +68,10 @@
             background: #FFA500
         }
 
+        .lightSalmon_btn {
+            background:lightsalmon;
+        }
+
         .yellow_btn {
             background: yellow
         }
@@ -466,13 +470,16 @@
         </div>
 
         <div class="btn-row">
+            <b>전체</b>
+            <button id="btn_all_seoul" class="lightSalmon_btn">서울</button>
+            <button id="btn_all_sudo" class="lightSalmon_btn">수도권</button>
+            <button id="btn_all_jibang" class="lightSalmon_btn">지방</button>           
+        </div>
+
+        <div class="btn-row">
             <b>정찰기</b>
             <button id="btn_observer-sudo" class="purple_btn">수도권</button>
             <button id="btn_observer-jibang" class="purple_btn">지방</button>
-
-            <!-- ▼ 추가: 전체 APPEND 로딩용 -->
-            <button id="btn_all_sudo" class="purple_btn">수도권(전체)</button>
-            <button id="btn_all_jibang" class="purple_btn">지방(전체)</button>
         </div>
 
         <!-- 서울/수도권/광역시/지방 버튼 영역 (생략 없이 기존과 동일하게 추가) -->
@@ -1097,13 +1104,21 @@
                 });
             }
 
+            // ▼ 버튼: 서울(전체)
+            $('#btn_all_seoul').on('click', function () {
+                const seoulKeys = getKeysFromButtons('#div_seoul');
+
+                // 중복 제거 + DOM 순서 그대로 유지
+                const SEOUL_ALL = Array.from(new Set([...seoulKeys]));
+                loadBatch(SEOUL_ALL, '서울 전체');
+            });
+
             // ▼ 버튼: 수도권(전체)
             $('#btn_all_sudo').on('click', function () {
-                const seoulKeys = getKeysFromButtons('#div_seoul');
                 const suedoKeys = getKeysFromButtons('#div_suedo');
 
                 // 중복 제거 + DOM 순서 그대로 유지
-                const SUDO_ALL = Array.from(new Set([...seoulKeys, ...suedoKeys]));
+                const SUDO_ALL = Array.from(new Set([...suedoKeys]));
                 loadBatch(SUDO_ALL, '수도권 전체');
             });
 
