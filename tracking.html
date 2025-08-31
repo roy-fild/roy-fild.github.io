@@ -468,6 +468,10 @@
             <b>정찰기</b>
             <button id="btn_observer-sudo" class="purple_btn">수도권</button>
             <button id="btn_observer-jibang" class="purple_btn">지방</button>
+
+            <!-- ▼ 추가: 전체 APPEND 로딩용 -->
+            <button id="btn_all_sudo" class="purple_btn">수도권(전체)</button>
+            <button id="btn_all_jibang" class="purple_btn">지방(전체)</button>
         </div>
 
         <!-- 서울/수도권/광역시/지방 버튼 영역 (생략 없이 기존과 동일하게 추가) -->
@@ -1054,6 +1058,53 @@
                 alert(text);
             });
 
+            /////////////////////////// 전체 조회용 function 
+
+            // ▼ 서울시 + 수도권(경기) 키 목록
+            const SEOUL_KEYS = [
+                'songpa-gu', 'seongdong-gu', 'yangcheon-gu', 'jongno-jung-gu', 'bundang-gu',
+                'dongjak-gu', 'yeongdeungpo-gu', 'seodaemun-gu', 'seong-buk-gu', 'dongdaemun-gu',
+                'gwanak-gu', 'eunpyeong-gu', 'jungnang-gu'
+            ];
+            const SUEDO_KEYS = ['suji-gu', 'dongtan', 'sujeong-jungwon-gu', 'anyang-si-dongan-gu', 'suwon-si-yeongtong-gu'];
+            const SUDO_ALL = [...SEOUL_KEYS, ...SUEDO_KEYS];
+
+            // ▼ 광역시 + 지방 키 목록
+            const JIBANG_ALL = [
+                'daejeon-seo-gu', 'daejeon-yuseong-gu', 'gwangju-buk-gu',
+                'cheongju', 'jeonju', 'cheonan', 'pohang-si-buk-gu'
+            ];
+
+            // 작은 유틸: 숫자 추출(모바일 필터에서 사용)
+            function extractNumbers(s) { const m = String(s || '').match(/\d+/); return m ? m[0] : '0'; }
+
+            // ▼ 배치 로딩 공통 함수 (APPEND)
+            function loadBatch(keys, label) {
+                filterInit();                          // 필터 초기화
+                $('#hdn_sel-gu').val(label);           // 파일명/타이틀용 라벨
+                $('#tbl_aptInfo tbody').empty();       // 한 번만 비우고
+                $('#update').text(`(${label}) 로딩중...`);
+
+                const mode = $("input[name='option']:checked").val(); // 't' or 'c'
+                keys.forEach(k => {
+                    if (mode === 't') {  // Tracking 모드 → APPEND
+                        getTrackingResult(k, /*append=*/true);
+                    } else {             // Compare 모드 → APPEND
+                        getCompareList(k, /*append=*/true);
+                    }
+                });
+            }
+
+            // ▼ 버튼: 수도권(전체)
+            $('#btn_all_sudo').on('click', function () {
+                loadBatch(SUDO_ALL, '수도권 전체');
+            });
+
+            // ▼ 버튼: 지방(전체)
+            $('#btn_all_jibang').on('click', function () {
+                loadBatch(JIBANG_ALL, '지방 전체');
+            });
+
         });
 
         function showLoadingBar() {
@@ -1096,13 +1147,15 @@
         /**
          * 트래킹 내용 검색
          */
-        function getTrackingResult(gu) {
+        function getTrackingResult(gu, append = false) {
             getLatestFile(gu).then(function (fileUrl) {
                 var formattedDate = extractFormattedDate(fileUrl);
-                $('#update').text(`(${$('#hdn_sel-gu').val()})최종업데이트: ${formattedDate}`);
-                document.title = `(${$('#hdn_sel-gu').val()})시세 트래킹`;
-                $('#tbl_aptInfo tbody').empty();
-
+                // append=false 일 때만 초기화/타이틀/업데이트 표시
+                if (!append) {
+                    $('#update').text(`(${$('#hdn_sel-gu').val()})최종업데이트: ${formattedDate}`);
+                    document.title = `(${$('#hdn_sel-gu').val()})시세 트래킹`;
+                    $('#tbl_aptInfo tbody').empty();
+                }
                 $.ajax({
                     url: fileUrl,
                     method: "GET",
@@ -1180,7 +1233,7 @@
         /** 
          *  비교용 내역을 Excel 에서 가져옴
          */
-        function getCompareList(gu) {
+        function getCompareList(gu, append = false) {
             var compareList = [];
             var cmpfileUrl = "https://roy-fild.github.io/tracking/compare/" + gu + ".xlsx";
 
@@ -1218,7 +1271,7 @@
 
                         // 최신 요청만 허용
                         if (myToken === window.__REQ_TOKEN__) {
-                            getCompareResult(gu, compareList, myToken);
+                            getCompareResult(gu, compareList, myToken, append);
                         }
                     };
                     reader.readAsArrayBuffer(data);
@@ -1233,14 +1286,17 @@
         /**
          * Excel 파일에서 내용 가져오기
          */
-        function getCompareResult(gu, compareList, reqToken) {
+        function getCompareResult(gu, compareList, reqToken, append = false) {
             getLatestFile(gu).then(function (fileUrl) {
                 if (reqToken && reqToken !== window.__REQ_TOKEN__) return; // 이전 요청 무시
 
                 var formattedDate = extractFormattedDate(fileUrl);
-                $('#update').text(`최종업데이트: ${formattedDate}`);
-                document.title = `(${$('#hdn_sel-gu').val()})네이버 시세 트래킹`;
-                $('#tbl_aptInfo tbody').empty();
+                if (!append) {
+                    $('#update').text(`최종업데이트: ${formattedDate}`);
+                    document.title = `(${$('#hdn_sel-gu').val()})네이버 시세 트래킹`;
+                    $('#tbl_aptInfo tbody').empty();
+                }
+
 
                 var resultList = [];
 
