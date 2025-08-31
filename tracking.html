@@ -974,62 +974,73 @@
                 return isNaN(n) ? NaN : n;
             }
 
+            // 숫자 매칭: '3.' => 정수부 프리픽스(3.*), '3.2' => 소수부 자리수만큼 정확히, '3' => 정수부 프리픽스
+            function numMatch(valueNum, rawInput) {
+                if (rawInput == null) return true;
+                const s = String(rawInput).trim();
+                if (s === '') return true;
+                if (isNaN(valueNum)) return false;
+
+                const cleaned = s.replace(/,/g, ''); // 소수점은 유지
+                if (cleaned.endsWith('.')) {
+                    // "3." => 정수부가 3인 모든 값(3, 3.0, 3.1, 3.2...)
+                    const intPart = parseInt(cleaned.slice(0, -1), 10);
+                    if (isNaN(intPart)) return true;
+                    return Math.floor(valueNum) === intPart;
+                }
+                if (cleaned.includes('.')) {
+                    // "3.2" => 소수점 자리수 맞춰 비교(반올림해 자리수만큼 동일하면 매칭)
+                    const parts = cleaned.split('.');
+                    const decLen = (parts[1] || '').length;
+                    const target = parseFloat(cleaned);
+                    if (isNaN(target)) return true;
+                    const factor = Math.pow(10, decLen);
+                    return Math.round(valueNum * factor) === Math.round(target * factor);
+                }
+                // "3" => 정수부가 3인 모든 값
+                const intPart = parseInt(cleaned, 10);
+                if (isNaN(intPart)) return true;
+                return Math.floor(valueNum) === intPart;
+            }
 
             // Table 필터 
             function applyFilters() {
-                let filter300Checked = $('#filter300').is(':checked');
-                let priceRawInput = $('#filterPrice').val().trim();
-                let priceInput = toNum(priceRawInput);
-                let gapInput = parseFloat($('#filterGap').val().trim());
-                let filterSizeInput = $('#filterSize').val().trim();
-                let filterAptNmInput = $('#filterAptNm').val().trim();
-                let filterDongInput = $('#filterDong').val().trim();
-                let chkBigType = $('#chkBigType').is(':checked');
+                const filter300Checked = $('#filter300').is(':checked');
 
-                $('tbody tr').each(function () {
-                    let units = parseInt($(this).find('td:nth-child(6)').text().replace(/,/g, ''), 10);
-                    let price = parseFloat($(this).find('td').eq(9).text().trim());
-                    let gapRawInput = $('#filterGap').val().trim();
-                    let gapInput = toNum(gapRawInput);
-                    let size = $(this).find('td').eq(6).text().trim();
-                    let aptNm = $(this).find('td').eq(3).text().trim();
-                    let dong = $(this).find('td').eq(2).text().trim();
+                const priceRaw = $('#filterPrice').val();
+                const gapRaw = $('#filterGap').val();
+
+                const filterSizeInput = $('#filterSize').val().trim();
+                const filterAptNmInput = $('#filterAptNm').val().trim();
+                const filterDongInput = $('#filterDong').val().trim();
+                const chkBigType = $('#chkBigType').is(':checked');
+
+                $('#tbl_aptInfo tbody tr').each(function () {
+                    const units = toNum($(this).find('td:nth-child(6)').text()); // 세대
+                    const price = toNum($(this).find('td').eq(9).text());        // 매매
+                    const gap = toNum($(this).find('td').eq(11).text());       // 차액 ★
+                    const size = $(this).find('td').eq(6).text().trim();
+                    const aptNm = $(this).find('td').eq(3).text().trim();
+                    const dong = $(this).find('td').eq(2).text().trim();
 
                     let showRow = true;
 
-                    if (filter300Checked && units < 300) {
-                        showRow = false;
+                    if (filter300Checked && units < 300) showRow = false;
+
+                    if (showRow && priceRaw) {
+                        if (!numMatch(price, priceRaw)) showRow = false;
                     }
-                    // === price 비교 ===
-                    if (!isNaN(priceInput)) {
-                        const hasDecimal = priceRawInput.includes('.');
-                        const priceMatch = hasDecimal ? (price === priceInput)
-                            : (Math.floor(price) === Math.floor(priceInput));
-                        if (!priceMatch) showRow = false;
-                    }
-                    if (!isNaN(gapInput)) {
-                        // gap 입력에 소수점이 없으면 정수부 매칭(3 → 3.x 전부 포함)
-                        // 소수점이 있으면 완전일치(예: 3.5 → 3.5만)
-                        const hasDecimal = gapRawInput.includes('.');
-                        const gapMatch = hasDecimal ? (gap === gapInput)
-                            : (Math.floor(gap) === Math.floor(gapInput));
-                        if (!gapMatch) showRow = false;
-                    }
-                    if (filterSizeInput !== "" && !size.includes(filterSizeInput)) {
-                        showRow = false;
-                    }
-                    if (filterAptNmInput !== "" && !aptNm.includes(filterAptNmInput)) {
-                        showRow = false;
-                    }
-                    if (filterDongInput !== "" && !dong.includes(filterDongInput)) {
-                        showRow = false;
+                    if (showRow && gapRaw) {
+                        if (!numMatch(gap, gapRaw)) showRow = false;
                     }
 
-                    if (chkBigType) {
-                        var match = extractNumbers(size);
-                        if (parseInt(match) > 84 || parseInt(match) < 51) {
-                            showRow = false;
-                        }
+                    if (showRow && filterSizeInput && !size.includes(filterSizeInput)) showRow = false;
+                    if (showRow && filterAptNmInput && !aptNm.includes(filterAptNmInput)) showRow = false;
+                    if (showRow && filterDongInput && !dong.includes(filterDongInput)) showRow = false;
+
+                    if (showRow && chkBigType) {
+                        const v = parseInt(extractNumbers(size), 10);
+                        if (v > 84 || v < 51) showRow = false;
                     }
 
                     $(this).toggle(showRow);
@@ -1063,7 +1074,7 @@
 
             /////////////////////////// 전체 조회용 function 
 
-          
+
             // ▼ 배치 로딩 공통 함수 (APPEND)
             function loadBatch(keys, label) {
                 filterInit();                          // 필터 초기화
