@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 30
 
     env:
-      DELAY_SECONDS: 600   # 10분
+      DELAY_SECONDS: 3000   # 5분
 
     steps:
       - name: Delay 10 minutes
