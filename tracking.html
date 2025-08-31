@@ -1058,26 +1058,12 @@
                 alert(text);
             });
 
-            /////////////////////////// 전체 조회용 function 
-
-            // ▼ 서울시 + 수도권(경기) 키 목록
-            const SEOUL_KEYS = [
-                'songpa-gu', 'seongdong-gu', 'yangcheon-gu', 'jongno-jung-gu', 'bundang-gu',
-                'dongjak-gu', 'yeongdeungpo-gu', 'seodaemun-gu', 'seong-buk-gu', 'dongdaemun-gu',
-                'gwanak-gu', 'eunpyeong-gu', 'jungnang-gu'
-            ];
-            const SUEDO_KEYS = ['suji-gu', 'dongtan', 'sujeong-jungwon-gu', 'anyang-si-dongan-gu', 'suwon-si-yeongtong-gu'];
-            const SUDO_ALL = [...SEOUL_KEYS, ...SUEDO_KEYS];
-
-            // ▼ 광역시 + 지방 키 목록
-            const JIBANG_ALL = [
-                'daejeon-seo-gu', 'daejeon-yuseong-gu', 'gwangju-buk-gu',
-                'cheongju', 'jeonju', 'cheonan', 'pohang-si-buk-gu'
-            ];
-
             // 작은 유틸: 숫자 추출(모바일 필터에서 사용)
             function extractNumbers(s) { const m = String(s || '').match(/\d+/); return m ? m[0] : '0'; }
 
+            /////////////////////////// 전체 조회용 function 
+
+          
             // ▼ 배치 로딩 공통 함수 (APPEND)
             function loadBatch(keys, label) {
                 filterInit();                          // 필터 초기화
@@ -1097,13 +1083,33 @@
 
             // ▼ 버튼: 수도권(전체)
             $('#btn_all_sudo').on('click', function () {
+                const seoulKeys = getKeysFromButtons('#div_seoul');
+                const suedoKeys = getKeysFromButtons('#div_suedo');
+
+                // 중복 제거 + DOM 순서 그대로 유지
+                const SUDO_ALL = Array.from(new Set([...seoulKeys, ...suedoKeys]));
                 loadBatch(SUDO_ALL, '수도권 전체');
             });
 
             // ▼ 버튼: 지방(전체)
             $('#btn_all_jibang').on('click', function () {
+                const JIBANG_ALL = Array.from(new Set([
+                    ...getKeysFromButtons('#div_metro'),
+                    ...getKeysFromButtons('#div_jibang')
+                ]));
                 loadBatch(JIBANG_ALL, '지방 전체');
             });
+
+            // 컨테이너(#div_seoul, #div_suedo 등) 안의 "btn_*" 버튼에서 이름만 추출해 배열로 반환
+            function getKeysFromButtons(containerSelector) {
+                return $(`${containerSelector} button[id^="btn_"]`).map(function () {
+                    // 'btn_songpa-gu' → 'songpa-gu'
+                    return this.id.replace(/^btn_/, '');
+                }).get();
+            }
+
+
+            /// 전체 조회 END
 
         });
 
