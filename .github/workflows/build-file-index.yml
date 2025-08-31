@@ -3,9 +3,8 @@ name: Build file index for tracking/result
 on:
   push:
     paths:
-      - 'tracking/result/**'                 # 이 경로 변경 시만
-    paths-ignore:
-      - 'tracking/result/fileList.json'     # 생성물은 트리거 제외
+      - 'tracking/result/**'                  # 포함
+      - '!tracking/result/fileList.json'      # 제외 (반드시 따옴표로!)
   workflow_dispatch: {}
 
 permissions:
@@ -36,11 +35,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
-      # 대기 중 새 커밋이 생겼을 수 있으므로, 항상 최신 원격 HEAD로 맞춤
+      # 대기 중 새 커밋이 생겼을 수 있으니 최신 원격 HEAD로 맞춤
       - name: Sync to latest remote HEAD
         run: |
           git fetch origin "${GITHUB_REF_NAME}"
-          # 안전: 로컬 변경사항 없음(아직 스크립트 전), 하드 리셋로 확실히 최신으로
           git reset --hard "origin/${GITHUB_REF_NAME}"
           git status
 
@@ -58,7 +56,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: update fileList.json"
-          # 생성물만 커밋
           file_pattern: "tracking/result/fileList.json"
-          # 푸시 거절 방지: (원격이 앞서도) 재시도 로직 내장. 그래도 걱정되면 아래 옵션을 추가:
-          # push_options: '--force-with-lease'
