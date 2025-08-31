@@ -924,7 +924,11 @@
                 });
                 XLSX.utils.book_append_sheet(wb, ws, "아파트 정보");  // 시트 추가
 
-                var fileNm = $('#hdn_sel-gu').val() + '_시세_트래킹_' + getNowDate() + '.xlsx'
+                // #update에서 숫자만 추출
+                let updateText = $('#update').text();
+                let dateStr = updateText.replace(/\D/g, '');  // 숫자만 추출
+
+                var fileNm = $('#hdn_sel-gu').val() + '_시세_트래킹_' + dateStr + '.xlsx'
                 // 엑셀 파일로 저장
                 XLSX.writeFile(wb, fileNm);
             });
