@@ -116,15 +116,13 @@
         }
 
         .table-badges {
-            position: absolute;
-            top: 3px;
-            left: 8px;
+            position: relative;
+            margin: 0 0 6px 4px;
+            /* 아래쪽 여백이 헤더와 table 사이 간격 */
             display: flex;
             align-items: center;
             gap: .4rem;
-            /* 배지 간 간격 */
             pointer-events: none;
-            /* 배지 밑의 표 클릭 방해 안 함 */
         }
 
 
@@ -212,17 +210,10 @@
 
         thead {
             position: sticky;
-            top: var(--toolbar-h);
+            top: 0;
             z-index: 5;
             background: var(--thead);
             color: var(--thead-text);
-        }
-
-        #tbl_aptInfo tbody::before {
-            content: "";
-            display: block;
-            height: calc(var(--thead-h) + 4px);
-            /* 약간 여유 */
         }
 
 
@@ -549,11 +540,13 @@
         </div>
     </div>
 
+    <div class="table-badges">
+        <div id="aptCntBadge"></div>
+        <span id="update"></span>
+    </div>
+
+
     <div id="result" class="table-wrap">
-        <div class="table-badges">
-            <div id="aptCntBadge"></div>
-            <span id="update"></span>
-        </div>
         <table id="tbl_aptInfo">
             <thead> <!-- ▼ 필터 입력 행 (복구됨) -->
                 <tr class="filter-row">
@@ -651,30 +644,6 @@
         }
 
         $(document).ready(function () {
-
-            // ✅ thead 전체 높이를 계산해서 CSS 변수 --thead-h 로 반영
-            function updateTheadHeight() {
-                const thead = document.querySelector('#tbl_aptInfo thead');
-                const h = thead ? thead.getBoundingClientRect().height : 0;
-                document.documentElement.style.setProperty('--thead-h', `${Math.round(h)}px`);
-            }
-
-            // 최초 1회
-            updateTheadHeight();
-
-            // 창 크기 변경 시(모바일/PC 전환, 확대/축소 등)
-            window.addEventListener('resize', updateTheadHeight);
-
-            // thead 내부 입력창 변화(줄바꿈, 글꼴 크기 변화 등)에도 대응
-            const theadObserver = new MutationObserver(updateTheadHeight);
-            theadObserver.observe(document.querySelector('#tbl_aptInfo thead'), { childList: true, subtree: true });
-
-            // 필터/정렬/데이터 로딩 끝날 때도 갱신
-            $(document).ajaxStop(updateTheadHeight);
-            $('#filter300, #chkBigType, #filterPrice, #filterGap, #filterSize, #filterAptNm, #filterDong')
-                .on('input change', updateTheadHeight);
-            $('#btn_sort, #btn_toggle').on('click', updateTheadHeight);
-
 
             // 버튼 토글 (접기/펼치기)
             $('#btn_toggle').on('click', function () {
