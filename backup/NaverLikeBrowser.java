@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 //@Slf4j
 public class NaverLikeBrowser {
 
-	private static final Logger log = LoggerFactory.getLogger(NaverLikeBrowserTEST.class);
+	private static final Logger log = LoggerFactory.getLogger(NaverLikeBrowser.class);
 
 	static final String UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 			+ "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
@@ -94,7 +94,7 @@ public class NaverLikeBrowser {
 				
 				// 서울시
 //				"songpa-gu",			// 송파구
-				"seongdong-gu",			// 성동구
+//				"seongdong-gu",			// 성동구
 //				"yeongdeungpo-gu",		// 영등포구
 //				"yangcheon-gu",			// 양천구
 //				"jongno-jung-gu",		// 종로/중구
@@ -105,6 +105,7 @@ public class NaverLikeBrowser {
 //				"gwanak-gu",			// 관악구
 //				"eunpyeong-gu",			// 은평구
 //				"jungnang-gu",			// 중랑구
+				"guro-gu",				// 구로구
 //				
 //				// 수도권
 //				"suji-gu",				// 수지구
