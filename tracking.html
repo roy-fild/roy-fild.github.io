@@ -488,6 +488,7 @@
             <b></b>
             <input type="hidden" id="hdn_sel-gu" />
             <button id="btn_gangnam-gu" class="red_btn">강남구</button>
+            <button id="btn_seocho-gu" class="red_btn">서초구</button>
             <button id="btn_songpa-gu" class="red_btn">송파구</button>
             <button id="btn_seongdong-gu" class="orange_btn">성동구</button>
             <button id="btn_yangcheon-gu" class="orange_btn">양천구</button>
@@ -699,6 +700,13 @@
             $('#btn_gangnam-gu').on('click', function () {
                 $('#hdn_sel-gu').val('강남구');
                 let gu = "gangnam-gu";
+                beforeSearch(gu);
+            });
+
+            // 서초구
+            $('#btn_seocho-gu').on('click', function () {
+                $('#hdn_sel-gu').val('서초구');
+                let gu = "seocho-gu";
                 beforeSearch(gu);
             });
 
