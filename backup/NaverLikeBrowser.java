@@ -79,7 +79,9 @@ public class NaverLikeBrowser {
 
 	public static void main(String[] args) throws Exception {
 		
-
+		// 구로구 3202 저가 체크
+		
+		
 //		String fileUrl = "https://roy-fild.github.io/file/suji-gu.xlsx"; // 수지구
 //		String fileUrl = "https://roy-fild.github.io/file/seong-buk-gu.xlsx"; // 성북구
 //		String fileUrl = "https://roy-fild.github.io/file/suwon-si-yeongtong-gu.xlsx"; // 영통구
@@ -88,11 +90,13 @@ public class NaverLikeBrowser {
 		String prefix = "https://roy-fild.github.io/file/";
 		
 		String[] fileUrls = {
+//				"case-test",			// TEST용
 				// 정찰기
 //				"tracking-list",		// 수도권
 //				"tracking-jibang",		// 지방
 				
 				// 서울시
+				"gangnam-gu",			// 강남구
 //				"songpa-gu",			// 송파구
 //				"seongdong-gu",			// 성동구
 //				"yeongdeungpo-gu",		// 영등포구
@@ -105,7 +109,7 @@ public class NaverLikeBrowser {
 //				"gwanak-gu",			// 관악구
 //				"eunpyeong-gu",			// 은평구
 //				"jungnang-gu",			// 중랑구
-				"guro-gu",				// 구로구
+//				"guro-gu",				// 구로구
 //				
 //				// 수도권
 //				"suji-gu",				// 수지구
@@ -257,7 +261,7 @@ public class NaverLikeBrowser {
 //			JSONObject obj = pickOneById(baseArr, "100473");
 //			log.debug("{}", obj);
 
-			log.debug("{}", baseArr);
+//			log.debug("{}", baseArr);
 			
 			String fileName = extractBaseName(fileUrl);
 
@@ -367,7 +371,6 @@ public class NaverLikeBrowser {
 				System.out.println(res.body().substring(0, Math.min(800, res.body().length())));
 			} else {
 				String body = res.body(); // <-- 실제 JSON 문자열
-				// System.out.println(body); // 형태 확인하고 싶으면 출력
 
 				JSONObject root = new JSONObject(body);
 				JSONObject result = root.getJSONObject("result"); // JS에서 Object.keys(res.result) 쓰던 그 부분
@@ -498,10 +501,14 @@ public class NaverLikeBrowser {
 	                        + " body preview: " + res.body().substring(0, Math.min(800, res.body().length())));
 	                break;
 	            }
+	            
+	            
 
 	            JSONObject root = new JSONObject(res.body());
 	            JSONObject result = root.getJSONObject("result");
 	            JSONArray list = result.optJSONArray("list");
+	            
+//	            log.debug("{}",result);
 
 	            if (list == null || list.length() == 0) {
 	                break;
@@ -815,15 +822,32 @@ public class NaverLikeBrowser {
 		}
 	}
 
-	/** "저층/고층 제외" 규칙: floorInfo가 '저' 또는 '고'로 시작하면 제외 */
+	/** 저/고층 문자열만 제외하고, 숫자는 실제 층수로 판정 (<=3층만 제외) */
 	private static boolean chkFloor(String floorInfo) {
-		if (floorInfo == null)
-			return false;
-		String s = floorInfo.trim();
-		if (s.isEmpty())
-			return false;
-		return !(s.startsWith("저") || s.startsWith("1") || s.startsWith("2") || s.startsWith("3"));
+	    if (floorInfo == null) return false;
+	    String s = floorInfo.trim();
+	    if (s.isEmpty()) return false;
+
+	    // '저', '고' 시작은 제외
+	    if (s.startsWith("저")) return false;
+
+	    // "10/14", "2/17" 같은 형태 파싱
+	    int slash = s.indexOf('/');
+	    String first = (slash >= 0) ? s.substring(0, slash).trim() : s;
+
+	    try {
+	        // 숫자만 추출 (예: "B2" 같은 변형을 대비)
+	        String digits = first.replaceAll("[^0-9-]", "");
+	        if (digits.isEmpty()) return true; // 층수를 못 읽으면 일단 포함 처리
+	        int floor = Integer.parseInt(digits);
+	        // 1~3층만 제외하고, 4층 이상(및 10층 등)은 포함
+	        return floor >= 4;
+	    } catch (NumberFormatException e) {
+	        // 숫자 파싱 실패 시 포함
+	        return true;
+	    }
 	}
+
 
 	private static String selText(Document doc, String css) {
 		Element el = doc.selectFirst(css);
