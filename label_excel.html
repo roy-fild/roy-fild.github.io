@@ -52,10 +52,11 @@
                         navigator.clipboard.write([
                             new ClipboardItem({ "image/png": blob })
                         ]).then(() => {
-                            alert("테이블 이미지가 클립보드에 복사되었습니다.");
+                            // alert("테이블 이미지가 클립보드에 복사되었습니다.");
+                            console.log("복사성공")
                         }).catch(err => {
                             console.error("클립보드 복사 실패:", err);
-                            alert("클립보드 복사 실패");
+                            // alert("클립보드 복사 실패");
                         });
                     } else {
                         alert("이 브라우저에서는 이미지 클립보드 복사를 지원하지 않습니다.");
