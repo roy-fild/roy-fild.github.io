@@ -37,7 +37,35 @@
             padding: 5px;
             text-align: center;
             box-sizing: border-box;
-            white-space: nowrap; /* 줄바꿈 방지, 가로폭 최소화 */
+            white-space: nowrap;
+            /* 줄바꿈 방지, 가로폭 최소화 */
+        }
+
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            /* 하단에 표시 (top:20px 으로 바꾸면 상단) */
+            right: 20px;
+            z-index: 9999;
+        }
+
+        /* 개별 toast 메시지 */
+        .toast {
+            min-width: 200px;
+            margin-top: 10px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: #fff;
+            background-color: rgba(0, 0, 0, 0.7);
+            font-size: 14px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease-in-out;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
         }
     </style>
     <script>
@@ -52,14 +80,14 @@
                         navigator.clipboard.write([
                             new ClipboardItem({ "image/png": blob })
                         ]).then(() => {
-                            // alert("테이블 이미지가 클립보드에 복사되었습니다.");
+                            showToast("테이블 이미지가 클립보드에 복사되었습니다 ✅");
                             console.log("복사성공")
                         }).catch(err => {
                             console.error("클립보드 복사 실패:", err);
-                            // alert("클립보드 복사 실패");
+                            showToast("클립보드 복사 실패 ❌");
                         });
                     } else {
-                        alert("이 브라우저에서는 이미지 클립보드 복사를 지원하지 않습니다.");
+                        showToast("이 브라우저에서는 클립보드 복사를 지원하지 않습니다 ⚠️");
                     }
                 });
             });
@@ -193,6 +221,24 @@
             }
             return html;
         }
+
+        function showToast(message) {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            toast.className = "toast";
+            toast.innerText = message;
+            container.appendChild(toast);
+
+            // 애니메이션으로 나타남
+            setTimeout(() => toast.classList.add("show"), 100);
+
+            // 3초 후 자동 사라짐
+            setTimeout(() => {
+                toast.classList.remove("show");
+                setTimeout(() => container.removeChild(toast), 300);
+            }, 3000);
+        }
+
     </script>
 </head>
 
@@ -236,6 +282,9 @@
 
     <!-- 테이블 출력 영역 -->
     <div id="apt_tables"></div>
+
+    <!-- toast 메시지 영역 -->
+    <div id="toast-container"></div>
 </body>
 
 </html>
