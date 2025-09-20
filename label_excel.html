@@ -67,6 +67,21 @@
             opacity: 1;
             transform: translateY(0);
         }
+
+        /* 클릭 표시(얇은 한 줄) */
+        .clicked-outline {
+            outline: 3px solid #ff6b00;
+            /* 굵기/색상 조절 가능 */
+            outline-offset: 4px;
+            /* 테이블 밖으로 띄워 보이게 */
+            border-radius: 6px;
+            /* 모서리 조금 둥글게(선택) */
+        }
+
+        /* 표시가 여러 개 쌓이지 않도록 부드러운 전환(선택) */
+        #apt_tables table {
+            transition: outline 0.15s ease, outline-offset 0.15s ease;
+        }
     </style>
     <script>
         $(function () { });
@@ -74,6 +89,10 @@
         $(document).on("click", "#apt_tables table", function () {
             let tableElement = this;
 
+            // 1) 캡처 전에 기존 표시 제거 (다음 캡처에 표시선이 찍히지 않도록)
+            $("#apt_tables table.clicked-outline").removeClass("clicked-outline");
+
+            // 2) 캡처 진행
             html2canvas(tableElement).then(canvas => {
                 canvas.toBlob(blob => {
                     if (navigator.clipboard && navigator.clipboard.write) {
@@ -81,17 +100,24 @@
                             new ClipboardItem({ "image/png": blob })
                         ]).then(() => {
                             showToast("테이블 이미지가 클립보드에 복사되었습니다 ✅");
-                            console.log("복사성공")
+                            console.log("복사성공");
                         }).catch(err => {
                             console.error("클립보드 복사 실패:", err);
                             showToast("클립보드 복사 실패 ❌");
+                        }).finally(() => {
+                            // 3) 캡처가 끝난 뒤에 표시선 적용 (이미지에는 안 찍힘)
+                            $(tableElement).addClass("clicked-outline");
                         });
                     } else {
                         showToast("이 브라우저에서는 클립보드 복사를 지원하지 않습니다 ⚠️");
+                        // 브라우저 미지원이어도 클릭 표시 자체는 보여주기
+                        $(tableElement).addClass("clicked-outline");
                     }
                 });
             });
         });
+
+
 
         function isImgFile(file) {
             var ext = file.name.split(".").pop().toLowerCase();
