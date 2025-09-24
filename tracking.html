@@ -9,7 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
-        :root {
+         :root {
             --thead-h: 0px;
             /* JS에서 동적으로 계산해서 채움 */
             --bg: #f5f5f5;
@@ -22,16 +22,16 @@
             --toolbar-h: 30px;
             /* 툴바 높이 더 축소 */
         }
-
+        
         * {
             box-sizing: border-box
         }
-
+        
         html,
         body {
             height: 100%
         }
-
+        
         body {
             margin: 0;
             padding: .35rem;
@@ -40,9 +40,7 @@
             font-size: .85rem;
             /* 전체 기본 폰트도 약간 축소 */
         }
-
-
-
+        
         #loadingBar {
             position: fixed;
             top: 0;
@@ -52,69 +50,69 @@
             background: #f3f3f3;
             z-index: 9999
         }
-
+        
         #loadingProgress {
             height: 100%;
             width: 0;
             background: #4caf50;
             transition: width .4s ease
         }
-
         /* 버튼 색상 기존 유지 */
+        
         .red_btn {
             background: red;
             color: #e5e5e5
         }
-
+        
         .orange_btn {
             background: #FFA500
         }
-
+        
         .lightSalmon_btn {
             background: lightsalmon;
         }
-
+        
         .yellow_btn {
             background: yellow
         }
-
+        
         .green_btn {
             background: green;
             color: #e5e5e5
         }
-
+        
         .skyblue_btn {
             background: skyblue
         }
-
+        
         .purple_btn {
             background: rgb(128, 0, 128);
             color: #e5e5e5
         }
-
+        
         .darkslategrey_btn {
             background: rgb(47, 79, 79);
             color: #e5e5e5
         }
-
+        
         .darkgoldenrod_btn {
             background: rgb(233, 172, 17)
         }
-
+        
         .olivedrab_btn {
             background: rgb(107, 142, 35);
             color: #e5e5e5
         }
-
+        
         .ligthseagreen_btn {
             background: rgb(32, 178, 170)
         }
-
+        
         .grey_btn {
             background: rgb(128, 128, 128);
             color: #fff
         }
-
+        
         .table-badges {
             position: relative;
             margin: 0 0 6px 4px;
@@ -124,8 +122,7 @@
             gap: .4rem;
             pointer-events: none;
         }
-
-
+        
         button {
             border: 0;
             padding: .25rem .4rem;
@@ -136,18 +133,18 @@
             font-size: .8rem;
             /* .85rem → .8rem */
         }
-
+        
         button:active {
             transform: translateY(1px)
         }
-
+        
         .btn-row {
             gap: .2rem;
             /* .25rem → .2rem */
             margin: .2rem 0 .35rem;
             /* .25rem 0 .5rem → .2rem 0 .35rem */
         }
-
+        
         .excel-container {
             display: flex;
             /* 추가 */
@@ -163,8 +160,7 @@
             white-space: nowrap;
             /* 추가: 내부 요소 줄바꿈 방지 */
         }
-
-
+        
         .left-span {
             flex: 1;
             /* 추가: 오른쪽 버튼 밀어내기 */
@@ -179,7 +175,7 @@
             font-size: .95rem;
             color: #333;
         }
-
+        
         .right-btns {
             margin-left: auto;
             /* 추가: 우측 정렬 */
@@ -192,7 +188,7 @@
             white-space: nowrap;
             /* 추가 */
         }
-
+        
         .table-wrap {
             width: 100%;
             overflow-x: auto;
@@ -201,13 +197,13 @@
             border-radius: var(--radius);
             box-shadow: var(--shadow);
         }
-
+        
         table {
             min-width: 1040px;
             width: 100%;
             border-collapse: collapse;
         }
-
+        
         thead {
             position: sticky;
             top: 0;
@@ -215,8 +211,7 @@
             background: var(--thead);
             color: var(--thead-text);
         }
-
-
+        
         th,
         td {
             padding: .35rem .35rem;
@@ -224,21 +219,21 @@
             font-size: .82rem;
             /* .93rem → .82rem */
         }
-
+        
         td {
             background: #fff;
             color: #222
         }
-
+        
         a {
             color: var(--text);
             text-decoration: none
         }
-
+        
         a:hover {
             text-decoration: underline
         }
-
+        
         thead input {
             max-width: 140px;
             /* 160px → 140px */
@@ -247,13 +242,13 @@
             font-size: .8rem;
             /* .88rem → .8rem */
         }
-
+        
         .table-wrap {
             position: relative;
             /* 배지 절대배치 기준 */
         }
-
         /* TOTAL 배지 */
+        
         #aptCntBadge,
         #update {
             background: #fff;
@@ -264,33 +259,29 @@
             color: #555;
             box-shadow: var(--shadow);
         }
-
-
+        
         @media (max-width: 768px) {
             body {
                 padding: .35rem;
             }
-
             /* .75rem → .5rem */
-
             table {
                 min-width: 960px
             }
         }
-
+        
         @media (max-width: 480px) {
             table {
                 min-width: 900px
             }
         }
-
         /* ▼ 모바일(≤768px): 겹침 방지 - 가로 스크롤 허용 + 줄바꿈 */
+        
         @media (max-width: 768px) {
             .table-wrap {
                 overflow-x: auto;
                 /* 필요할 때만 가로 스크롤 */
             }
-
             table {
                 min-width: 0 !important;
                 /* 강제 최소폭 제거 */
@@ -299,7 +290,6 @@
                 table-layout: auto;
                 /* 글자 길이에 따라 폭 자동 */
             }
-
             th,
             td {
                 padding: .36rem .34rem;
@@ -309,7 +299,6 @@
                 white-space: nowrap;
                 /* 기본은 줄바꿈 안 함 */
             }
-
             /* 동, 단지명은 줄바꿈 허용 */
             #tbl_aptInfo thead tr th:nth-child(3),
             #tbl_aptInfo thead tr th:nth-child(4),
@@ -318,14 +307,13 @@
                 white-space: normal;
                 word-break: keep-all;
             }
-
             /* ─ 숨길 칼럼은 그대로 유지 ─ */
             #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(1),
             #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(2),
             #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(8),
             #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(9),
-            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(14),
-            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(15),
+            /*#tbl_aptInfo thead tr:not(.filter-row) th:nth-child(14),
+            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(15),*/
             #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(16),
             #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(17),
             #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(18),
@@ -333,26 +321,24 @@
             #tbl_aptInfo tbody tr td:nth-child(2),
             #tbl_aptInfo tbody tr td:nth-child(8),
             #tbl_aptInfo tbody tr td:nth-child(9),
-            #tbl_aptInfo tbody tr td:nth-child(14),
-            #tbl_aptInfo tbody tr td:nth-child(15),
+            /*#tbl_aptInfo tbody tr td:nth-child(14),
+            #tbl_aptInfo tbody tr td:nth-child(15),*/
             #tbl_aptInfo tbody tr td:nth-child(16),
             #tbl_aptInfo tbody tr td:nth-child(17),
             #tbl_aptInfo tbody tr td:nth-child(18) {
                 display: none;
             }
-
             #tbl_aptInfo thead tr.filter-row th:nth-child(1),
             #tbl_aptInfo thead tr.filter-row th:nth-child(2),
             #tbl_aptInfo thead tr.filter-row th:nth-child(8),
             #tbl_aptInfo thead tr.filter-row th:nth-child(9),
-            #tbl_aptInfo thead tr.filter-row th:nth-child(14),
-            #tbl_aptInfo thead tr.filter-row th:nth-child(15),
+            /*#tbl_aptInfo thead tr.filter-row th:nth-child(14),
+            /*#tbl_aptInfo thead tr.filter-row th:nth-child(15),*/
             #tbl_aptInfo thead tr.filter-row th:nth-child(16),
             #tbl_aptInfo thead tr.filter-row th:nth-child(17),
             #tbl_aptInfo thead tr.filter-row th:nth-child(18) {
                 display: none;
             }
-
             /* 동 */
             #tbl_aptInfo thead tr th:nth-child(3),
             #tbl_aptInfo tbody tr td:nth-child(3) {
@@ -365,7 +351,6 @@
                 word-break: keep-all;
                 text-align: center;
             }
-
             /* 단지명: 조금 더 좁게, 최대 2줄 */
             #tbl_aptInfo thead tr th:nth-child(4),
             #tbl_aptInfo tbody tr td:nth-child(4) {
@@ -375,7 +360,6 @@
                 white-space: normal;
                 word-break: keep-all;
             }
-
             #tbl_aptInfo tbody tr td:nth-child(4) a {
                 display: -webkit-box;
                 -webkit-line-clamp: 2;
@@ -383,7 +367,6 @@
                 -webkit-box-orient: vertical;
                 overflow: hidden;
             }
-
             /* 세대 */
             #tbl_aptInfo thead tr th:nth-child(6),
             #tbl_aptInfo tbody tr td:nth-child(6) {
@@ -395,7 +378,6 @@
                 white-space: nowrap;
                 text-align: center;
             }
-
             /* 타입 */
             #tbl_aptInfo thead tr th:nth-child(7),
             #tbl_aptInfo tbody tr td:nth-child(7) {
@@ -406,7 +388,6 @@
                 white-space: nowrap;
                 /* 타입은 한 줄 유지 */
             }
-
             /* thead 필터 input 공통 */
             #tbl_aptInfo thead input {
                 font-size: .75rem;
@@ -414,45 +395,36 @@
                 padding: .2rem .25rem;
                 /* 안쪽 여백 줄임 */
             }
-
             /* 동 */
             #filterDong {
                 max-width: 60px !important;
             }
-
             /* 단지명 */
             #filterAptNm {
                 max-width: 120px !important;
             }
-
             /* 타입 */
             #filterSize {
                 max-width: 50px !important;
             }
-
             /* 매매가 */
             #filterPrice {
                 max-width: 60px !important;
             }
-
             /* 차액 */
             #filterGap {
                 max-width: 60px !important;
             }
-
             #update {
                 font-size: .65rem;
             }
-
             #aptCnt {
                 font-size: .65rem;
             }
-
             #aptCntBadge,
             #update {
                 font-size: .7rem;
             }
-
         }
     </style>
 </head>
@@ -550,7 +522,8 @@
 
     <div id="result" class="table-wrap">
         <table id="tbl_aptInfo">
-            <thead> <!-- ▼ 필터 입력 행 (복구됨) -->
+            <thead>
+                <!-- ▼ 필터 입력 행 (복구됨) -->
                 <tr class="filter-row">
                     <th style="width:80px"><label style="display:flex;align-items:center;gap:.35rem;"></th>
                     <th></th>
@@ -560,22 +533,16 @@
                     <th style="width:90px"><label style="display:flex;align-items:center;gap:.35rem;"><input
                                 id="filter300" type="checkbox">300^</label></th>
                     <th style="width:90px">
-                        <input id="filterSize" type="text" inputmode="numeric" pattern="\\d*\\.?\\d*"
-                            oninput="this.value=this.value.replace(/[^0-9.]/g,'');" placeholder="타입"
-                            style="max-width:70px;" maxlength="3">
+                        <input id="filterSize" type="text" inputmode="numeric" pattern="\\d*\\.?\\d*" oninput="this.value=this.value.replace(/[^0-9.]/g,'');" placeholder="타입" style="max-width:70px;" maxlength="3">
                     </th>
                     <th></th>
                     <th></th>
                     <th>
-                        <input id="filterPrice" type="text" inputmode="decimal" pattern="\\d*\\.?\\d*"
-                            oninput="this.value=this.value.replace(/[^0-9.]/g,'');" placeholder="매매가"
-                            style="max-width:70px;" maxlength="4">
+                        <input id="filterPrice" type="text" inputmode="decimal" pattern="\\d*\\.?\\d*" oninput="this.value=this.value.replace(/[^0-9.]/g,'');" placeholder="매매가" style="max-width:70px;" maxlength="4">
                     </th>
                     <th></th>
                     <th>
-                        <input id="filterGap" type="text" inputmode="decimal" pattern="\\d*\\.?\\d*"
-                            oninput="this.value=this.value.replace(/[^0-9.]/g,'');" placeholder="차액"
-                            style="max-width:70px;" maxlength="4">
+                        <input id="filterGap" type="text" inputmode="decimal" pattern="\\d*\\.?\\d*" oninput="this.value=this.value.replace(/[^0-9.]/g,'');" placeholder="차액" style="max-width:70px;" maxlength="4">
                     </th>
                     <th></th>
                     <th></th>
@@ -611,14 +578,12 @@
     </div>
 
     <script>
-
-
         function getLatestFile(baseName) {
             const listUrl = "https://roy-fild.github.io/tracking/result/fileList.json";
             const baseUrl = "https://roy-fild.github.io/tracking/result/";
 
             return $.getJSON(listUrl)
-                .then(function (files) {
+                .then(function(files) {
                     // baseName 으로 시작하고 .xlsx 로 끝나는 파일만 필터
                     let matchedFiles = files.filter(f => f.startsWith(baseName) && f.endsWith(".xlsx"));
 
@@ -628,7 +593,7 @@
                     }
 
                     // 최신 날짜 기준 정렬 (yyyymmdd 비교)
-                    matchedFiles.sort(function (a, b) {
+                    matchedFiles.sort(function(a, b) {
                         let dateA = (a.match(/_(\d{8})\.xlsx$/) || [, ''])[1];
                         let dateB = (b.match(/_(\d{8})\.xlsx$/) || [, ''])[1];
                         return dateB.localeCompare(dateA); // 내림차순
@@ -639,16 +604,16 @@
                     // console.log(latestFile);
                     return baseUrl + latestFile;
                 })
-                .catch(function () {
+                .catch(function() {
                     alert("파일 목록을 불러올 수 없습니다.");
                     return null;
                 });
         }
 
-        $(document).ready(function () {
+        $(document).ready(function() {
 
             // 버튼 토글 (접기/펼치기)
-            $('#btn_toggle').on('click', function () {
+            $('#btn_toggle').on('click', function() {
                 $('#btn-wrapper').toggle();
                 if ($('#btn-wrapper').is(':visible')) {
                     $(this).text('▲ 접기');
@@ -663,13 +628,13 @@
             var btnJibangCnt = $("#div_jibang button").length;
 
             // <b> 태그 내용 업데이트
-            $("#div_seoul > b").text("서울시(" + btnSeoulCnt + ")");    // 서울시
-            $("#div_suedo > b").text("수도권(" + btnSuedoCnt + ")");    // 수도권
-            $("#div_metro > b").eq(0).text("광역시(" + btnMetroCnt + ")");    // 광역시
-            $("#div_jibang > b").text("지방(" + btnJibangCnt + ")");    // 지방
+            $("#div_seoul > b").text("서울시(" + btnSeoulCnt + ")"); // 서울시
+            $("#div_suedo > b").text("수도권(" + btnSuedoCnt + ")"); // 수도권
+            $("#div_metro > b").eq(0).text("광역시(" + btnMetroCnt + ")"); // 광역시
+            $("#div_jibang > b").text("지방(" + btnJibangCnt + ")"); // 지방
 
             // 새창 띄우기
-            $('#btn_new_window').on('click', function (e) {
+            $('#btn_new_window').on('click', function(e) {
                 e.preventDefault();
                 var currentUrl = window.location.href;
                 window.open(currentUrl, '_blank');
@@ -677,7 +642,7 @@
 
 
             // 정찰기(수도권)
-            $('#btn_observer-sudo').on('click', function () {
+            $('#btn_observer-sudo').on('click', function() {
                 $('#hdn_sel-gu').val('정찰기-수도권');
                 let gu = "tracking-list";
                 $('#chk').prop('checked', false);
@@ -685,7 +650,7 @@
             });
 
             // 정찰기(지방)
-            $('#btn_observer-jibang').on('click', function () {
+            $('#btn_observer-jibang').on('click', function() {
                 $('#hdn_sel-gu').val('정찰기-지방');
                 let gu = "tracking-jibang";
                 $('#chk').prop('checked', false);
@@ -697,111 +662,111 @@
              ************************************/
 
             // 강남구
-            $('#btn_gangnam-gu').on('click', function () {
+            $('#btn_gangnam-gu').on('click', function() {
                 $('#hdn_sel-gu').val('강남구');
                 let gu = "gangnam-gu";
                 beforeSearch(gu);
             });
 
             // 서초구
-            $('#btn_seocho-gu').on('click', function () {
+            $('#btn_seocho-gu').on('click', function() {
                 $('#hdn_sel-gu').val('서초구');
                 let gu = "seocho-gu";
                 beforeSearch(gu);
             });
 
             // 송파구
-            $('#btn_songpa-gu').on('click', function () {
+            $('#btn_songpa-gu').on('click', function() {
                 $('#hdn_sel-gu').val('송파구');
                 let gu = "songpa-gu";
                 beforeSearch(gu);
             });
 
             // 성동구           
-            $('#btn_seongdong-gu').on('click', function () {
+            $('#btn_seongdong-gu').on('click', function() {
                 $('#hdn_sel-gu').val('성동구');
                 let gu = "seongdong-gu";
                 beforeSearch(gu);
             });
 
             // 양천구
-            $('#btn_yangcheon-gu').on('click', function () {
+            $('#btn_yangcheon-gu').on('click', function() {
                 $('#hdn_sel-gu').val('양천구');
                 let gu = "yangcheon-gu";
                 beforeSearch(gu);
             });
 
             // 종로/중구
-            $('#btn_jongno-jung-gu').on('click', function () {
+            $('#btn_jongno-jung-gu').on('click', function() {
                 $('#hdn_sel-gu').val('종로중구');
                 let gu = "jongno-jung-gu";
                 beforeSearch(gu);
             });
 
             // 분당구
-            $('#btn_bundang-gu').on('click', function () {
+            $('#btn_bundang-gu').on('click', function() {
                 $('#hdn_sel-gu').val('분당구');
                 let gu = "bundang-gu";
                 beforeSearch(gu);
             });
 
             // 동작구
-            $('#btn_dongjak-gu').on('click', function () {
+            $('#btn_dongjak-gu').on('click', function() {
                 $('#hdn_sel-gu').val('동작구');
                 let gu = "dongjak-gu";
                 beforeSearch(gu);
             });
             // 영등포구
-            $('#btn_yeongdeungpo-gu').on('click', function () {
+            $('#btn_yeongdeungpo-gu').on('click', function() {
                 $('#hdn_sel-gu').val('영등포구');
                 let gu = "yeongdeungpo-gu";
                 beforeSearch(gu);
             });
 
             // 서대문구
-            $('#btn_seodaemun-gu').on('click', function () {
+            $('#btn_seodaemun-gu').on('click', function() {
                 $('#hdn_sel-gu').val('서대문구');
                 let gu = "seodaemun-gu";
                 beforeSearch(gu);
             });
 
             // 성북구
-            $('#btn_seong-buk-gu').on('click', function () {
+            $('#btn_seong-buk-gu').on('click', function() {
                 $('#hdn_sel-gu').val('성북구');
                 let gu = "seong-buk-gu";
                 beforeSearch(gu);
             });
 
             // 동대문구
-            $('#btn_dongdaemun-gu').on('click', function () {
+            $('#btn_dongdaemun-gu').on('click', function() {
                 $('#hdn_sel-gu').val('동대문구');
                 let gu = "dongdaemun-gu";
                 beforeSearch(gu);
             });
 
             // 관악구
-            $('#btn_gwanak-gu').on('click', function () {
+            $('#btn_gwanak-gu').on('click', function() {
                 $('#hdn_sel-gu').val('관악구');
                 let gu = "gwanak-gu";
                 beforeSearch(gu);
             });
 
             // 은평구
-            $('#btn_eunpyeong-gu').on('click', function () {
+            $('#btn_eunpyeong-gu').on('click', function() {
                 $('#hdn_sel-gu').val('은평구');
                 let gu = "eunpyeong-gu";
                 beforeSearch(gu);
             });
 
             // 중랑구
-            $('#btn_jungnang-gu').on('click', function () {
+            $('#btn_jungnang-gu').on('click', function() {
                 $('#hdn_sel-gu').val('중랑구');
                 let gu = "jungnang-gu";
                 beforeSearch(gu);
             });
 
             // 구로구
-            $('#btn_guro-gu').on('click', function () {
+            $('#btn_guro-gu').on('click', function() {
                 $('#hdn_sel-gu').val('구로구');
                 let gu = "guro-gu";
                 beforeSearch(gu);
@@ -813,35 +778,35 @@
              ************************************/
 
             // 수지구
-            $('#btn_suji-gu').on('click', function () {
+            $('#btn_suji-gu').on('click', function() {
                 $('#hdn_sel-gu').val('수지구');
                 let gu = "suji-gu";
                 beforeSearch(gu);
             });
 
             // 동탄
-            $('#btn_dongtan').on('click', function () {
+            $('#btn_dongtan').on('click', function() {
                 $('#hdn_sel-gu').val('동탄');
                 let gu = "dongtan";
                 beforeSearch(gu);
             });
 
             // 수정/중원구
-            $('#btn_sujeong-jungwon-gu').on('click', function () {
+            $('#btn_sujeong-jungwon-gu').on('click', function() {
                 $('#hdn_sel-gu').val('수정-중원구');
                 let gu = "sujeong-jungwon-gu";
                 beforeSearch(gu);
             });
 
             // 안양시-동안구
-            $('#btn_anyang-si-dongan-gu').on('click', function () {
+            $('#btn_anyang-si-dongan-gu').on('click', function() {
                 $('#hdn_sel-gu').val('동안구');
                 let gu = "anyang-si-dongan-gu";
                 beforeSearch(gu);
             });
 
             // 수원시-영통구
-            $('#btn_suwon-si-yeongtong-gu').on('click', function () {
+            $('#btn_suwon-si-yeongtong-gu').on('click', function() {
                 $('#hdn_sel-gu').val('영통구');
                 let gu = "suwon-si-yeongtong-gu";
                 beforeSearch(gu);
@@ -854,14 +819,14 @@
             // 대전
 
             // 서구
-            $('#btn_daejeon-seo-gu').on('click', function () {
+            $('#btn_daejeon-seo-gu').on('click', function() {
                 $('#hdn_sel-gu').val('대전-서구');
                 let gu = "daejeon-seo-gu";
                 beforeSearch(gu);
             });
 
             // 유성구
-            $('#btn_daejeon-yuseong-gu').on('click', function () {
+            $('#btn_daejeon-yuseong-gu').on('click', function() {
                 $('#hdn_sel-gu').val('대전-유성구');
                 let gu = "daejeon-yuseong-gu";
                 beforeSearch(gu);
@@ -871,7 +836,7 @@
             // 광주
 
             // 북구
-            $('#btn_gwangju-buk-gu').on('click', function () {
+            $('#btn_gwangju-buk-gu').on('click', function() {
                 $('#hdn_sel-gu').val('광주-북구');
                 let gu = "gwangju-buk-gu";
                 beforeSearch(gu);
@@ -879,32 +844,32 @@
 
 
             /************************************
-            *  지방 (중소도시)
-            ************************************/
+             *  지방 (중소도시)
+             ************************************/
 
             // 청주
-            $('#btn_cheongju').on('click', function () {
+            $('#btn_cheongju').on('click', function() {
                 $('#hdn_sel-gu').val('청주');
                 let gu = "cheongju";
                 beforeSearch(gu);
             });
 
             // 전주
-            $('#btn_jeonju').on('click', function () {
+            $('#btn_jeonju').on('click', function() {
                 $('#hdn_sel-gu').val('전주');
                 let gu = "jeonju";
                 beforeSearch(gu);
             });
 
             // 천안
-            $('#btn_cheonan').on('click', function () {
+            $('#btn_cheonan').on('click', function() {
                 $('#hdn_sel-gu').val('천안');
                 let gu = "cheonan";
                 beforeSearch(gu);
             });
 
             // 포항 북구
-            $('#btn_pohang-si-buk-gu').on('click', function () {
+            $('#btn_pohang-si-buk-gu').on('click', function() {
                 $('#hdn_sel-gu').val('포항-북구');
                 let gu = "pohang-si-buk-gu";
                 beforeSearch(gu);
@@ -912,7 +877,7 @@
 
 
             // Table 내용 엑셀 다운로드
-            $('#excelDownload').on('click', function () {
+            $('#excelDownload').on('click', function() {
 
                 let table = document.getElementById('tbl_aptInfo');
 
@@ -924,7 +889,9 @@
                 }
 
                 let wb = XLSX.utils.book_new();
-                let ws = XLSX.utils.table_to_sheet(table, { sheetStubs: true });  // table을 시트로 변환하면서 stub을 추가
+                let ws = XLSX.utils.table_to_sheet(table, {
+                    sheetStubs: true
+                }); // table을 시트로 변환하면서 stub을 추가
 
                 // 열 너비 자동 조정
                 let colWidths = [];
@@ -933,7 +900,10 @@
                 for (let C = range.s.c; C <= range.e.c; ++C) {
                     let maxWidth = 10;
                     for (let R = range.s.r; R <= range.e.r; ++R) {
-                        let cell_address = XLSX.utils.encode_cell({ r: R, c: C });
+                        let cell_address = XLSX.utils.encode_cell({
+                            r: R,
+                            c: C
+                        });
                         let cell = ws[cell_address];
 
                         if (cell && cell.v) {
@@ -941,7 +911,9 @@
                             maxWidth = Math.max(maxWidth, cellValue.length + 2);
                         }
                     }
-                    colWidths.push({ wch: maxWidth });
+                    colWidths.push({
+                        wch: maxWidth
+                    });
                 }
                 ws['!cols'] = colWidths;
 
@@ -949,18 +921,21 @@
                 Object.keys(ws).forEach(cell => {
                     if (ws[cell] && ws[cell].t) {
                         ws[cell].s = {
-                            font: { name: "Arial", sz: 10 }  // Arial 폰트 + 크기 10
+                            font: {
+                                name: "Arial",
+                                sz: 10
+                            } // Arial 폰트 + 크기 10
                         };
                     }
                 });
-                XLSX.utils.book_append_sheet(wb, ws, "아파트 정보");  // 시트 추가
+                XLSX.utils.book_append_sheet(wb, ws, "아파트 정보"); // 시트 추가
 
                 // #update에서 숫자만 추출
                 let updateText = $('#update').text();
-                let dateStr = updateText.replace(/\D/g, '');  // 숫자만 추출
+                let dateStr = updateText.replace(/\D/g, ''); // 숫자만 추출
 
                 var fileNm = $('#hdn_sel-gu').val() + '_시세_트래킹_' + dateStr + '.xlsx'
-                // 엑셀 파일로 저장
+                    // 엑셀 파일로 저장
                 XLSX.writeFile(wb, fileNm);
             });
 
@@ -972,7 +947,7 @@
                 return isNaN(n) ? -Infinity : n; // 숫자 아님은 제일 뒤로
             }
 
-            $('#btn_sort').on('click', function () {
+            $('#btn_sort').on('click', function() {
                 const $btn = $(this);
                 const current = $btn.data('order') || 'desc';
                 const next = current === 'desc' ? 'asc' : 'desc';
@@ -982,24 +957,26 @@
                 const $tbody = $('#tbl_aptInfo tbody');
                 const rows = $tbody.find('tr').get();
 
-                rows.sort(function (a, b) {
+                rows.sort(function(a, b) {
                     const aPrice = parsePrice($(a).find('td').eq(9).text());
                     const bPrice = parsePrice($(b).find('td').eq(9).text());
                     return next === 'desc' ? (bPrice - aPrice) : (aPrice - bPrice);
                 });
 
                 // 현재 화면에 나온(필터로 숨겨진 것도 포함) 행들을 정렬 순서대로 재배치
-                $.each(rows, function (_, row) { $tbody.append(row); });
+                $.each(rows, function(_, row) {
+                    $tbody.append(row);
+                });
             });
 
             // 기존 코드에 로딩바 추가
-            $('button').on('click', function () {
+            $('button').on('click', function() {
                 if ($(this).data('no-loading')) return;
                 showLoadingBar();
             });
 
             // 데이터 로딩이 완료된 후 로딩바 숨기기
-            $(document).ajaxStop(function () {
+            $(document).ajaxStop(function() {
                 hideLoadingBar();
             });
 
@@ -1051,10 +1028,10 @@
                 const filterDongInput = $('#filterDong').val().trim();
                 const chkBigType = $('#chkBigType').is(':checked');
 
-                $('#tbl_aptInfo tbody tr').each(function () {
+                $('#tbl_aptInfo tbody tr').each(function() {
                     const units = toNum($(this).find('td:nth-child(6)').text()); // 세대
-                    const price = toNum($(this).find('td').eq(9).text());        // 매매
-                    const gap = toNum($(this).find('td').eq(11).text());       // 차액 ★
+                    const price = toNum($(this).find('td').eq(9).text()); // 매매
+                    const gap = toNum($(this).find('td').eq(11).text()); // 차액 ★
                     const size = $(this).find('td').eq(6).text().trim();
                     const aptNm = $(this).find('td').eq(3).text().trim();
                     const dong = $(this).find('td').eq(2).text().trim();
@@ -1087,12 +1064,12 @@
             $('#filterPrice, #filterGap, #filterSize, #filterAptNm, #filterDong').on("input", applyFilters);
 
 
-            $('#btn_init').on('click', function () {
+            $('#btn_init').on('click', function() {
                 filterInit();
                 applyFilters();
             });
 
-            $('#tbl_aptInfo').on('click', 'tr td:nth-child(16), tr td:nth-child(17)', function () {
+            $('#tbl_aptInfo').on('click', 'tr td:nth-child(16), tr td:nth-child(17)', function() {
                 const text = $(this).attr('title');
                 if (!text) return;
 
@@ -1106,30 +1083,33 @@
             });
 
             // 작은 유틸: 숫자 추출(모바일 필터에서 사용)
-            function extractNumbers(s) { const m = String(s || '').match(/\d+/); return m ? m[0] : '0'; }
+            function extractNumbers(s) {
+                const m = String(s || '').match(/\d+/);
+                return m ? m[0] : '0';
+            }
 
             /////////////////////////// 전체 조회용 function 
 
 
             // ▼ 배치 로딩 공통 함수 (APPEND)
             function loadBatch(keys, label) {
-                filterInit();                          // 필터 초기화
-                $('#hdn_sel-gu').val(label);           // 파일명/타이틀용 라벨
-                $('#tbl_aptInfo tbody').empty();       // 한 번만 비우고
+                filterInit(); // 필터 초기화
+                $('#hdn_sel-gu').val(label); // 파일명/타이틀용 라벨
+                $('#tbl_aptInfo tbody').empty(); // 한 번만 비우고
                 $('#update').text(`(${label}) 로딩중...`);
 
                 const mode = $("input[name='option']:checked").val(); // 't' or 'c'
                 keys.forEach(k => {
-                    if (mode === 't') {  // Tracking 모드 → APPEND
-                        getTrackingResult(k, /*append=*/true);
-                    } else {             // Compare 모드 → APPEND
-                        getCompareList(k, /*append=*/true);
+                    if (mode === 't') { // Tracking 모드 → APPEND
+                        getTrackingResult(k, /*append=*/ true);
+                    } else { // Compare 모드 → APPEND
+                        getCompareList(k, /*append=*/ true);
                     }
                 });
             }
 
             // ▼ 버튼: 서울(전체)
-            $('#btn_all_seoul').on('click', function () {
+            $('#btn_all_seoul').on('click', function() {
                 const seoulKeys = getKeysFromButtons('#div_seoul');
 
                 // 중복 제거 + DOM 순서 그대로 유지
@@ -1138,7 +1118,7 @@
             });
 
             // ▼ 버튼: 수도권(전체)
-            $('#btn_all_sudo').on('click', function () {
+            $('#btn_all_sudo').on('click', function() {
                 const suedoKeys = getKeysFromButtons('#div_suedo');
 
                 // 중복 제거 + DOM 순서 그대로 유지
@@ -1147,7 +1127,7 @@
             });
 
             // ▼ 버튼: 지방(전체)
-            $('#btn_all_jibang').on('click', function () {
+            $('#btn_all_jibang').on('click', function() {
                 const JIBANG_ALL = Array.from(new Set([
                     ...getKeysFromButtons('#div_metro'),
                     ...getKeysFromButtons('#div_jibang')
@@ -1157,7 +1137,7 @@
 
             // 컨테이너(#div_seoul, #div_suedo 등) 안의 "btn_*" 버튼에서 이름만 추출해 배열로 반환
             function getKeysFromButtons(containerSelector) {
-                return $(`${containerSelector} button[id^="btn_"]`).map(function () {
+                return $(`${containerSelector} button[id^="btn_"]`).map(function() {
                     // 'btn_songpa-gu' → 'songpa-gu'
                     return this.id.replace(/^btn_/, '');
                 }).get();
@@ -1171,12 +1151,14 @@
         function showLoadingBar() {
             $('#loadingBar').show();
             $('#loadingProgress').css('width', '0');
-            $('#loadingProgress').animate({ width: '100%' }, 1000); // 로딩바 애니메이션
+            $('#loadingProgress').animate({
+                width: '100%'
+            }, 1000); // 로딩바 애니메이션
         }
 
         function hideLoadingBar() {
             $('#loadingProgress').css('width', '100%');
-            setTimeout(function () {
+            setTimeout(function() {
                 $('#loadingBar').hide();
             }, 500); // 로딩바 숨김
         }
@@ -1209,7 +1191,7 @@
          * 트래킹 내용 검색
          */
         function getTrackingResult(gu, append = false) {
-            getLatestFile(gu).then(function (fileUrl) {
+            getLatestFile(gu).then(function(fileUrl) {
                 var formattedDate = extractFormattedDate(fileUrl);
                 // append=false 일 때만 초기화/타이틀/업데이트 표시
                 if (!append) {
@@ -1223,13 +1205,15 @@
                     xhrFields: {
                         responseType: "blob" // 바이너리 데이터로 가져오기
                     },
-                    success: function (data) {
+                    success: function(data) {
                         let reader = new FileReader();
-                        reader.onload = function (e) {
+                        reader.onload = function(e) {
                             let arrayBuffer = e.target.result;
-                            let workBook = XLSX.read(arrayBuffer, { type: "array" });
+                            let workBook = XLSX.read(arrayBuffer, {
+                                type: "array"
+                            });
 
-                            workBook.SheetNames.forEach(function (sheetName) {
+                            workBook.SheetNames.forEach(function(sheetName) {
                                 // console.log('SheetName: ' + sheetName);
                                 let rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
                                 var keys = Object.keys(rows);
@@ -1239,27 +1223,27 @@
                                     var key = keys[i];
                                     var subKeys = Object.keys(rows[key]);
 
-                                    var id = rows[key][subKeys[0]];         // ID
-                                    var gu = rows[key][subKeys[1]];         // 구
-                                    var dong = rows[key][subKeys[2]];       // 동
-                                    var nm = rows[key][subKeys[3]];         // 아파트명
-                                    var yr = rows[key][subKeys[4]];         // 연식
-                                    var sd = rows[key][subKeys[5]];         // 세대
-                                    var tp = rows[key][subKeys[6]];         // 타입
-                                    var tp2 = rows[key][subKeys[7]];       // 유형
-                                    var bang = rows[key][subKeys[8]];      // 방개수
-                                    var me = rows[key][subKeys[9]];           // 매매가
-                                    var ju = rows[key][subKeys[10]];        // 전세가
-                                    var mj = rows[key][subKeys[11]];         // 차액
+                                    var id = rows[key][subKeys[0]]; // ID
+                                    var gu = rows[key][subKeys[1]]; // 구
+                                    var dong = rows[key][subKeys[2]]; // 동
+                                    var nm = rows[key][subKeys[3]]; // 아파트명
+                                    var yr = rows[key][subKeys[4]]; // 연식
+                                    var sd = rows[key][subKeys[5]]; // 세대
+                                    var tp = rows[key][subKeys[6]]; // 타입
+                                    var tp2 = rows[key][subKeys[7]]; // 유형
+                                    var bang = rows[key][subKeys[8]]; // 방개수
+                                    var me = rows[key][subKeys[9]]; // 매매가
+                                    var ju = rows[key][subKeys[10]]; // 전세가
+                                    var mj = rows[key][subKeys[11]]; // 차액
 
-                                    var mCnt = rows[key][subKeys[12]];     // 매매개수
-                                    var jCnt = rows[key][subKeys[13]];      // 전세개수
-                                    var mFr = rows[key][subKeys[14]];       // 매/층
-                                    var jFr = rows[key][subKeys[15]];       // 전/층
-                                    var desc = rows[key][subKeys[16]];      // 설명
-                                    var szKey = rows[key][subKeys[17]];      // key
+                                    var mCnt = rows[key][subKeys[12]]; // 매매개수
+                                    var jCnt = rows[key][subKeys[13]]; // 전세개수
+                                    var mFr = rows[key][subKeys[14]]; // 매/층
+                                    var jFr = rows[key][subKeys[15]]; // 전/층
+                                    var desc = rows[key][subKeys[16]]; // 설명
+                                    var szKey = rows[key][subKeys[17]]; // key
 
-                                    var rate = "0.0%";       // 전세가율
+                                    var rate = "0.0%"; // 전세가율
 
                                     // console.log(me, ju);
 
@@ -1283,7 +1267,7 @@
 
                         reader.readAsArrayBuffer(data);
                     },
-                    error: function () {
+                    error: function() {
                         alert("엑셀 파일을 다운로드하는 중 오류가 발생했습니다.");
                     }
                 });
@@ -1305,18 +1289,22 @@
             $.ajax({
                 url: cmpfileUrl,
                 method: "GET",
-                xhrFields: { responseType: "blob" },
-                success: function (data) {
+                xhrFields: {
+                    responseType: "blob"
+                },
+                success: function(data) {
                     let reader = new FileReader();
-                    reader.onload = function (e) {
+                    reader.onload = function(e) {
                         let arrayBuffer = e.target.result;
-                        let wb = XLSX.read(arrayBuffer, { type: "array" });
+                        let wb = XLSX.read(arrayBuffer, {
+                            type: "array"
+                        });
 
                         // 시트를 "배열"로 읽어 순서 100% 보장
-                        wb.SheetNames.forEach(function (sheetName) {
+                        wb.SheetNames.forEach(function(sheetName) {
                             const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {
-                                header: 1,   // 배열로
-                                defval: ""   // 빈칸도 빈 문자열
+                                header: 1, // 배열로
+                                defval: "" // 빈칸도 빈 문자열
                             });
                             // 1행이 헤더라면 1행부터 데이터 시작(필요 시 0으로)
                             for (let r = 1; r < aoa.length; r++) {
@@ -1326,7 +1314,11 @@
                                 const nm = row[1];
                                 const tp = row[2];
                                 if (!id) continue; // 빈줄 스킵
-                                compareList.push({ id, nm, tp });
+                                compareList.push({
+                                    id,
+                                    nm,
+                                    tp
+                                });
                             }
                         });
 
@@ -1337,7 +1329,7 @@
                     };
                     reader.readAsArrayBuffer(data);
                 },
-                error: function () {
+                error: function() {
                     alert("엑셀 파일을 다운로드하는 중 오류가 발생했습니다.");
                 }
             });
@@ -1348,7 +1340,7 @@
          * Excel 파일에서 내용 가져오기
          */
         function getCompareResult(gu, compareList, reqToken, append = false) {
-            getLatestFile(gu).then(function (fileUrl) {
+            getLatestFile(gu).then(function(fileUrl) {
                 if (reqToken && reqToken !== window.__REQ_TOKEN__) return; // 이전 요청 무시
 
                 var formattedDate = extractFormattedDate(fileUrl);
@@ -1364,14 +1356,18 @@
                 $.ajax({
                     url: fileUrl,
                     method: "GET",
-                    xhrFields: { responseType: "blob" },
-                    success: function (data) {
+                    xhrFields: {
+                        responseType: "blob"
+                    },
+                    success: function(data) {
                         let reader = new FileReader();
-                        reader.onload = function (e) {
+                        reader.onload = function(e) {
                             let arrayBuffer = e.target.result;
-                            let wb = XLSX.read(arrayBuffer, { type: "array" });
+                            let wb = XLSX.read(arrayBuffer, {
+                                type: "array"
+                            });
 
-                            wb.SheetNames.forEach(function (sheetName) {
+                            wb.SheetNames.forEach(function(sheetName) {
                                 const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {
                                     header: 1,
                                     defval: ""
@@ -1412,7 +1408,7 @@
                         };
                         reader.readAsArrayBuffer(data);
                     },
-                    error: function () {
+                    error: function() {
                         alert("엑셀 파일을 다운로드하는 중 오류가 발생했습니다.");
                     }
                 });
@@ -1443,7 +1439,11 @@
                 String(rowId).trim() === String(cmpId).trim();
 
             for (let i = 0; i < compareList.length; i++) {
-                const { id: cmpId, tp: cmpTp, nm: cmpNm } = compareList[i];
+                const {
+                    id: cmpId,
+                    tp: cmpTp,
+                    nm: cmpNm
+                } = compareList[i];
 
                 // 후보군
                 const saleCandidates = resultList.filter(row =>
@@ -1454,16 +1454,24 @@
                 );
 
                 // 최저 매매, 최저 전세 각각 찾기
-                let bestSale = null, bestSalePrice = Infinity;
+                let bestSale = null,
+                    bestSalePrice = Infinity;
                 for (const r of saleCandidates) {
                     const p = toNum(r.me);
-                    if (!isNaN(p) && p < bestSalePrice) { bestSale = r; bestSalePrice = p; }
+                    if (!isNaN(p) && p < bestSalePrice) {
+                        bestSale = r;
+                        bestSalePrice = p;
+                    }
                 }
 
-                let bestRent = null, bestRentPrice = Infinity;
+                let bestRent = null,
+                    bestRentPrice = Infinity;
                 for (const r of rentCandidates) {
                     const p = toNum(r.ju);
-                    if (!isNaN(p) && p < bestRentPrice) { bestRent = r; bestRentPrice = p; }
+                    if (!isNaN(p) && p < bestRentPrice) {
+                        bestRent = r;
+                        bestRentPrice = p;
+                    }
                 }
 
                 // 메타데이터 보강용(구/동/연식/세대/단지명 등) - 매매 우선, 없으면 같은 ID의 아무 행
@@ -1478,20 +1486,20 @@
                 const yr = base ? base.yr : "";
                 const sd = base ? base.sd : "";
 
-                const tp = cmpTp || (base ? base.tp : "");           // 요청 타입 우선 노출
+                const tp = cmpTp || (base ? base.tp : ""); // 요청 타입 우선 노출
                 const tp2 = bestSale ? bestSale.tp2 : (bestRent ? bestRent.tp2 : "");
                 const bang = base ? base.bang : "";
 
-                const me = bestSale ? bestSale.me : "";              // 매매 최저가(없으면 공백)
-                const ju = bestRent ? bestRent.ju : "";              // 전세 최저가(없으면 공백)
+                const me = bestSale ? bestSale.me : ""; // 매매 최저가(없으면 공백)
+                const ju = bestRent ? bestRent.ju : ""; // 전세 최저가(없으면 공백)
 
                 // 차액/전세가율 계산(둘 다 숫자일 때만)
                 const mNum = toNum(me);
                 const jNum = toNum(ju);
                 const mj = (!isNaN(mNum) && !isNaN(jNum)) ? (Math.round((mNum - jNum) * 10) / 10) : "";
-                const rate = (!isNaN(mNum) && mNum > 0 && !isNaN(jNum))
-                    ? (Math.round((jNum / mNum) * 1000) / 10) + '%'
-                    : "";
+                const rate = (!isNaN(mNum) && mNum > 0 && !isNaN(jNum)) ?
+                    (Math.round((jNum / mNum) * 1000) / 10) + '%' :
+                    "";
 
 
 
@@ -1524,24 +1532,24 @@
             var html = "";
 
             html += '<tr>';
-            html += '<td><a href="https://new.land.naver.com/complexes/' + id + '" target="_blank">' + id + '</a></td>';              // ID(네이버)
-            html += '<td>' + gu + '</td>';   // 구
+            html += '<td><a href="https://new.land.naver.com/complexes/' + id + '" target="_blank">' + id + '</a></td>'; // ID(네이버)
+            html += '<td>' + gu + '</td>'; // 구
             html += '<td>' + dong + '</td>'; // 동
-            html += '<td><a href="https://fin.land.naver.com/complexes/' + id + '?tradeTypes=A1&sortingType=%EB%82%AE%EC%9D%80%EA%B0%80%EA%B2%A9%EC%88%9C&tab=article&articleSortingType=price_asc&articleTradeTypes=A1&articlePyeongTypeNumbers=' + szKey + '" target="_blank">' + nm + '</a></td>';            // 단지
-            html += '<td>' + yr + '</td>';   // 연식
-            html += '<td>' + sd + '</td>';   // 세대                
-            html += '<td>' + tp + '</td>';  // 타입
-            html += '<td>' + tp2 + '</td>';  // 유형
-            html += '<td>' + bang + '</td>';  // 방
-            html += '<td>' + me + '</td>';  // 매매가
-            html += '<td>' + ju + '</td>';  // 전세가
-            html += '<td>' + mj + '</td>';  // 차액
-            html += '<td>' + rate + '</td>';  // 전세가율
-            html += '<td>' + mCnt + '</td>';  // 매매개수
-            html += '<td>' + jCnt + '</td>';  // 전세개수
-            html += '<td>' + mFr + '</td>';  // 매매층
-            html += '<td>' + jFr + '</td>';  // 전세층
-            html += '<td>' + desc + '</td>';  // 설명
+            html += '<td><a href="https://fin.land.naver.com/complexes/' + id + '?tradeTypes=A1&sortingType=%EB%82%AE%EC%9D%80%EA%B0%80%EA%B2%A9%EC%88%9C&tab=article&articleSortingType=price_asc&articleTradeTypes=A1&articlePyeongTypeNumbers=' + szKey + '" target="_blank">' + nm + '</a></td>'; // 단지
+            html += '<td>' + yr + '</td>'; // 연식
+            html += '<td>' + sd + '</td>'; // 세대                
+            html += '<td>' + tp + '</td>'; // 타입
+            html += '<td>' + tp2 + '</td>'; // 유형
+            html += '<td>' + bang + '</td>'; // 방
+            html += '<td>' + me + '</td>'; // 매매가
+            html += '<td>' + ju + '</td>'; // 전세가
+            html += '<td>' + mj + '</td>'; // 차액
+            html += '<td>' + rate + '</td>'; // 전세가율
+            html += '<td>' + mCnt + '</td>'; // 매매개수
+            html += '<td>' + jCnt + '</td>'; // 전세개수
+            html += '<td>' + mFr + '</td>'; // 매매층
+            html += '<td>' + jFr + '</td>'; // 전세층
+            html += '<td>' + desc + '</td>'; // 설명
             html += '</tr>';
 
             $('#tbl_aptInfo tbody').append(html);
@@ -1565,7 +1573,7 @@
         function aptRowCnt() {
             const names = new Set();
 
-            $('#tbl_aptInfo tbody tr').each(function () {
+            $('#tbl_aptInfo tbody tr').each(function() {
                 const name = $(this).find('td:first').text().trim();
                 names.add(name);
             });
@@ -1573,7 +1581,6 @@
             // $('#aptCnt').text(`TOTAL: ${names.size}`);
             $('#aptCntBadge').text(`TOTAL: ${names.size}`)
         }
-
     </script>
 </body>
 
