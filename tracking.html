@@ -527,9 +527,9 @@
                 <tr class="filter-row">
                     <th style="width:80px"><label style="display:flex;align-items:center;gap:.35rem;"></th>
                     <th></th>
-                    <th><input id="filterDong" type="text" placeholder="동" style="max-width:80px;"></th>
-                    <th><input id="filterAptNm" type="text" placeholder="단지명" style="max-width:180px;"></th>
-                    <th></th>
+                    <th><input id="filterDong" type="text" placeholder="동" style="max-width:50px;"></th>
+                    <th><input id="filterAptNm" type="text" placeholder="단지명" style="max-width:130px;"></th>
+                    <th><input id="filterYear" type="text" placeholder="연식" style="max-width:50px;"></th>
                     <th style="width:90px"><label style="display:flex;align-items:center;gap:.35rem;"><input
                                 id="filter300" type="checkbox">300^</label></th>
                     <th style="width:90px">
@@ -1026,15 +1026,17 @@
                 const filterSizeInput = $('#filterSize').val().trim();
                 const filterAptNmInput = $('#filterAptNm').val().trim();
                 const filterDongInput = $('#filterDong').val().trim();
+                const filterYearInput = $('#filterYear').val().trim();
                 const chkBigType = $('#chkBigType').is(':checked');
 
                 $('#tbl_aptInfo tbody tr').each(function() {
                     const units = toNum($(this).find('td:nth-child(6)').text()); // 세대
                     const price = toNum($(this).find('td').eq(9).text()); // 매매
-                    const gap = toNum($(this).find('td').eq(11).text()); // 차액 ★
+                    const gap = toNum($(this).find('td').eq(11).text()); // 차액 ★            
                     const size = $(this).find('td').eq(6).text().trim();
                     const aptNm = $(this).find('td').eq(3).text().trim();
                     const dong = $(this).find('td').eq(2).text().trim();
+                    const year = $(this).find('td').eq(4).text().trim();
 
                     let showRow = true;
 
@@ -1050,6 +1052,7 @@
                     if (showRow && filterSizeInput && !size.includes(filterSizeInput)) showRow = false;
                     if (showRow && filterAptNmInput && !aptNm.includes(filterAptNmInput)) showRow = false;
                     if (showRow && filterDongInput && !dong.includes(filterDongInput)) showRow = false;
+                    if (showRow && filterYearInput && !year.includes(filterYearInput)) showRow = false;
 
                     if (showRow && chkBigType) {
                         const v = parseInt(extractNumbers(size), 10);
@@ -1061,7 +1064,7 @@
             }
 
             $('#filter300, #chkBigType').change(applyFilters);
-            $('#filterPrice, #filterGap, #filterSize, #filterAptNm, #filterDong').on("input", applyFilters);
+            $('#filterPrice, #filterGap, #filterSize, #filterAptNm, #filterDong, #filterYear').on("input", applyFilters);
 
 
             $('#btn_init').on('click', function() {
