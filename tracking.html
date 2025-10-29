@@ -1282,6 +1282,11 @@
                                     var jFr = rows[key][subKeys[15]]; // 전/층
                                     var desc = rows[key][subKeys[16]]; // 설명
                                     var szKey = rows[key][subKeys[17]]; // key
+                                    var prev = rows[key][subKeys[18]]; // 전고점
+                                    var chg = rows[key][subKeys[19]]; // 변화율
+                                    var rat = rows[key][subKeys[20]]; // 수익율
+                                    var amt = rows[key][subKeys[21]]; // 수익금
+
 
                                     var rate = "0.0%"; // 전세가율
 
@@ -1297,7 +1302,7 @@
                                         rate = (Math.round(rate * 10) / 10) + '%'; // 소수점 1자리 반올림
                                     }
 
-                                    createTableList(id, gu, dong, nm, yr, sd, tp, tp2, bang, me, ju, mj, rate, mCnt, jCnt, mFr, jFr, desc, szKey);
+                                    createTableList(id, gu, dong, nm, yr, sd, tp, tp2, bang, me, ju, mj, rate, mCnt, jCnt, mFr, jFr, desc, szKey, prev, chg, rat, amt);
                                 }
                             })
 
@@ -1414,7 +1419,7 @@
                                 });
                                 // ✅ AOA 인덱싱: 아래 인덱스는 "트래킹 결과" 엑셀의 실제 순서를 맞춰줘야 함
                                 // 0:ID, 1:구, 2:동, 3:단지명, 4:연식, 5:세대, 6:타입, 7:유형, 8:방,
-                                // 9:매매, 10:전세, 11:차액, 12:매매개수, 13:전세개수, 14:매/층, 15:전/층, 16:설명, 17:key
+                                // 9:매매, 10:전세, 11:차액, 12:매매개수, 13:전세개수, 14:매/층, 15:전/층, 16:설명, 17:key, 18:전고점, 19:변화율, 20:수익률, 21:수익금
                                 for (let r = 1; r < aoa.length; r++) {
                                     const row = aoa[r];
                                     if (!row[0]) continue; // ID 없으면 스킵
@@ -1437,7 +1442,11 @@
                                         mFr: row[15],
                                         jFr: row[16],
                                         desc: row[17],
-                                        szKey: row[18]
+                                        szKey: row[18],
+                                        prev: row[19],
+                                        chg: row[20],
+                                        rat: row[21],
+                                        amt: row[22]
                                     });
                                 }
                             });
@@ -1551,13 +1560,17 @@
                 const jFr = (bestRent && bestRent.jFr) ? bestRent.jFr : (base ? base.jFr : "");
                 const desc = (bestSale && bestSale.desc) ? bestSale.desc : (base ? base.desc : "");
                 const szKey = base ? base.szKey : "";
+                const prev = base? base.prev : "";
+                const chg = base? base.chg : "";
+                const rat = base? base.rat : "";
+                const amt = base? base.amt : "";
 
-                console.log(mCnt);
+                //console.log(mCnt);
 
                 createTableList(
                     id, gu, dong, nm, yr, sd,
                     tp, tp2, bang, me, ju, mj,
-                    rate, mCnt, jCnt, mFr, jFr, desc, szKey
+                    rate, mCnt, jCnt, mFr, jFr, desc, szKey, prev, chg, rat, amt
                 );
             }
 
@@ -1565,7 +1578,7 @@
         }
 
 
-        function createTableList(id, gu, dong, nm, yr, sd, tp, tp2, bang, me, ju, mj, rate, mCnt, jCnt, mFr, jFr, desc, szKey) {
+        function createTableList(id, gu, dong, nm, yr, sd, tp, tp2, bang, me, ju, mj, rate, mCnt, jCnt, mFr, jFr, desc, szKey, prev, chg, rat, amt) {
             // tr을 DOM으로 만든다 (전고점 칸은 placeholder)
             const $tr = $(`
                 <tr data-id="${id}" data-tp="${tp}">
@@ -1587,33 +1600,33 @@
                 <td>${mFr}</td>
                 <td>${jFr}</td>
                 <td>${desc}</td>
-                <td class="prev-cell">-</td>  <!-- 전고점 -->
-                <td class="chg-cell">-</td>  <!-- 변화율 -->
-                <td class="rate-cell">-</td>  <!-- 수익률 -->
-                <td class="amt-cell">-</td>  <!-- 수익금 -->
+                <td>${prev}</td>  <!-- 전고점 -->
+                <td>${chg}</td>  <!-- 변화율 -->
+                <td>${rat}</td>  <!-- 수익률 -->
+                <td>${amt}</td>  <!-- 수익금 -->
                 </tr>
             `);
 
             $('#tbl_aptInfo tbody').append($tr);
 
             // 전고점 조회 후 해당 셀만 업데이트
-            getPrevValue(id, tp, function (prev) {
-                if(prev != null){
+            // getPrevValue(id, tp, function (prev) {
+            //     if(prev != null){
                    
-                    $tr.find('.prev-cell').text( prev ); 
-                    if(me !=''){
-                        const chg = (((me - prev) / prev) * 100).toFixed(1) + '%';  // 변화율
-                        $tr.find('.chg-cell').text( chg );  
-                    }
+            //         $tr.find('.prev-cell').text( prev ); 
+            //         if(me !=''){
+            //             const chg = (((me - prev) / prev) * 100).toFixed(1) + '%';  // 변화율
+            //             $tr.find('.chg-cell').text( chg );  
+            //         }
 
-                    if(me !='' && ju !=''){
-                        const rate = (((prev - me) / (me - ju)) * 100).toFixed(1) + '%'; // 수익률
-                        $tr.find('.rate-cell').text( rate );
-                        const amt = Math.round((prev - me) * 100)/ 100;
-                        $tr.find('.amt-cell').text( amt );
-                    }                                                                                  
-                }
-            });
+            //         if(me !='' && ju !=''){
+            //             const rate = (((prev - me) / (me - ju)) * 100).toFixed(1) + '%'; // 수익률
+            //             $tr.find('.rate-cell').text( rate );
+            //             const amt = Math.round((prev - me) * 100)/ 100;
+            //             $tr.find('.amt-cell').text( amt );
+            //         }                                                                                  
+            //     }
+            // });
         }
 
         // url 에서 날짜를 추출해서 yyyy.mm.dd 형식으로 반환
@@ -1644,26 +1657,26 @@
         }
 
         // 전고점 내용 조회
-        function getPrevValue(id, tp, callback) {
-            $.getJSON("https://roy-fild.github.io/tracking/prev-high.json")
-                .done(function (data) {
-                    const idKey = String(id).trim();
-                    const tpKey = String(tp).trim(); // "59" vs 59 문제 방지
+        // function getPrevValue(id, tp, callback) {
+        //     $.getJSON("https://roy-fild.github.io/tracking/prev-high.json")
+        //         .done(function (data) {
+        //             const idKey = String(id).trim();
+        //             const tpKey = String(tp).trim(); // "59" vs 59 문제 방지
 
-                    const item = data[idKey];
-                    if (!item || !item.TP) {
-                       //console.warn("ID not found:", idKey);
-                        callback(null);
-                        return;
-                    }
-                    const val = item.TP[tpKey];
-                    callback(val !== undefined ? val : null);
-                })
-                .fail(function (err) {
-                    console.error("JSON load failed:", err);
-                    callback(null);
-                });
-        }
+        //             const item = data[idKey];
+        //             if (!item || !item.TP) {
+        //                //console.warn("ID not found:", idKey);
+        //                 callback(null);
+        //                 return;
+        //             }
+        //             const val = item.TP[tpKey];
+        //             callback(val !== undefined ? val : null);
+        //         })
+        //         .fail(function (err) {
+        //             console.error("JSON load failed:", err);
+        //             callback(null);
+        //         });
+        // }
     </script>
 </body>
 
