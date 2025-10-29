@@ -1563,7 +1563,7 @@
                 const prev = base? base.prev : "";
                 const chg = base? base.chg : "";
                 const rat = base? base.rat : "";
-                const amt = base? base.amt : "";
+                const amt = (base || base !==undefined)? base.amt : "";
 
                 //console.log(mCnt);
 
@@ -1603,7 +1603,7 @@
                 <td>${prev}</td>  <!-- 전고점 -->
                 <td>${chg}</td>  <!-- 변화율 -->
                 <td>${rat}</td>  <!-- 수익률 -->
-                <td>${amt}</td>  <!-- 수익금 -->
+                <td>${amt !== undefined ? amt : ''}</td>  <!-- 수익금 -->
                 </tr>
             `);
 
