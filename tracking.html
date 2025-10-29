@@ -1645,7 +1645,7 @@
 
         // 전고점 내용 조회
         function getPrevValue(id, tp, callback) {
-            $.getJSON("https://roy-fild.github.io/tracking/prev-high_20251027.json")
+            $.getJSON("https://roy-fild.github.io/tracking/prev-high.json")
                 .done(function (data) {
                     const idKey = String(id).trim();
                     const tpKey = String(tp).trim(); // "59" vs 59 문제 방지
