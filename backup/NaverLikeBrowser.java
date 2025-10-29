@@ -1,15 +1,21 @@
 package inv;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
+import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -18,6 +24,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.apache.poi.ss.usermodel.Cell;
@@ -40,11 +47,19 @@ import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 /****
  * 현재 브라우저 문제로 이게 호출 가능 소스
  */
 //@Slf4j
 public class NaverLikeBrowser {
+	
+	private static final String JSON_URL = "https://roy-fild.github.io/tracking/prev-high.json";
+	
+	private static Map<String, Object> PREV_HIGH_MAP = null;
+
 
 	private static final Logger log = LoggerFactory.getLogger(NaverLikeBrowser.class);
 
@@ -90,13 +105,14 @@ public class NaverLikeBrowser {
 		String prefix = "https://roy-fild.github.io/file/";
 		
 		String[] fileUrls = {
-//				"case-test",			// TEST용
+				"case-test",			// TEST용
 				// 정찰기
 //				"tracking-list",		// 수도권
 //				"tracking-jibang",		// 지방
 				
 				// 서울시
-				"gangnam-gu",			// 강남구
+//				"gangnam-gu",			// 강남구
+//				"seocho-gu",			// 서초구
 //				"songpa-gu",			// 송파구
 //				"seongdong-gu",			// 성동구
 //				"yeongdeungpo-gu",		// 영등포구
@@ -116,7 +132,7 @@ public class NaverLikeBrowser {
 //				"bundang-gu",			// 성남시_분당구
 //				"anyang-si-dongan-gu",	// 안양시_동안구
 //				"suwon-si-yeongtong-gu",// 수원시_영통구
-//				"dongtan",				// 화성시_동탄	
+//				"dongtan",				// 화성시_동탄
 //				"sujeong-jungwon-gu",	// 성남시_수정/증원구
 //				
 //				// 광역시
@@ -131,48 +147,7 @@ public class NaverLikeBrowser {
 //				"pohang-si-buk-gu",		// 포항시_북구
 		};
 
-		// ===== 멀티스레드: 파일 단위 병렬 처리 =====
-//        final int cores = Math.max(2, Runtime.getRuntime().availableProcessors());
-//        // 외부 API 부하/차단을 고려해 너무 크게 잡지 않도록: 코어 수 또는 6 중 작은 값
-//        final int poolSize = Math.min(cores, 6);
-//        ExecutorService es = Executors.newFixedThreadPool(poolSize);
-//
-//        List<Future<Void>> futures = new ArrayList<>();
-//        long t0 = System.nanoTime();
-//
-//        for (String name : fileUrls) {
-//            final String fileUrl = String.format("%s%s.xlsx", prefix, name);
-//            Callable<Void> task = () -> {
-//                try {
-//                    readExcelFileFromUrl(fileUrl); // Excel 읽고, 네이버 조회하고, 엑셀로 내보내기
-//                } catch (Throwable th) {
-//                    // 개별 작업 실패해도 다른 작업은 계속되도록
-//                    log.error("작업 실패: {}", fileUrl, th);
-//                }
-//                return null;
-//            };
-//            futures.add(es.submit(task));
-//        }
-//
-//        // 모든 작업 완료 대기
-//        for (Future<Void> f : futures) {
-//            try {
-//                f.get();
-//            } catch (InterruptedException ie) {
-//                Thread.currentThread().interrupt();
-//                log.error("대기 중 인터럽트", ie);
-//            } catch (ExecutionException ee) {
-//                log.error("작업 예외", ee.getCause());
-//            }
-//        }
-//
-//        es.shutdown();
-//        es.awaitTermination(5, TimeUnit.MINUTES);
-//
-//        long t1 = System.nanoTime();
-//        log.info("모든 파일 처리 완료. 총 소요: {} ms (poolSize={})", (t1 - t0) / 1_000_000, poolSize);
-        
-        
+		
         // AS-IS 순차
 		for(String fileUrl : fileUrls) {	
 			fileUrl = String.format("%s%s.xlsx", prefix, fileUrl);
@@ -683,10 +658,14 @@ public class NaverLikeBrowser {
 			final int COL_J_FR = 16; // 매/층
 			final int COL_DESC = 17; // 설명
 			final int COL_KEY = 18; // 방(KEY)
+			final int COL_PREV = 19; // 전고점
+			final int COL_CHG = 20; // 변화율
+			final int COL_RAT = 21; // 수익율
+			final int COL_AMT = 22; // 수익금
 
 			// 헤더: "차액"이 "전세가율(%)"보다 먼저
 			String[] headers = { "ID", "구", "동", "단지", "연식", "세대", "타입","유형", "방", "매매가", "전세가", "차액", "전세가율(%)", "매", "전",
-					"매/층","전/층", "설명", "key" };
+					"매/층","전/층", "설명", "key","전고점","변화율","수익율","수익금" };
 
 			int r = 0;
 			Row hr = sheet.createRow(r++);
@@ -793,6 +772,59 @@ public class NaverLikeBrowser {
 					row.createCell(COL_M_FR).setCellValue(dealFrInfoStr);
 					row.createCell(COL_J_FR).setCellValue(rentFrInfoStr);
 					row.createCell(COL_DESC).setCellValue(dealDesc);
+					
+					// 전고점 
+					Double prevD = getPrevValue(id, subSpace);
+					if(prevD != null) {
+						Cell ph = row.createCell(COL_PREV);
+						ph.setCellValue(prevD.doubleValue());
+						ph.setCellStyle(numStyle);
+					}
+					
+					// 변화율
+					BigDecimal prev = (prevD == null) ? null : bd(prevD);
+					BigDecimal meBd = parseNullable(dealPriceStr);
+				    BigDecimal juBd = parseNullable(rentPriceStr);
+				    // 3) 변화율 chg = ((me - prev) / prev) * 100  → 소수 1자리 반올림, 음수 기호 유지
+			        String chgPct = null;
+			        if (prev != null && notZero(prev) && meBd != null) {
+			            BigDecimal chg = meBd.subtract(prev)
+			                    .divide(prev, 10, RoundingMode.HALF_UP)
+			                    .multiply(BigDecimal.valueOf(100));
+			            chgPct = toOneDecimalPercent(chg);
+			            
+			            Cell ch = row.createCell(COL_CHG);
+			            ch.setCellValue(chgPct);
+			        }else {
+			        	row.createCell(COL_CHG).setCellValue("-");
+			        }
+			        
+					// 수익률 
+			        String ratePct = null;
+			        if (prev != null && meBd != null && juBd != null) {
+			            BigDecimal denom = meBd.subtract(juBd);
+			            if (notZero(denom)) {
+			                BigDecimal rate = prev.subtract(meBd)
+			                        .divide(denom, 10, RoundingMode.HALF_UP)
+			                        .multiply(BigDecimal.valueOf(100));
+			                ratePct = toOneDecimalPercent(rate);
+			                Cell rt = row.createCell(COL_RAT);
+			                rt.setCellValue(ratePct);
+			            }
+			        }else {
+			        	row.createCell(COL_RAT).setCellValue("-");
+			        }
+					
+					// 수익금
+			        BigDecimal amt = null;
+			        if (prev != null && meBd != null) {
+			            amt = prev.subtract(meBd).setScale(2, RoundingMode.HALF_UP);
+			            Cell at = row.createCell(COL_AMT);
+			            at.setCellValue(amt.doubleValue());
+			            at.setCellStyle(numStyle);
+			        }else {
+			        	row.createCell(COL_AMT).setCellValue("-");
+			        }
 				}
 			}
 
@@ -1027,5 +1059,69 @@ public class NaverLikeBrowser {
         return today.format(formatter);
         
 	}
+	
+	// 전고점 가져오기
+	public static Double getPrevValue(String id, String tp) {
+        try {
+        	
+        	if(PREV_HIGH_MAP == null) {
+        		System.out.println("Init Connection (JSON load once)::");
+	            // 1️ JSON 가져오기
+	            URL url = new URL(JSON_URL);
+	            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+	            conn.setRequestMethod("GET");
+	            conn.setRequestProperty("Accept", "application/json");
+	
+	            if (conn.getResponseCode() != 200) {
+	                throw new RuntimeException("HTTP error: " + conn.getResponseCode());
+	            }
+	
+	            // 2️ JSON 파싱
+	            try (BufferedReader br = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                    ObjectMapper mapper = new ObjectMapper();
+                    PREV_HIGH_MAP = mapper.readValue(br, new TypeReference<Map<String, Object>>() {});
+                }
+	            conn.disconnect();
+        	}
+           
+            // 3️ 해당 ID 찾기
+            Object itemObj = PREV_HIGH_MAP.get(id.trim());
+            if (!(itemObj instanceof Map)) return null;
+
+            Map<String, Object> itemMap = (Map<String, Object>) itemObj;
+            Object tpMapObj = itemMap.get("TP");
+            if (!(tpMapObj instanceof Map)) return null;
+
+            Map<String, Object> tpMap = (Map<String, Object>) tpMapObj;
+
+            // 4️ 해당 TP 키 찾기
+            Object valObj = tpMap.get(tp.trim());
+            if (valObj == null) return null;
+
+            return Double.valueOf(valObj.toString());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+	
+	private static BigDecimal bd(double v) { return BigDecimal.valueOf(v); }
+
+    private static BigDecimal parseNullable(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        if (t.isEmpty()) return null;
+        return new BigDecimal(t);
+    }
+
+    private static boolean notZero(BigDecimal v) {
+        return v != null && v.compareTo(BigDecimal.ZERO) != 0;
+    }
+
+    private static String toOneDecimalPercent(BigDecimal v) {
+        return v.setScale(1, RoundingMode.HALF_UP).toPlainString() + "%";
+    }
 
 }
