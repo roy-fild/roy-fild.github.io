@@ -504,8 +504,9 @@
             <button id="btn_suji-gu" class="darkslategrey_btn">수지구</button>
             <button id="btn_dongtan" class="darkslategrey_btn">동탄</button>
             <button id="btn_sujeong-jungwon-gu" class="darkslategrey_btn">수정/중원구</button>
-            <button id="btn_anyang-si-dongan-gu" class="darkslategrey_btn">안양시-동안구</button>
-            <button id="btn_suwon-si-yeongtong-gu" class="darkslategrey_btn">수원시-영통구</button>
+            <button id="btn_anyang-si-dongan-gu" class="darkslategrey_btn">동안구</button>
+            <button id="btn_suwon-si-yeongtong-gu" class="darkslategrey_btn">영통구</button>
+            <button id="btn_wonmi-gu" class="darkslategrey_btn">원미구</button>
         </div>
         <div class="btn-row" id="div_metro">
             <b></b>
@@ -846,6 +847,13 @@
             $('#btn_suwon-si-yeongtong-gu').on('click', function () {
                 $('#hdn_sel-gu').val('영통구');
                 let gu = "suwon-si-yeongtong-gu";
+                beforeSearch(gu);
+            });
+
+            // 부천시-원미구
+            $('#btn_wonmi-gu').on('click', function() {
+                $('#hdn_sel-gu').val('원미구');
+                let gu = "wonmi-gu";
                 beforeSearch(gu);
             });
 
