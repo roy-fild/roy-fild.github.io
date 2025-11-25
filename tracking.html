@@ -824,7 +824,7 @@
             // 부천시
             $('#btn_bu-cheon').on('click', function() {
                 $('#hdn_sel-gu').val('부천시');
-                let gu = "bu-cheon";                
+                let gu = "bu-cheon";
                 beforeSearch(gu);
             });
 
@@ -1542,7 +1542,7 @@
                 const prev = base ? base.prev : "";
                 const chg = base ? base.chg : "";
                 const rat = base ? base.rat : "";
-                const amt = (base || base !== undefined) ? base.amt : "";
+                const amt = base ? base.amt : "";
 
                 //console.log(mCnt);
 
