@@ -124,20 +124,19 @@
             if (isNaN(year)) return ""; // 숫자 아니면 색 안 줌
 
             if (year >= 2020) {
-                return "#ff0000"; // 빨강
+                return "background-color:#ff0000; color:#ff0000"; // 빨강
             } else if (year >= 2010) {
-                return "#ffa500"; // 주황
+                return "background-color:#ffa500; color:#ffa500"; // 주황
             } else if (year >= 2000) {
-                return "#ffff00"; // 노랑
+                return "background-color:#ffff00; color:#008000"; // 노랑
             } else if (year >= 1990) {
-                return "#add8e6"; // 연한 파랑 (light blue)
+                return "background-color:#add8e6; color:#0000ff"; // 연한 파랑 (light blue)
             } else if (year >= 1980) {
-                return "#0000ff"; // 진한 파랑
+                return "background-color:#0000ff; color:#ff00ff"; // 진한 파랑
             } else {
-                return ""; // 1980 미만은 색 없음 (원하면 여기도 지정 가능)
+                return "color:#ffffff"; // 1980 미만은 색 없음 (원하면 여기도 지정 가능)
             }
         }
-
 
         function isImgFile(file) {
             var ext = file.name.split(".").pop().toLowerCase();
@@ -238,7 +237,7 @@
             // 3) 연식에 배경색 입히기 (텍스트는 그대로 "2010y")
             var yearHtml;
             if (yearBgColor) {
-                yearHtml = '<span style="background-color:' + yearBgColor + ';">' + yearToken + '</span>';
+                yearHtml = '<span style="' + yearBgColor + '">' + yearToken + '</span>';
             } else {
                 yearHtml = yearToken;
             }
