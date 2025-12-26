@@ -8,7 +8,7 @@
     <!-- jQuery -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 
-    <!-- 스타일: 모바일/PC 반응형 공통 디자인 -->
+    <!-- 스타일: 모바일/PC 공통 반응형 디자인 -->
     <style>
         :root {
             --primary: #2563eb;
@@ -145,7 +145,8 @@
             padding: 8px 10px;
         }
 
-        .search-table input[type="text"] {
+        .search-table input[type="text"],
+        .search-table select {
             width: 100%;
             padding: 8px 10px;
             border-radius: 8px;
@@ -153,17 +154,20 @@
             font-size: 14px;
             outline: none;
             transition: border-color 0.15s, box-shadow 0.15s;
+            background-color: #ffffff;
         }
 
-        .search-table input[type="text"]:focus {
+        .search-table input[type="text"]:focus,
+        .search-table select:focus {
             border-color: var(--primary);
             box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25);
         }
 
-        /* 검색 버튼 셀 (기존 id 그대로 사용) */
+        /* 검색 버튼 셀 */
         #tb_btnTSearch,
         #tb_btnSearch,
-        #tb_btnJSearch {
+        #tb_btnJSearch,
+        #tb_btnJobSearch {
             text-align: center;
             background-color: var(--primary);
             color: #ffffff;
@@ -177,7 +181,8 @@
 
         #tb_btnTSearch:hover,
         #tb_btnSearch:hover,
-        #tb_btnJSearch:hover {
+        #tb_btnJSearch:hover,
+        #tb_btnJobSearch:hover {
             background-color: #1d4ed8;
         }
 
@@ -210,6 +215,7 @@
             border-bottom: 1px solid var(--border);
             border-right: 1px solid var(--border);
             font-weight: 600;
+            white-space: nowrap;
         }
 
         table.data-table tbody td {
@@ -262,26 +268,22 @@
 
             #tb_btnTSearch,
             #tb_btnSearch,
-            #tb_btnJSearch {
+            #tb_btnJSearch,
+            #tb_btnJobSearch {
                 font-size: 13px;
                 padding: 6px 8px;
             }
         }
     </style>
 
-    <!-- 스크립트: 기존 기능 그대로 유지 -->
+    <!-- 스크립트: 기능 그대로 + 탭/디자인만 개선 -->
     <script>
         $(function () {
 
-            // 탭 버튼 on/off
+            // 탭 버튼 공통 on/off
             $('.tab_menu_btn').on('click', function () {
                 $('.tab_menu_btn').removeClass('on');
                 $(this).addClass('on');
-            });
-
-            $('.tab_menu_btn_s').on('click', function () {
-                $('.tab_box').hide().removeClass('on');
-                $('.tab_s').show().addClass('on');
             });
 
             $('.tab_menu_btn_t').on('click', function () {
@@ -289,9 +291,19 @@
                 $('.tab_t').show().addClass('on');
             });
 
+            $('.tab_menu_btn_s').on('click', function () {
+                $('.tab_box').hide().removeClass('on');
+                $('.tab_s').show().addClass('on');
+            });
+
             $('.tab_menu_btn_j').on('click', function () {
                 $('.tab_box').hide().removeClass('on');
                 $('.tab_j').show().addClass('on');
+            });
+
+            $('.tab_menu_btn_g').on('click', function () {
+                $('.tab_box').hide().removeClass('on');
+                $('.tab_g').show().addClass('on');
             });
 
             // 중학교 검색
@@ -397,7 +409,118 @@
                 });
             });
 
+            // 직장 SelectBox change 이벤트
+            $('#sel_gb').change(function () {
+                $('#sel_region').empty().append('<option value="">----------</option>');
+                $('#sel_gu').empty().append('<option value="">----------</option>');
+                jobTitSearch();
+            });
+
+            $('#sel_region').change(function () {
+                $('#sel_gu').empty().append('<option value="">----------</option>');
+                jobTitSearch();
+            });
+
+            // 직장 검색 버튼
+            $('#tb_btnJobSearch').on('click', function () {
+
+                var gb = $('#sel_gb').val();
+                var region = $('#sel_region').val();
+                var gu = $('#sel_gu').val();
+
+                $.getJSON('https://roy-fild.github.io/json/job-grade.json', function (data) {
+                    var html = [];
+                    $.each(data, function (i, item) {
+
+                        if (gb !== "") {
+                            if (item.gb === gb) {
+                                if (region !== "") {
+                                    if (item.region === region) {
+                                        if (gu !== "") {
+                                            if (item.gu === gu) {
+                                                crateJobGradeList(item, html);
+                                            }
+                                        } else {
+                                            crateJobGradeList(item, html);
+                                        }
+                                    }
+                                } else {
+                                    crateJobGradeList(item, html);
+                                }
+                            }
+                        } else {
+                            crateJobGradeList(item, html);
+                        }
+                    });
+
+                    $('#tbl_job tbody').empty();
+                    $('#tbl_job tbody').append(html);
+
+                });
+            });
+
         });
+
+        function crateJobGradeList(item, html) {
+
+            html.push('<tr>');
+            html.push('<td>' + item.gb + '</td>'); // 구분
+            html.push('<td>' + item.region + '</td>'); // 지역
+            html.push('<td>' + item.gu + '</td>'); // 구
+            html.push(chkGrade(item.grade)); // 등급
+            html.push('<td>' + item.emp + '</td>'); // 종사자수
+            html.push('</tr>');
+        }
+
+        // 직장 Select Box 조회
+        function jobTitSearch() {
+            var gb = $('#sel_gb').val();
+            var region = $('#sel_region').val();
+            var gu = $('#sel_gu').val();
+
+            $.getJSON('https://roy-fild.github.io/json/job-grade.json', function (data) {
+
+                $.each(data, function (i, item) {
+
+                    var regionSet = new Set();
+                    var guSet = new Set();
+
+                    if (item.gb === (gb)) {
+                        // gb 값과 일치하는 region 만 추가
+                        $.each(data, function (i, item2) {
+                            if (item2.gb === gb) {
+                                regionSet.add(item2.region); // 중복 방지
+                            }
+                        });
+
+                        // 지역
+                        if (region === "") {
+                            $('#sel_region').empty().append('<option value="">전체</option>');
+                            regionSet.forEach(function (rg) {
+                                $('#sel_region').append(`<option value="${rg}">${rg}</option>`);
+                            });
+                        }
+
+                        // 구
+                        if (region !== "" && gu === "") {
+                            $.each(data, function (i, item3) {
+                                if (item3.gb.includes(gb) && item3.region.includes(region)) {
+                                    guSet.add(item3.gu); // 중복 방지
+                                }
+                            });
+
+                            $('#sel_gu').empty().append('<option value="">전체</option>');
+                            guSet.forEach(function (g) {
+                                $('#sel_gu').append(`<option value="${g}">${g}</option>`);
+                            });
+                        }
+
+                    }
+
+                });
+
+            });
+        }
 
         function createTraffic(html, item) {
             if ($('#txt_anm').val() !== '') {
@@ -448,6 +571,7 @@
         }
 
         function chkTime(t) {
+
             var num = parseInt(t, 10);
             var html = "";
 
@@ -479,6 +603,7 @@
                 <button class="tab_menu_btn_t tab_menu_btn on" type="button">교통</button>
                 <button class="tab_menu_btn_s tab_menu_btn" type="button">중학교</button>
                 <button class="tab_menu_btn_j tab_menu_btn" type="button">초등학교</button>
+                <button class="tab_menu_btn_g tab_menu_btn" type="button">직장</button>
             </div>
         </div>
 
@@ -613,7 +738,59 @@
             </div>
         </div>
 
+        <!-- 직장 -->
+        <div class="tab_g tab_box">
+            <h2>직장 등급 검색</h2>
+            <table class="search-table">
+                <thead>
+                    <tr>
+                        <th>구분</th>
+                        <td>
+                            <select id="sel_gb">
+                                <option value="">전체</option>
+                                <option value="수도권">수도권</option>
+                                <option value="광역시">광역시</option>
+                                <option value="중소도시">중소도시</option>
+                            </select>
+                        </td>
+                        <td rowspan="3" id="tb_btnJobSearch">검색</td>
+                    </tr>
+                    <tr>
+                        <th>지역</th>
+                        <td>
+                            <select id="sel_region">
+                                <option value="">----------</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>구</th>
+                        <td>
+                            <select id="sel_gu">
+                                <option value="">----------</option>
+                            </select>
+                        </td>
+                    </tr>
+                </thead>
+            </table>
+
+            <div class="table-wrapper">
+                <table id="tbl_job" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>구분</th>
+                            <th>지역</th>
+                            <th>구</th>
+                            <th>등급</th>
+                            <th>종사자수</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 </body>
-
 </html>
