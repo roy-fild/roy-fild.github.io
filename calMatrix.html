@@ -1,297 +1,334 @@
 <!DOCTYPE html>
 <html>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script>
-    $(function () {
-        $('#txt_region').val('S,A,B,C');
-    });
-
-
-    // 엑셀 자료 추출
-    function excelExport(event) {
-
-        var aptArr = [];
-        let fileName = event.target.files[0].name.split(".").shift();
-        let input = event.target;
-        let reader = new FileReader();
-        reader.onload = function () {
-            let data = reader.result;
-            let workBook = XLSX.read(data, { type: 'binary' });
-            workBook.SheetNames.forEach(function (sheetName) {
-                console.log('SheetName: ' + sheetName);
-                let rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
-                var keys = Object.keys(rows);
-
-                var html = "";
-
-                for (var i = 0; i < keys.length; i++) {
-                    var key = keys[i];
-                    var subKeys = Object.keys(rows[key]);
-
-                    var me = rows[key][subKeys[0]];    // 매매가
-                    var ju = rows[key][subKeys[1]];    // 전세가
-                    var label = rows[key][subKeys[2]];    // 라벨
-
-
-                    //console.log(region,price,label);
-
-                    var txt = me + "|" + ju + "|" + label;
-                    aptArr.push(txt);
-                }
-                convertAptInfo(aptArr, fileName);
-
-            })
-        };
-        reader.readAsBinaryString(input.files[0]);
-    }
-
-    function convertAptInfo(aptArr, fileName) {
-
-        var selectedValue = $('input[name="option"]:checked').val();  
-
-        var price = 20;    // 매매가 
-        var contentsArr = [];
-
-        var titArr = [];       // 투자금
-        titArr.push(" ");
-
-        // 수도권
-        if(selectedValue === '1'){
-            for (var i = 1; i <= 15; i++) {
-                var tit = i + '억대';
-                titArr.push(tit)
-            }
-        // 지방
-        }else{
-            //price = 10;
-            for (var i = 0.1; i <= 3; i+=0.1) {
-                var tit = (i*10).toFixed(0)  + '천';
-                console.log(tit);
-                titArr.push(tit);
-            }
-        }
-
-        contentsArr.push(titArr);
-
-        // 수도권
-        if(selectedValue === '1'){
-            while (price > 1.4) {
-
-                var rowArr = [];
-                rowArr.push(price);
-
-                if (price == 20) {
-                    rowArr = chkHighPrice(aptArr, rowArr);
-                } else {
-                    rowArr = chkPrice(price, aptArr, rowArr);
-                }
-
-                price = price - 0.1;
-                price = price.toFixed(1);
-
-                contentsArr.push(rowArr);
-
-            }
-        // 지방
-        }else{
-           while (price > 1.4) {
-
-            var rowArr = [];
-            rowArr.push(price);
-
-            if (price == 10) {
-                rowArr = chkHighPriceForSmall(aptArr, rowArr);
-            } else {
-                rowArr = chkPriceForSmall(price, aptArr, rowArr);
-            }
-
-            price = price - 0.1;
-            price = price.toFixed(1);
-
-            contentsArr.push(rowArr);
-
-        } 
-        }
-        // console.log(contentsArr);
-
-        downloadCSV(contentsArr, fileName);
-
-    }
-
-    /******************수도권*********************/
-    // 고가
-    function chkHighPrice(aptArr, rowArr) {
-
-        for (var j = 1; j <= 15; j++) {
-            var label = "";
-            for (var i = 0; i < aptArr.length; i++) {
-                var info = aptArr[i].split('|');
-
-                var me = info[0]; // 매매가
-                var ju = info[1]; // 전세가
-                var la = info[2]; // 라벨                        
-
-                // 차액
-                var s = Number(me) - Number(ju);
-                s = s.toFixed(0);
-
-                // 투자금 일치 가격이 높을경우
-                if (j == s && Number(me) > 19.9) {
-                    if (label != '') {
-                        label += "\n"
-                    }
-                    label += la;
-                }
-            }
-            rowArr.push(label);
-        }
-
-        return rowArr;
-    }
-
-    function chkPrice(price, aptArr, rowArr) {
-
-        for (var j = 1; j <= 15; j++) {
-            var label = "";
-            for (var i = 0; i < aptArr.length; i++) {
-                var info = aptArr[i].split('|');
-
-                var me = info[0]; // 매매가
-                var ju = info[1]; // 전세가
-                var la = info[2]; // 라벨        
-
-                // 차액
-                var s = Number(me) - Number(ju);
-                s = s.toFixed(0);
-
-                // 투자금 일치 가격이 같을경우
-                if (j == s && Number(me).toFixed(1) == Number(price)) {
-                    if (label != '') {
-                        label += "\n"
-                    }
-                    label += la;
-                }
-            }
-            rowArr.push(label);
-            //rowArr.push(",");
-        }
-        //.log(labelRow);
-        return rowArr;
-    }
-
-     /******************지방*********************/
-     // 고가
-    function chkHighPriceForSmall(aptArr, rowArr) {
-
-        for (var j = 0.1; j <= 3; j+=0.1) {
-            var label = "";
-            for (var i = 0; i < aptArr.length; i++) {
-                var info = aptArr[i].split('|');
-
-                var me = info[0]; // 매매가
-                var ju = info[1]; // 전세가
-                var la = info[2]; // 라벨                        
-
-                // 차액
-                var s = Number(me) - Number(ju);
-                s = s.toFixed(1);
-
-                // 투자금 일치 가격이 높을경우
-                if (j == s && Number(me) > 9.9) {
-                    if (label != '') {
-                        label += "\n"
-                    }
-                    label += la;
-                }
-            }
-            rowArr.push(label);
-        }
-
-        return rowArr;
-    }
-
-    function chkPriceForSmall(price, aptArr, rowArr) {
-
-        for (var j = 0.1; j <= 3; j+=0.1) {
-            var label = "";
-            for (var i = 0; i < aptArr.length; i++) {
-                var info = aptArr[i].split('|');
-
-                var me = info[0]; // 매매가
-                var ju = info[1]; // 전세가
-                var la = info[2]; // 라벨        
-
-                // 차액
-                var s = Number(me) - Number(ju);
-                s = s.toFixed(1);
-
-                // 투자금 일치 가격이 같을경우
-                if (j == s && Number(me).toFixed(1) == Number(price)) {
-                    if (label != '') {
-                        label += "\n"
-                    }
-                    label += la;
-                }
-            }
-            rowArr.push(label);
-            //rowArr.push(",");
-        }
-        //.log(labelRow);
-        return rowArr;
-    }
-
-    function downloadCSV(contentsArr, f) {
-
-        const worksheet = XLSX.utils.aoa_to_sheet(contentsArr);
-
-        // 스타일 설정: 폰트 크기 9
-        Object.keys(worksheet).forEach(cell => {
-            if (cell[0] !== '!') {
-                worksheet[cell].s = {
-                    font: { sz: 9 },
-                    alignment: { wrapText: true }
-                };
-            }
-        });
-
-        // 열 너비 자동 조정 (개행 문자 및 한글 고려)
-        const colWidths = contentsArr[0].map((_, colIndex) => {
-            const maxWidth = contentsArr.reduce((max, row) => {
-                const cellValue = row[colIndex] ? String(row[colIndex]) : "";
-                const lines = cellValue.split(/\r?\n/); // 개행 문자 기준 분할
-                const maxLineWidth = Math.max(...lines.map(line => {
-                    return line.split('').reduce((acc, char) => {
-                        return acc + (char.match(/[가-힣]/) ? 2 : 1); // 한글은 2배 너비로 계산
-                    }, 0);
-                }));
-                return Math.max(max, maxLineWidth);
-            }, 10); // 최소 너비 10 설정
-            return { wch: maxWidth + 2 }; // 여백을 추가하여 가독성 향상
-        });
-        worksheet['!cols'] = colWidths;
-
-        // 엑셀 파일 생성 (CSV 대신 XLSX 사용)
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-
-        const fileName = f + "_result.xlsx";
-        XLSX.writeFile(workbook, fileName);
-    }
-
-
-
-</script>
-
 <head>
+    <meta charset="UTF-8">
+    <title>매매가 대비 투자금 장표 생성기</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        // 결과 테이블 데이터 & 파일명을 전역으로 저장
+        var currentTableData = null;
+        var currentFileName = null;
 
+        $(function () {
+            // 기존 코드 유지 (txt_region이 없어도 에러는 안 남)
+            $('#txt_region').val && $('#txt_region').val('S,A,B,C');
+        });
+
+        // 엑셀 자료 추출
+        function excelExport(event) {
+
+            var aptArr = [];
+            let fileName = event.target.files[0].name.split(".").shift();
+            let input = event.target;
+            let reader = new FileReader();
+            reader.onload = function () {
+                let data = reader.result;
+                let workBook = XLSX.read(data, { type: 'binary' });
+                workBook.SheetNames.forEach(function (sheetName) {
+                    console.log('SheetName: ' + sheetName);
+                    let rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
+                    var keys = Object.keys(rows);
+
+                    for (var i = 0; i < keys.length; i++) {
+                        var key = keys[i];
+                        var subKeys = Object.keys(rows[key]);
+
+                        var me = rows[key][subKeys[0]];    // 매매가
+                        var ju = rows[key][subKeys[1]];    // 전세가
+                        var label = rows[key][subKeys[2]]; // 라벨
+
+                        var txt = me + "|" + ju + "|" + label;
+                        aptArr.push(txt);
+                    }
+
+                    convertAptInfo(aptArr, fileName);
+
+                })
+            };
+            reader.readAsBinaryString(input.files[0]);
+        }
+
+        function convertAptInfo(aptArr, fileName) {
+
+            var selectedValue = $('input[name="option"]:checked').val();  
+
+            var price = 20;    // 매매가 
+            var contentsArr = [];
+
+            var titArr = [];       // 투자금
+            titArr.push(" ");
+
+            // 수도권
+            if (selectedValue === '1') {
+                for (var i = 1; i <= 15; i++) {
+                    var tit = i + '억대';
+                    titArr.push(tit)
+                }
+            // 지방
+            } else {
+                for (var i = 0.1; i <= 3; i += 0.1) {
+                    var tit = (i * 10).toFixed(0) + '천';
+                    console.log(tit);
+                    titArr.push(tit);
+                }
+            }
+
+            contentsArr.push(titArr);
+
+            // 수도권
+            if (selectedValue === '1') {
+                while (price > 1.4) {
+
+                    var rowArr = [];
+                    rowArr.push(price);
+
+                    if (price == 20) {
+                        rowArr = chkHighPrice(aptArr, rowArr);
+                    } else {
+                        rowArr = chkPrice(price, aptArr, rowArr);
+                    }
+
+                    price = price - 0.1;
+                    price = price.toFixed(1);
+
+                    contentsArr.push(rowArr);
+
+                }
+            // 지방
+            } else {
+                // 지방은 price 시작값을 10으로 가정 (원래 주석 처리되어 있던 부분 보완)
+                price = 10;
+                while (price > 1.4) {
+
+                    var rowArr = [];
+                    rowArr.push(price);
+
+                    if (price == 10) {
+                        rowArr = chkHighPriceForSmall(aptArr, rowArr);
+                    } else {
+                        rowArr = chkPriceForSmall(price, aptArr, rowArr);
+                    }
+
+                    price = price - 0.1;
+                    price = price.toFixed(1);
+
+                    contentsArr.push(rowArr);
+
+                } 
+            }
+
+            // 여기서는 다운로드를 바로 하지 않고,
+            // 전역 변수에 저장 후 화면에 테이블과 버튼을 그린다.
+            currentTableData = contentsArr;
+            currentFileName = fileName;
+            renderTable(contentsArr);
+        }
+
+        /******************수도권*********************/
+        // 고가
+        function chkHighPrice(aptArr, rowArr) {
+
+            for (var j = 1; j <= 15; j++) {
+                var label = "";
+                for (var i = 0; i < aptArr.length; i++) {
+                    var info = aptArr[i].split('|');
+
+                    var me = info[0]; // 매매가
+                    var ju = info[1]; // 전세가
+                    var la = info[2]; // 라벨                        
+
+                    // 차액
+                    var s = Number(me) - Number(ju);
+                    s = s.toFixed(0);
+
+                    // 투자금 일치 가격이 높을경우
+                    if (j == s && Number(me) > 19.9) {
+                        if (label != '') {
+                            label += "\n"
+                        }
+                        label += la;
+                    }
+                }
+                rowArr.push(label);
+            }
+
+            return rowArr;
+        }
+
+        function chkPrice(price, aptArr, rowArr) {
+
+            for (var j = 1; j <= 15; j++) {
+                var label = "";
+                for (var i = 0; i < aptArr.length; i++) {
+                    var info = aptArr[i].split('|');
+
+                    var me = info[0]; // 매매가
+                    var ju = info[1]; // 전세가
+                    var la = info[2]; // 라벨        
+
+                    // 차액
+                    var s = Number(me) - Number(ju);
+                    s = s.toFixed(0);
+
+                    // 투자금 일치 가격이 같을경우
+                    if (j == s && Number(me).toFixed(1) == Number(price)) {
+                        if (label != '') {
+                            label += "\n"
+                        }
+                        label += la;
+                    }
+                }
+                rowArr.push(label);
+            }
+            return rowArr;
+        }
+
+        /******************지방*********************/
+        // 고가
+        function chkHighPriceForSmall(aptArr, rowArr) {
+
+            for (var j = 0.1; j <= 3; j += 0.1) {
+                var label = "";
+                for (var i = 0; i < aptArr.length; i++) {
+                    var info = aptArr[i].split('|');
+
+                    var me = info[0]; // 매매가
+                    var ju = info[1]; // 전세가
+                    var la = info[2]; // 라벨                        
+
+                    // 차액
+                    var s = Number(me) - Number(ju);
+                    s = s.toFixed(1);
+
+                    // 투자금 일치 가격이 높을경우
+                    if (j == s && Number(me) > 9.9) {
+                        if (label != '') {
+                            label += "\n"
+                        }
+                        label += la;
+                    }
+                }
+                rowArr.push(label);
+            }
+
+            return rowArr;
+        }
+
+        function chkPriceForSmall(price, aptArr, rowArr) {
+
+            for (var j = 0.1; j <= 3; j += 0.1) {
+                var label = "";
+                for (var i = 0; i < aptArr.length; i++) {
+                    var info = aptArr[i].split('|');
+
+                    var me = info[0]; // 매매가
+                    var ju = info[1]; // 전세가
+                    var la = info[2]; // 라벨        
+
+                    // 차액
+                    var s = Number(me) - Number(ju);
+                    s = s.toFixed(1);
+
+                    // 투자금 일치 가격이 같을경우
+                    if (j == s && Number(me).toFixed(1) == Number(price)) {
+                        if (label != '') {
+                            label += "\n"
+                        }
+                        label += la;
+                    }
+                }
+                rowArr.push(label);
+            }
+            return rowArr;
+        }
+
+        // 화면에 테이블과 엑셀 버튼 렌더링
+        function renderTable(contentsArr) {
+            var html = "";
+
+            if (!contentsArr || contentsArr.length === 0) {
+                html = "<p>표시할 데이터가 없습니다.</p>";
+                $('#resultArea').html(html);
+                return;
+            }
+
+            html += '<button id="btnDownloadExcel" onclick="downloadExcel()">Excel</button>';
+            html += '<br/><br/>';
+            html += '<table border="1" cellspacing="0" cellpadding="3">';
+
+            for (var i = 0; i < contentsArr.length; i++) {
+                html += '<tr>';
+                for (var j = 0; j < contentsArr[i].length; j++) {
+                    var cellValue = contentsArr[i][j] == null ? "" : String(contentsArr[i][j]);
+                    // 개행 문자(\n)를 <br>로 치환해서 UI에서도 줄바꿈으로 보이게
+                    cellValue = cellValue.replace(/\r?\n/g, '<br/>');
+                    if (i === 0) {
+                        // 첫 행은 헤더 느낌으로 <th>
+                        html += '<th>' + cellValue + '</th>';
+                    } else {
+                        html += '<td style="vertical-align: top; white-space: normal;">' + cellValue + '</td>';
+                    }
+                }
+                html += '</tr>';
+            }
+
+            html += '</table>';
+
+            $('#resultArea').html(html);
+        }
+
+        // 엑셀 버튼 클릭 시 호출
+        function downloadExcel() {
+            if (!currentTableData || !currentFileName) {
+                alert("다운로드할 데이터가 없습니다.");
+                return;
+            }
+            downloadCSV(currentTableData, currentFileName);
+        }
+
+        function downloadCSV(contentsArr, f) {
+
+            const worksheet = XLSX.utils.aoa_to_sheet(contentsArr);
+
+            // 스타일 설정: 폰트 크기 9
+            Object.keys(worksheet).forEach(cell => {
+                if (cell[0] !== '!') {
+                    worksheet[cell].s = {
+                        font: { sz: 9 },
+                        alignment: { wrapText: true }
+                    };
+                }
+            });
+
+            // 열 너비 자동 조정 (개행 문자 및 한글 고려)
+            const colWidths = contentsArr[0].map((_, colIndex) => {
+                const maxWidth = contentsArr.reduce((max, row) => {
+                    const cellValue = row[colIndex] ? String(row[colIndex]) : "";
+                    const lines = cellValue.split(/\r?\n/); // 개행 문자 기준 분할
+                    const maxLineWidth = Math.max(...lines.map(line => {
+                        return line.split('').reduce((acc, char) => {
+                            return acc + (char.match(/[가-힣]/) ? 2 : 1); // 한글은 2배 너비로 계산
+                        }, 0);
+                    }));
+                    return Math.max(max, maxLineWidth);
+                }, 10); // 최소 너비 10 설정
+                return { wch: maxWidth + 2 }; // 여백을 추가하여 가독성 향상
+            });
+            worksheet['!cols'] = colWidths;
+
+            // 엑셀 파일 생성
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+
+            const fileName = f + "_result.xlsx";
+            XLSX.writeFile(workbook, fileName);
+        }
+    </script>
 </head>
-
 <body>
     매매가 대비 투자금 장표 생성기 
-    <small><i>
-        <font size=1>by 필디</font>
-    </i></small>
+    <small><i><font size="1">by 필디</font></i></small>
     <br />
     <label>
         <input type="radio" name="option" value="1" checked>수도권
@@ -308,9 +345,10 @@
     </div>
     <br />
     2025.02.18 version
-    <br />
+    <br /><br/>
 
+    <!-- 결과 테이블 & 엑셀 버튼이 들어갈 영역 -->
+    <div id="resultArea"></div>
 
 </body>
-
 </html>
