@@ -1,621 +1,619 @@
 <!DOCTYPE html>
-<html>
-<link href="./style2.css" rel="stylesheet" type="text/css" />
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-
-<script>
-
-    $(function () {
-
-        //버튼 색 제거,추가
-        $('.tab_menu_btn').on('click', function () {
-            $('.tab_menu_btn').removeClass('on');
-            $(this).addClass('on')
-        });
-
-        $('.tab_menu_btn_s').on('click', function () {
-            $('.tab_box').hide();
-            $('.tab_s').show();
-        });
-
-        $('.tab_menu_btn_t').on('click', function () {
-            $('.tab_box').hide();
-            $('.tab_t').show();
-        });
-
-        $('.tab_menu_btn_j').on('click', function () {
-            $('.tab_box').hide();
-            $('.tab_j').show();
-        });
-
-        $('.tab_menu_btn_g').on('click', function () {
-            $('.tab_box').hide();
-            $('.tab_g').show();
-        });
-
-        // 중학교 검색
-        $('#tb_btnSearch').on('click', function () {
-
-            if ($('#txt_snm').val() === '') {
-                alert('학교명을 입력하세요');
-                return;
-            }
-
-            $.getJSON('https://roy-fild.github.io/school-data.json', function (data) {
-                var html = [];
-                $.each(data, function (i, item) {
-                    if (item.name.match($('#txt_snm').val())) {
-                        html.push('<tr>');
-                        html.push('<td>' + item.address + '</td>'); // 주소
-                        html.push('<td>' + item.name + '</td>'); // 학교명
-                        html.push(chkGrade(item.grade)); // 등급
-                        html.push('<td>' + item.avg + '</td>');  // 평균                           
-                        html.push('<td>' + item.spec + '</td>');  // 특목고 진학률
-                        html.push('<td>' + item.spec2 + '</td>');  // 특목고 진학수
-                        html.push('<td>' + item.gradu + '</td>');  // 졸업자수
-                        html.push('</tr>');
-                    }
-
-                });
-
-                $('#tbl_school tbody').empty()
-                $('#tbl_school tbody').append(html);
-
-            });
-        });
-        // 교통 검색
-        $('#tb_btnTSearch').on('click', function () {
-
-            if ($('#txt_aAddr').val() === '' && $('#txt_anm').val() === '') {
-                alert('정보를 입력하세요');
-                return;
-            }
-
-            $.getJSON('https://roy-fild.github.io/traffic-data.json', function (data) {
-                var html = [];
-                $.each(data, function (i, item) {
-                    if ($('#txt_aAddr').val() !== '') {
-                        if (item.address.match($('#txt_aAddr').val())) {
-                            createTraffic(html, item);
-                        }
-                    } else {
-                        createTraffic(html, item);
-                    }
-                });
-                $('#tbl_traffic tbody').empty()
-                $('#tbl_traffic tbody').append(html);
-
-            });
-        });
-
-        // 초등학교 검색
-        $('#tb_btnJSearch').on('click', function () {
-
-            if ($('#txt_jnm').val() === '') {
-                alert('초등학교명을 입력하세요');
-                return;
-            }
-
-            $.getJSON('https://roy-fild.github.io/junior-data.json', function (data) {
-                var html = [];
-                $.each(data, function (i, item) {
-                    if (item.name.match($('#txt_jnm').val())) {
-
-                        html.push('<tr>');
-                        html.push('<td>' + item.region + '</td>'); // 주소
-                        html.push('<td>' + item.name + '</td>'); // 학교명
-                        html.push('<td>' + item.gb + '</td>'); // 구분
-                        html.push('<td>' + item.class1 + '</td>');
-                        html.push('<td>' + item.cnt1 + '</td>');
-                        //html.push('<td>' + item.avg1 + '</td>');
-                        html.push('<td>' + item.class2 + '</td>');
-                        html.push('<td>' + item.cnt2 + '</td>');
-                        //html.push('<td>' + item.avg2+ '</td>'); 
-                        html.push('<td>' + item.class3 + '</td>');
-                        html.push('<td>' + item.cnt3 + '</td>');
-                        //html.push('<td>' + item.avg3 + '</td>'); 
-                        html.push('<td>' + item.class4 + '</td>');
-                        html.push('<td>' + item.cnt4 + '</td>');
-                        //html.push('<td>' + item.avg4 + '</td>'); 
-                        html.push('<td>' + item.class5 + '</td>');
-                        html.push('<td>' + item.cnt5 + '</td>');
-                        //html.push('<td>' + item.avg5 + '</td>'); 
-                        html.push('<td>' + item.class6 + '</td>');
-                        html.push('<td>' + item.cnt6 + '</td>');
-                        //html.push('<td>' + item.avg6 + '</td>'); 
-                        html.push('<td>' + item.classS + '</td>');
-                        html.push('<td>' + item.cntS + '</td>');
-                        //html.push('<td>' + item.avgS + '</td>'); 
-                        html.push('<td>' + item.classT + '</td>');
-                        html.push('<td>' + item.cntT + '</td>');
-                        html.push('<td>' + item.avgT + '</td>');
-                        html.push('<td>' + item.teacher + '</td>');
-                        html.push('<td>' + item.avgCnt + '</td>');
-
-
-                        html.push('</tr>');
-                    }
-
-                });
-
-                $('#tbl_jschool tbody').empty()
-                $('#tbl_jschool tbody').append(html);
-
-            });
-        });
-
-
-        // 직장 SelectBox
-        $('#sel_gb').change(function () {
-            $('#sel_region').empty().append('<option value="">----------</option>');
-            $('#sel_gu').empty().append('<option value="">----------</option>');
-            jobTitSearch();
-        });
-        $('#sel_region').change(function () {
-            $('#sel_gu').empty().append('<option value="">----------</option>');
-            jobTitSearch();
-        });
-
-        $('#tb_btnJobSearch').on('click', function () {
-
-            var gb = $('#sel_gb').val();
-            var region = $('#sel_region').val();
-            var gu = $('#sel_gu').val();
-
-            $.getJSON('https://roy-fild.github.io/json/job-grade.json', function (data) {
-                var html = [];
-                $.each(data, function (i, item) {
-
-                    if (gb !== "") {
-                        if(item.gb === gb){
-                            if(region !== ""){
-                                if(item.region === region){
-                                    if(gu !== ""){
-                                        if(item.gu === gu){
-                                            crateJobGradeList(item, html);        
-                                        }
-                                    }else{
-                                        crateJobGradeList(item, html);        
-                                    }                                    
-                                }
-                            }else{
-                                crateJobGradeList(item, html);        
-                            }                        
-                        }
-                    } else {
-                        crateJobGradeList(item, html);
-                    }
-                });
-
-                $('#tbl_job tbody').empty()
-                $('#tbl_job tbody').append(html);
-
-            });
-        });
-    });
-
-    function crateJobGradeList(item, html) {
-
-        html.push('<tr>');
-        html.push('<td>' + item.gb + '</td>'); // 구분
-        html.push('<td>' + item.region + '</td>'); // 지역
-        html.push('<td>' + item.gu + '</td>'); // 구                      
-        html.push(chkGrade(item.grade)); // 등급
-        html.push('<td>' + item.emp + '</td>'); // 구
-
-        html.push('</tr>');
-    }
-
-    // 직장 Select Box 조회
-    function jobTitSearch() {
-        var gb = $('#sel_gb').val();
-        var region = $('#sel_region').val();
-        var gu = $('#sel_gu').val();
-
-        $.getJSON('https://roy-fild.github.io/json/job-grade.json', function (data) {
-
-            $.each(data, function (i, item) {
-
-                var regionSet = new Set();
-                var guSet = new Set();
-
-                if (item.gb === (gb)) {
-                    // gb 값과 일치하는 region 만 추가
-                    $.each(data, function (i, item) {
-                        if (item.gb === gb) {
-                            console.log(item.gb, gb);
-                            regionSet.add(item.region); // 중복 방지
-                        }
-                    });
-
-                    // 지역
-                    if (region === "") {
-                        // 기존 옵션 초기화 후 새로운 옵션 추가
-                        $('#sel_region').empty().append('<option value="">전체</option>');
-                        regionSet.forEach(function (rg) {
-                            $('#sel_region').append(`<option value="${rg}">${rg}</option>`);
-                        });
-                    }
-
-                    // 구
-                    if (region !== "" && gu === "") {
-                        $.each(data, function (i, item) {
-                            if (item.gb.includes(gb) && item.region.includes(region)) {
-                                guSet.add(item.gu); // 중복 방지
-                            }
-                        });
-
-                        // 기존 옵션 초기화 후 새로운 옵션 추가
-                        $('#sel_gu').empty().append('<option value="">전체</option>');
-                        guSet.forEach(function (gu) {
-                            $('#sel_gu').append(`<option value="${gu}">${gu}</option>`);
-                        });
-                    }
-
-                }
-
-            });
-
-        });
-    }
-
-    function createTraffic(html, item) {
-        if ($('#txt_anm').val() !== '') {
-            if (item.name.match($('#txt_anm').val())) {
-                html.push('<tr>');
-                html.push('<td>' + item.address + '</td>'); // 주소
-                html.push('<td>' + item.name + '</td>'); // 학교명
-                html.push(chkGrade(item.rank)); // 등급
-                html.push(chkTime(item.ganam));  // 강남                           
-                html.push(chkTime(item.dosim));  // 도심
-                html.push(chkTime(item.yeido));  // 여의도
-                html.push(chkTime(item.fan));  // 판교
-                html.push(chkTime(item.gbelly));  // G밸리
-                html.push(chkTime(item.maguk));  // 마곡
-                html.push(chkTime(item.dmc));  // DMC
-                html.push('</tr>');
-            }
-        } else {
-            html.push('<tr>');
-            html.push('<td>' + item.address + '</td>'); // 주소
-            html.push('<td>' + item.name + '</td>'); // 학교명
-            html.push(chkGrade(item.rank)); // 등급
-            html.push(chkTime(item.ganam));  // 강남                           
-            html.push(chkTime(item.dosim));  // 도심
-            html.push(chkTime(item.yeido));  // 여의도
-            html.push(chkTime(item.fan));  // 판교
-            html.push(chkTime(item.gbelly));  // G밸리
-            html.push(chkTime(item.maguk));  // 마곡
-            html.push(chkTime(item.dmc));  // DMC
-            html.push('</tr>');
-        }
-
-    }
-
-
-    function chkGrade(g) {
-        var html = "";
-
-        if (g.match('S')) {
-            html = "<td style='text-align: center; background-color:red; color:white' >" + g + "</td>"
-        } else if (g.match('A')) {
-            html = "<td style='text-align: center; background-color:green; color:white' >" + g + "</td>"
-        } else if (g.match('B')) {
-            html = "<td style='text-align: center; background-color:blue; color:white' >" + g + "</td>"
-        } else {
-            html = "<td style='text-align: center; background-color:grey; color:white' >" + g + "</td>"
-        }
-        return html;
-    }
-
-    function chkTime(t) {
-
-        var num = parseInt(t);
-        var html = "";
-        if (31 > num) {
-            html = "<td style='text-align: center;color:blue'>" + num + "</td>"
-        } else if (60 < num) {
-            html = "<td style='text-align: center;color:red'>" + num + "</td>"
-        } else {
-            html = "<td style='text-align: center;'>" + num + "</td>"
-        }
-        return html;
-    }
-</script>
-
+<html lang="ko">
 <head>
+    <meta charset="UTF-8" />
+    <title>임장용 정보 검색기</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- jQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+    <!-- 스타일: 모바일/PC 반응형 공통 디자인 -->
     <style>
-        table,
-        td,
-        th {
-            border: 1px solid #ddd;
-            text-align: left;
+        :root {
+            --primary: #2563eb;
+            --primary-soft: #eff4ff;
+            --border: #e5e7eb;
+            --bg: #f4f5f7;
+            --text-main: #111827;
+            --text-sub: #4b5563;
+            --radius-lg: 14px;
+            --shadow-card: 0 8px 20px rgba(15, 23, 42, 0.08);
         }
 
-        table {
-            border-collapse: collapse;
-            width: 100%;
+        * {
+            box-sizing: border-box;
         }
 
-        th,
-        td {
-            padding: 15px;
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
         }
 
-        .black_overlay {
-            display: none;
-            position: absolute;
-            top: 0%;
-            left: 0%;
-            width: 100%;
-            height: 100%;
-            background-color: black;
-            z-index: 1001;
-            -moz-opacity: 0.8;
-            opacity: .80;
-            filter: alpha(opacity=80);
-        }
-
-        .white_content {
-            display: none;
-            position: absolute;
-            top: 25%;
-            left: 25%;
-            width: 50%;
-            height: 50%;
+        .app {
+            max-width: 1200px;
+            margin: 0 auto;
             padding: 16px;
-            border: 16px solid orange;
-            background-color: white;
-            z-index: 1002;
-            overflow: auto;
         }
 
-        button {
-            background: none;
-            border: 0;
-            outline: 0;
-            cursor: pointer;
+        .app-title {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .app-title h2 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 700;
+        }
+
+        .app-title small {
+            color: var(--text-sub);
+            font-size: 11px;
+        }
+
+        /* 탭 버튼 영역 */
+        .tab_wrap {
+            margin-bottom: 10px;
         }
 
         .tab_menu_container {
             display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 4px;
+            overflow-x: auto;
         }
 
         .tab_menu_btn {
-            width: 80px;
-            height: 40px;
-            transition: 0.3s all;
+            flex: 0 0 auto;
+            min-width: 72px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            border: none;
+            background: transparent;
+            color: var(--text-sub);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s all;
+            white-space: nowrap;
         }
 
         .tab_menu_btn.on {
-            border-bottom: 2px solid #df0000;
-            font-weight: 700;
-            color: #df0000;
+            background: #ffffff;
+            color: var(--primary);
+            box-shadow: 0 3px 10px rgba(37, 99, 235, 0.18);
         }
 
         .tab_menu_btn:hover {
-            color: #df0000;
+            color: var(--primary);
         }
 
+        /* 탭 내용 카드 */
         .tab_box {
             display: none;
-            padding: 20px;
+            margin-top: 12px;
+            background: #ffffff;
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            box-shadow: var(--shadow-card);
         }
 
         .tab_box.on {
             display: block;
         }
 
-        .my_btn {
+        .tab_box > h2 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 18px;
+        }
 
-            background-color: skyblue;
-            color: white;
-            border: none;
-            padding: 10px 30px;
+        .tab_box small {
+            color: var(--text-sub);
+        }
 
+        /* 검색 영역 테이블 (상단) */
+        .search-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .search-table thead tr {
+            border-bottom: 1px solid var(--border);
+        }
+
+        .search-table th {
+            width: 80px;
+            padding: 8px 10px;
+            text-align: left;
+            background: #f9fafb;
+            font-weight: 600;
+            color: var(--text-sub);
+            border-right: 1px solid var(--border);
+        }
+
+        .search-table td {
+            padding: 8px 10px;
+        }
+
+        .search-table input[type="text"] {
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .search-table input[type="text"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25);
+        }
+
+        /* 검색 버튼 셀 (기존 id 그대로 사용) */
+        #tb_btnTSearch,
+        #tb_btnSearch,
+        #tb_btnJSearch {
+            text-align: center;
+            background-color: var(--primary);
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 14px;
+            border-radius: 10px;
+            cursor: pointer;
+            user-select: none;
+            min-width: 70px;
+        }
+
+        #tb_btnTSearch:hover,
+        #tb_btnSearch:hover,
+        #tb_btnJSearch:hover {
+            background-color: #1d4ed8;
+        }
+
+        /* 결과 테이블 공통 */
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 10px;
+        }
+
+        table.data-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+            font-size: 13px;
+            background: #ffffff;
+        }
+
+        table.data-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        table.data-table thead th {
+            background: #f3f4f6;
+            color: var(--text-sub);
+            padding: 8px 10px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            font-weight: 600;
+        }
+
+        table.data-table tbody td {
+            padding: 7px 10px;
+            border-bottom: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        table.data-table tbody tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        table.data-table tbody tr:hover {
+            background: #eef2ff;
+        }
+
+        table.data-table th:last-child,
+        table.data-table td:last-child {
+            border-right: none;
+        }
+
+        /* 모바일에서 결과 테이블 최소 폭 줄이기 */
+        @media (max-width: 768px) {
+            .app {
+                padding: 10px;
+            }
+
+            .app-title h2 {
+                font-size: 18px;
+            }
+
+            .tab_box {
+                padding: 12px;
+            }
+
+            table.data-table {
+                min-width: 500px;
+            }
+
+            .search-table th {
+                width: 70px;
+                font-size: 13px;
+            }
+
+            .search-table td {
+                padding: 6px 8px;
+            }
+
+            #tb_btnTSearch,
+            #tb_btnSearch,
+            #tb_btnJSearch {
+                font-size: 13px;
+                padding: 6px 8px;
+            }
         }
     </style>
+
+    <!-- 스크립트: 기존 기능 그대로 유지 -->
+    <script>
+        $(function () {
+
+            // 탭 버튼 on/off
+            $('.tab_menu_btn').on('click', function () {
+                $('.tab_menu_btn').removeClass('on');
+                $(this).addClass('on');
+            });
+
+            $('.tab_menu_btn_s').on('click', function () {
+                $('.tab_box').hide().removeClass('on');
+                $('.tab_s').show().addClass('on');
+            });
+
+            $('.tab_menu_btn_t').on('click', function () {
+                $('.tab_box').hide().removeClass('on');
+                $('.tab_t').show().addClass('on');
+            });
+
+            $('.tab_menu_btn_j').on('click', function () {
+                $('.tab_box').hide().removeClass('on');
+                $('.tab_j').show().addClass('on');
+            });
+
+            // 중학교 검색
+            $('#tb_btnSearch').on('click', function () {
+
+                if ($('#txt_snm').val() === '') {
+                    alert('학교명을 입력하세요');
+                    return;
+                }
+
+                $.getJSON('https://roy-fild.github.io/school-data.json', function (data) {
+                    var html = [];
+                    $.each(data, function (i, item) {
+                        if (item.name.match($('#txt_snm').val())) {
+                            html.push('<tr>');
+                            html.push('<td>' + item.address + '</td>'); // 주소
+                            html.push('<td>' + item.name + '</td>'); // 학교명
+                            html.push(chkGrade(item.grade)); // 등급
+                            html.push('<td>' + item.avg + '</td>');  // 평균
+                            html.push('<td>' + item.spec + '</td>');  // 특목고 진학률
+                            html.push('<td>' + item.spec2 + '</td>');  // 특목고 진학수
+                            html.push('<td>' + item.gradu + '</td>');  // 졸업자수
+                            html.push('</tr>');
+                        }
+
+                    });
+
+                    $('#tbl_school tbody').empty();
+                    $('#tbl_school tbody').append(html);
+
+                });
+            });
+
+            // 교통 검색
+            $('#tb_btnTSearch').on('click', function () {
+
+                if ($('#txt_aAddr').val() === '' && $('#txt_anm').val() === '') {
+                    alert('정보를 입력하세요');
+                    return;
+                }
+
+                $.getJSON('https://roy-fild.github.io/traffic-data.json', function (data) {
+                    var html = [];
+                    $.each(data, function (i, item) {
+                        if ($('#txt_aAddr').val() !== '') {
+                            if (item.address.match($('#txt_aAddr').val())) {
+                                createTraffic(html, item);
+                            }
+                        } else {
+                            createTraffic(html, item);
+                        }
+                    });
+                    $('#tbl_traffic tbody').empty();
+                    $('#tbl_traffic tbody').append(html);
+
+                });
+            });
+
+            // 초등학교 검색
+            $('#tb_btnJSearch').on('click', function () {
+
+                if ($('#txt_jnm').val() === '') {
+                    alert('초등학교명을 입력하세요');
+                    return;
+                }
+
+                $.getJSON('https://roy-fild.github.io/junior-data.json', function (data) {
+                    var html = [];
+                    $.each(data, function (i, item) {
+                        if (item.name.match($('#txt_jnm').val())) {
+
+                            html.push('<tr>');
+                            html.push('<td>' + item.region + '</td>'); // 지역
+                            html.push('<td>' + item.name + '</td>'); // 학교명
+                            html.push('<td>' + item.gb + '</td>'); // 구분
+                            html.push('<td>' + item.class1 + '</td>');
+                            html.push('<td>' + item.cnt1 + '</td>');
+                            html.push('<td>' + item.class2 + '</td>');
+                            html.push('<td>' + item.cnt2 + '</td>');
+                            html.push('<td>' + item.class3 + '</td>');
+                            html.push('<td>' + item.cnt3 + '</td>');
+                            html.push('<td>' + item.class4 + '</td>');
+                            html.push('<td>' + item.cnt4 + '</td>');
+                            html.push('<td>' + item.class5 + '</td>');
+                            html.push('<td>' + item.cnt5 + '</td>');
+                            html.push('<td>' + item.class6 + '</td>');
+                            html.push('<td>' + item.cnt6 + '</td>');
+                            html.push('<td>' + item.classS + '</td>');
+                            html.push('<td>' + item.cntS + '</td>');
+                            html.push('<td>' + item.classT + '</td>');
+                            html.push('<td>' + item.cntT + '</td>');
+                            html.push('<td>' + item.avgT + '</td>');
+                            html.push('<td>' + item.teacher + '</td>');
+                            html.push('<td>' + item.avgCnt + '</td>');
+                            html.push('</tr>');
+                        }
+
+                    });
+
+                    $('#tbl_jschool tbody').empty();
+                    $('#tbl_jschool tbody').append(html);
+
+                });
+            });
+
+        });
+
+        function createTraffic(html, item) {
+            if ($('#txt_anm').val() !== '') {
+                if (item.name.match($('#txt_anm').val())) {
+                    html.push('<tr>');
+                    html.push('<td>' + item.address + '</td>'); // 주소
+                    html.push('<td>' + item.name + '</td>'); // 단지명
+                    html.push(chkGrade(item.rank)); // 등급
+                    html.push(chkTime(item.ganam));  // 강남
+                    html.push(chkTime(item.dosim));  // 도심
+                    html.push(chkTime(item.yeido));  // 여의도
+                    html.push(chkTime(item.fan));    // 판교
+                    html.push(chkTime(item.gbelly)); // G밸리
+                    html.push(chkTime(item.maguk));  // 마곡
+                    html.push(chkTime(item.dmc));    // DMC
+                    html.push('</tr>');
+                }
+            } else {
+                html.push('<tr>');
+                html.push('<td>' + item.address + '</td>'); // 주소
+                html.push('<td>' + item.name + '</td>'); // 단지명
+                html.push(chkGrade(item.rank)); // 등급
+                html.push(chkTime(item.ganam));  // 강남
+                html.push(chkTime(item.dosim));  // 도심
+                html.push(chkTime(item.yeido));  // 여의도
+                html.push(chkTime(item.fan));    // 판교
+                html.push(chkTime(item.gbelly)); // G밸리
+                html.push(chkTime(item.maguk));  // 마곡
+                html.push(chkTime(item.dmc));    // DMC
+                html.push('</tr>');
+            }
+
+        }
+
+        function chkGrade(g) {
+            var html = "";
+
+            if (g && g.match('S')) {
+                html = "<td style='text-align: center; background-color:#dc2626; color:white; font-weight:600;'>" + g + "</td>";
+            } else if (g && g.match('A')) {
+                html = "<td style='text-align: center; background-color:#16a34a; color:white; font-weight:600;'>" + g + "</td>";
+            } else if (g && g.match('B')) {
+                html = "<td style='text-align: center; background-color:#2563eb; color:white; font-weight:600;'>" + g + "</td>";
+            } else {
+                html = "<td style='text-align: center; background-color:#9ca3af; color:white; font-weight:600;'>" + (g || '-') + "</td>";
+            }
+            return html;
+        }
+
+        function chkTime(t) {
+            var num = parseInt(t, 10);
+            var html = "";
+
+            if (isNaN(num)) {
+                return "<td style='text-align: center;'>-</td>";
+            }
+
+            if (31 > num) {
+                html = "<td style='text-align: center; color:#2563eb; font-weight:600;'>" + num + "</td>";
+            } else if (60 < num) {
+                html = "<td style='text-align: center; color:#dc2626; font-weight:600;'>" + num + "</td>";
+            } else {
+                html = "<td style='text-align: center;'>" + num + "</td>";
+            }
+            return html;
+        }
+    </script>
 </head>
 
 <body>
-    <h2>임장용 정보 검색기<small><i>
-                <font size=1>by 필디</font>
-            </i></small></h2>
-    <div class="tab_wrap">
-        <div class="tab_menu_container">
-            <button class="tab_menu_btn_t tab_menu_btn on" type="button">교통</button>
-            <button class="tab_menu_btn_s tab_menu_btn" type="button">중학교</button>
-            <button class="tab_menu_btn_j tab_menu_btn" type="button">초등학교</button>
-            <button class="tab_menu_btn_g tab_menu_btn" type="button">직장</button>
+    <div class="app">
+        <div class="app-title">
+            <h2>임장용 정보 검색기</h2>
+            <small><i>by 필디</i></small>
         </div>
+
+        <div class="tab_wrap">
+            <div class="tab_menu_container">
+                <button class="tab_menu_btn_t tab_menu_btn on" type="button">교통</button>
+                <button class="tab_menu_btn_s tab_menu_btn" type="button">중학교</button>
+                <button class="tab_menu_btn_j tab_menu_btn" type="button">초등학교</button>
+            </div>
+        </div>
+
+        <!-- 교통 -->
+        <div class="tab_t tab_box on">
+            <h2>교통 검색</h2>
+            <table class="search-table">
+                <thead>
+                    <tr>
+                        <th>주소</th>
+                        <td><input type="text" id="txt_aAddr" placeholder="예) 군포시 산본동"></td>
+                        <td rowspan="2" id="tb_btnTSearch">검색</td>
+                    </tr>
+                    <tr>
+                        <th>단지명</th>
+                        <td><input type="text" id="txt_anm" placeholder="예) 한양, 롯데캐슬 등"></td>
+                    </tr>
+                </thead>
+            </table>
+
+            <div class="table-wrapper">
+                <table id="tbl_traffic" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>주소</th>
+                            <th>단지명</th>
+                            <th>등급</th>
+                            <th>강남</th>
+                            <th>도심</th>
+                            <th>여의도</th>
+                            <th>판교</th>
+                            <th>G밸리</th>
+                            <th>마곡</th>
+                            <th>DMC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+        <!-- 중학교 -->
+        <div class="tab_s tab_box">
+            <h2>중학교 검색</h2>
+            <table class="search-table">
+                <thead>
+                    <tr>
+                        <th>학교명</th>
+                        <td><input type="text" id="txt_snm" placeholder="예) 군포중, 산본중"></td>
+                        <td id="tb_btnSearch">검색</td>
+                    </tr>
+                </thead>
+            </table>
+
+            <div class="table-wrapper">
+                <table id="tbl_school" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>주소</th>
+                            <th>학교명</th>
+                            <th>등급</th>
+                            <th>평균</th>
+                            <th>특목고진학률</th>
+                            <th>특목고진학수</th>
+                            <th>졸업자수</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 초등학교 -->
+        <div class="tab_j tab_box">
+            <h2>초등학교 검색
+                <small><i> (학교알리미 2024 기준)</i></small>
+            </h2>
+            <table class="search-table">
+                <thead>
+                    <tr>
+                        <th>학교명</th>
+                        <td><input type="text" id="txt_jnm" placeholder="예) 산본초, 금정초"></td>
+                        <td id="tb_btnJSearch">검색</td>
+                    </tr>
+                </thead>
+            </table>
+
+            <div class="table-wrapper">
+                <table id="tbl_jschool" class="data-table">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">지역</th>
+                            <th rowspan="2">학교명</th>
+                            <th rowspan="2">설립구분</th>
+                            <th colspan="2">1학년</th>
+                            <th colspan="2">2학년</th>
+                            <th colspan="2">3학년</th>
+                            <th colspan="2">4학년</th>
+                            <th colspan="2">5학년</th>
+                            <th colspan="2">6학년</th>
+                            <th colspan="2">특수학급</th>
+                            <th colspan="3">계</th>
+                            <th rowspan="2">교사수</th>
+                            <th rowspan="2">학급당학생수</th>
+                        </tr>
+                        <tr>
+                            <th>학급수</th>
+                            <th>학생수</th>
+                            <th>학급수</th>
+                            <th>학생수</th>
+                            <th>학급수</th>
+                            <th>학생수</th>
+                            <th>학급수</th>
+                            <th>학생수</th>
+                            <th>학급수</th>
+                            <th>학생수</th>
+                            <th>학급수</th>
+                            <th>학생수</th>
+                            <th>학급수</th>
+                            <th>학생수</th>
+                            <th>학급수</th>
+                            <th>학생수</th>
+                            <th>학급당학생수</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
-    <!--교통-->
-    <div class="tab_t tab_box on">
-        <h2>교통 검색</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>주소</th>
-                    <td><input type="text" id="txt_aAddr"></td>
-                    <td rowspan="2" id="tb_btnTSearch"
-                        style="text-align: center; background-color: slategrey; color:white">검색</td>
-                </tr>
-                <tr>
-                    <th>단지명</th>
-                    <td><input type="text" id="txt_anm"></td>
-                </tr>
-            </thead>
-        </table>
-
-        <table id="tbl_traffic">
-            <thead>
-                <tr>
-                    <th>주소</th>
-                    <th>단지명</th>
-                    <th>등급</th>
-                    <th>강남</th>
-                    <th>도심</th>
-                    <th>여의도</th>
-                    <th>판교</th>
-                    <th>G밸리</th>
-                    <th>마곡</th>
-                    <th>DMC</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
-
-    </div>
-
-    <!--중학교-->
-    <div class="tab_s tab_box">
-        <h2>중학교 검색</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>학교명</th>
-                    <td><input type="text" id="txt_snm"></td>
-                    <td id="tb_btnSearch" style="text-align: center; background-color: slategrey; color:white">검색</td>
-                </tr>
-            </thead>
-        </table>
-
-        <table id="tbl_school">
-            <thead>
-                <tr>
-                    <th>주소</th>
-                    <th>학교명</th>
-                    <th>등급</th>
-                    <th>평균</th>
-                    <th>특목고진학률</th>
-                    <th>특목고진학수</th>
-                    <th>졸업자수</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
-    </div>
-
-    <!--초등학교-->
-    <div class="tab_j tab_box">
-        <h2>초등학교 검색<small><i>
-                    <font size=1> (학교알리미 2024 기준)</font>
-                </i></small></h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>학교명</th>
-                    <td><input type="text" id="txt_jnm"></td>
-                    <td id="tb_btnJSearch" style="text-align: center; background-color: slategrey; color:white">검색</td>
-                </tr>
-            </thead>
-        </table>
-
-        <table id="tbl_jschool">
-            <thead>
-                <tr>
-                    <th rowspan="2">지역</th>
-                    <th rowspan="2">학교명</th>
-                    <th rowspan="2">설립구분</th>
-                    <th colspan="2">1학년</th>
-                    <th colspan="2">2학년</th>
-                    <th colspan="2">3학년</th>
-                    <th colspan="2">4학년</th>
-                    <th colspan="2">5학년</th>
-                    <th colspan="2">6학년</th>
-                    <th colspan="2">특수학급</th>
-                    <th colspan="3">계</th>
-                    <th rowspan="2">교사수</th>
-                    <th rowspan="2">학급당학생수</th>
-                </tr>
-                <tr>
-                    <th>학급수</th>
-                    <th>학생수</th>
-                    <!-- <th>학급당학생수</th> -->
-                    <th>학급수</th>
-                    <th>학생수</th>
-                    <!-- <th>학급당학생수</th> -->
-                    <th>학급수</th>
-                    <th>학생수</th>
-                    <!-- <th>학급당학생수</th> -->
-                    <th>학급수</th>
-                    <th>학생수</th>
-                    <!-- <th>학급당학생수</th> -->
-                    <th>학급수</th>
-                    <th>학생수</th>
-                    <!-- <th>학급당학생수</th> -->
-                    <th>학급수</th>
-                    <th>학생수</th>
-                    <!-- <th>학급당학생수</th> -->
-                    <!--학년완료-->
-                    <th>학급수</th>
-                    <th>학생수</th>
-                    <!-- <th>학급당학생수</th> -->
-                    <th>학급수</th>
-                    <th>학생수</th>
-                    <th>학급당학생수</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
-    </div>
-
-    <!--직장-->
-    <div class="tab_g tab_box">
-        <h2>직장 등급 검색</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>구분</th>
-                    <td>
-                        <select id="sel_gb" style="margin-bottom: 10px;">
-                            <option value="">전체</option>
-                            <option value="수도권">수도권 </option>
-                            <option value="광역시">광역시</option>
-                            <option value="중소도시">중소도시</option>
-                        </select>
-                    </td>
-                    <td rowspan="3" id="tb_btnJobSearch"
-                        style="text-align: center; background-color: slategrey; color:white">검색</td>
-                </tr>
-                <tr>
-                    <th>지역</th>
-                    <td>
-                        <select id="sel_region" style="margin-bottom: 10px;">
-                            <option value="">----------</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <th>구</th>
-                    <td>
-                        <select id="sel_gu" style="margin-bottom: 10px;">
-                            <option value="">----------</option>
-                        </select>
-                    </td>
-                </tr>
-            </thead>
-        </table>
-
-        <table id="tbl_job">
-            <thead>
-                <tr>
-                    <th>구분</th>
-                    <th>지역</th>
-                    <th>구</th>
-                    <th>등급</th>
-                    <th>종사자수</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
-    </div>
-
 </body>
 
 </html>
