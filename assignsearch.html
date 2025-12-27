@@ -8,7 +8,7 @@
 
     <!-- jQuery -->
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- 스타일 -->
     <style>
         :root {
@@ -648,8 +648,12 @@
                         html.push('<th colspan="3">' + item.region + '</th>');
                         html.push('</tr>');
                         html.push('<tr>');
-                        html.push('<th colspan="2" class="copy-link-header" onClick=\'copyOnClipboard(' + JSON.stringify(item) + ')\'>'
-                            + item.name + '</th>');
+                        html.push(
+                            '<th colspan="2" class="copy-link-header" onclick="copyTableAsImage(this)">' +
+                            item.name +
+                            ' <span style="font-size:10px;color:#bfdbfe;"></span>' +
+                            '</th>'
+                        );
                         html.push('<th>' + item.gb + '</th>');
                         html.push('</tr>');
                         html.push('<tr>');
@@ -688,6 +692,48 @@
         function charTrim(v) {
             v = v.replace(/\s/gi, "");
             return v;
+        }
+
+        function copyTableAsImage(thElem) {
+            // 클릭한 th가 들어있는 table 찾기
+            const table = thElem.closest('table');
+            if (!table) {
+                alert('테이블을 찾을 수 없습니다.');
+                return;
+            }
+
+            // 스크롤 때문에 잘리는 걸 방지하려고 약간의 옵션 설정
+            html2canvas(table, {
+                backgroundColor: '#ffffff',
+                scale: 2   // 해상도 살짝 업
+            }).then(function (canvas) {
+
+                if (!navigator.clipboard || !navigator.clipboard.write) {
+                    // 브라우저가 이미지 클립보드 복사를 지원하지 않을 때: 새 창으로 이미지를 열기
+                    const dataUrl = canvas.toDataURL('image/png');
+                    const win = window.open();
+                    win.document.write('<img src="' + dataUrl + '" />');
+                    alert('이미지 복사를 지원하지 않는 브라우저입니다.\n새 창에서 이미지를 우클릭해 저장/복사해 주세요.');
+                    return;
+                }
+
+                canvas.toBlob(function (blob) {
+                    if (!blob) {
+                        alert('이미지 생성에 실패했습니다.');
+                        return;
+                    }
+                    const item = new ClipboardItem({ 'image/png': blob });
+
+                    navigator.clipboard.write([item])
+                        .then(function () {
+                            alert('상세정보 테이블이 이미지로 클립보드에 복사되었습니다.');
+                        })
+                        .catch(function (err) {
+                            console.error(err);
+                            alert('이미지 복사에 실패했습니다. (브라우저 권한을 확인해 주세요)');
+                        });
+                }, 'image/png');
+            });
         }
     </script>
 </head>
