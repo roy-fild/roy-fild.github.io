@@ -392,6 +392,11 @@
             const line = $('#selLine').val();
             const station = $('#txtStation').val();
 
+             if (!month) {
+                alert('사용월을 선택해 주세요.');
+                return;
+            }
+
             lastResult = dedupeRows(metroData.filter(r =>
                 r[monthField] === month &&
                 (!line || r[lineField] === line) &&
