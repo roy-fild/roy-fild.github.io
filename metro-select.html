@@ -232,7 +232,8 @@
                 font-size: 11px;
             }
 
-            th, td {
+            th,
+            td {
                 padding: 5px 6px;
             }
 
@@ -274,7 +275,8 @@
                 font-size: 10px;
             }
 
-            th, td {
+            th,
+            td {
                 padding: 4px 5px;
             }
 
@@ -392,7 +394,7 @@
             const line = $('#selLine').val();
             const station = $('#txtStation').val();
 
-             if (!month) {
+            if (!month) {
                 alert('사용월을 선택해 주세요.');
                 return;
             }
@@ -430,31 +432,84 @@
         }
 
         function exportToExcel() {
-            if (!lastResult.length) return alert("조회 후 실행하세요");
+            if (!lastResult.length) {
+                alert("조회 후 실행하세요");
+                return;
+            }
 
             const wb = XLSX.utils.book_new();
+            const rows = [];
 
-            const makeSheet = (title1, title2, cols, data) => {
-                const rows = [[ "", "", title1, "", title2, "" ],
-                              ["호선명","지하철역","07-08","08-09","18-19","19-20"]];
-                data.forEach(d => rows.push(cols(d)));
-                const ws = XLSX.utils.aoa_to_sheet(rows);
-                ws['!merges'] = [{s:{r:0,c:2},e:{r:0,c:3}},{s:{r:0,c:4},e:{r:0,c:5}}];
-                return ws;
-            };
+            // 1행 ─ 화면과 동일한 2줄 헤더 구조
+            rows.push([
+                "", "",              // 호선명, 지하철역
+                "승차", "",          // [A] 승차 (07~08 / 08~09)
+                "하차", "",          // [A] 하차 (18~19 / 19~20)
+                "하차", "",          // [B] 하차 (07~08 / 08~09)
+                "승차", ""           // [B] 승차 (18~19 / 19~20)
+            ]);
 
-            XLSX.utils.book_append_sheet(wb, makeSheet("승차","하차", r=>[
-                r[lineField],r[stationField],
-                r[timeFields.board_07_08],r[timeFields.board_08_09],
-                r[timeFields.alight_18_19],r[timeFields.alight_19_20]
-            ], lastResult), "A_승차&하차");
+            // 2행 ─ 상세 헤더
+            rows.push([
+                "호선명",
+                "지하철역",
 
-            XLSX.utils.book_append_sheet(wb, makeSheet("하차","승차", r=>[
-                r[lineField],r[stationField],
-                r[timeFields.alight_07_08],r[timeFields.alight_08_09],
-                r[timeFields.board_18_19],r[timeFields.board_19_20]
-            ], lastResult), "B_하차&승차");
+                // [A] 출근 승차
+                "07-08",
+                "08-09",
 
+                // [A] 퇴근 하차
+                "18-19",
+                "19-20",
+
+                // [B] 출근 하차
+                "07-08",
+                "08-09",
+
+                // [B] 퇴근 승차
+                "18-19",
+                "19-20"
+            ]);
+
+            // 데이터 행 ─ 화면 표시 순서 그대로
+            lastResult.forEach(r => {
+                rows.push([
+                    r[lineField],
+                    r[stationField],
+
+                    // [A] 출근 승차
+                    r[timeFields.board_07_08],
+                    r[timeFields.board_08_09],
+
+                    // [A] 퇴근 하차
+                    r[timeFields.alight_18_19],
+                    r[timeFields.alight_19_20],
+
+                    // [B] 출근 하차
+                    r[timeFields.alight_07_08],
+                    r[timeFields.alight_08_09],
+
+                    // [B] 퇴근 승차
+                    r[timeFields.board_18_19],
+                    r[timeFields.board_19_20]
+                ]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(rows);
+
+            // 병합(화면의 2줄 헤더와 동일)
+            ws['!merges'] = [
+                // [A] 승차(2칸)
+                { s: { r: 0, c: 2 }, e: { r: 0, c: 3 } },
+                // [A] 하차(2칸)
+                { s: { r: 0, c: 4 }, e: { r: 0, c: 5 } },
+                // [B] 하차(2칸)
+                { s: { r: 0, c: 6 }, e: { r: 0, c: 7 } },
+                // [B] 승차(2칸)
+                { s: { r: 0, c: 8 }, e: { r: 0, c: 9 } }
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, "화면_같이_출력");
             XLSX.writeFile(wb, "metro.xlsx");
         }
     </script>
@@ -472,10 +527,14 @@
             <div class="filter-card">
                 <div class="filter-grid">
                     <div class="filter-label">사용월*</div>
-                    <div><select id="selMonth"><option>로딩중</option></select></div>
+                    <div><select id="selMonth">
+                            <option>로딩중</option>
+                        </select></div>
 
                     <div class="filter-label">호선명</div>
-                    <div><select id="selLine"><option>전체</option></select></div>
+                    <div><select id="selLine">
+                            <option>전체</option>
+                        </select></div>
 
                     <div class="filter-label">지하철역</div>
                     <div><input id="txtStation" type="text" placeholder="역 이름 일부 입력 가능"></div>
@@ -496,8 +555,20 @@
                     <div class="table-scroll">
                         <table id="tblBoarding">
                             <thead>
-                                <tr><th></th><th></th><th colspan="2">승차</th><th colspan="2">하차</th></tr>
-                                <tr><th>호선명</th><th>지하철역</th><th>07-08</th><th>08-09</th><th>18-19</th><th>19-20</th></tr>
+                                <tr>
+                                    <th></th>
+                                    <th></th>
+                                    <th colspan="2">승차</th>
+                                    <th colspan="2">하차</th>
+                                </tr>
+                                <tr>
+                                    <th>호선명</th>
+                                    <th>지하철역</th>
+                                    <th>07-08</th>
+                                    <th>08-09</th>
+                                    <th>18-19</th>
+                                    <th>19-20</th>
+                                </tr>
                             </thead>
                             <tbody></tbody>
                         </table>
@@ -509,8 +580,20 @@
                     <div class="table-scroll">
                         <table id="tblAlighting">
                             <thead>
-                                <tr><th></th><th></th><th colspan="2">하차</th><th colspan="2">승차</th></tr>
-                                <tr><th>호선명</th><th>지하철역</th><th>07-08</th><th>08-09</th><th>18-19</th><th>19-20</th></tr>
+                                <tr>
+                                    <th></th>
+                                    <th></th>
+                                    <th colspan="2">하차</th>
+                                    <th colspan="2">승차</th>
+                                </tr>
+                                <tr>
+                                    <th>호선명</th>
+                                    <th>지하철역</th>
+                                    <th>07-08</th>
+                                    <th>08-09</th>
+                                    <th>18-19</th>
+                                    <th>19-20</th>
+                                </tr>
                             </thead>
                             <tbody></tbody>
                         </table>
@@ -521,4 +604,5 @@
         </div>
     </div>
 </body>
+
 </html>
