@@ -5,26 +5,223 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>아파트 교통 정보 비교 조회</title>
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        :root {
+            --primary: #2563eb;
+            --primary-soft: #eff6ff;
+            --border: #e5e7eb;
+            --bg: #f3f4f6;
+            --text-main: #111827;
+            --text-sub: #4b5563;
+            --danger: #ef4444;
+            --radius-lg: 14px;
+            --shadow-card: 0 10px 24px rgba(15, 23, 42, 0.12);
         }
 
-        /* 전체 배경 오버레이 */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+        }
+
+        .app {
+            max-width: 1180px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 18px 20px 22px;
+        }
+
+        .header-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .header-meta {
+            font-size: 11px;
+            color: var(--text-sub);
+        }
+
+        /* 검색 / 컨트롤 영역 */
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .select-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            flex: 1;
+        }
+
+        select {
+            padding: 6px 8px;
+            font-size: 13px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: #ffffff;
+            min-width: 110px;
+            outline: none;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25);
+        }
+
+        .excel-container {
+            display: flex;
+            gap: 6px;
+            margin-left: auto;
+        }
+
+        button {
+            border-radius: 999px;
+            padding: 7px 14px;
+            font-size: 12px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn-excel {
+            background: #16a34a;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(22, 163, 74, 0.35);
+        }
+
+        .btn-excel:hover {
+            background: #15803d;
+        }
+
+        .btn-reset {
+            background: #6b7280;
+            color: #f9fafb;
+        }
+
+        .btn-reset:hover {
+            background: #4b5563;
+        }
+
+        .note {
+            font-size: 11px;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
+
+        /* 결과 테이블 카드 */
+        .table-card {
+            margin-top: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: #ffffff;
+            overflow: hidden;
+        }
+
+        .table-scroll {
+            max-height: 70vh;
+            overflow: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        thead tr {
+            background: #111827;
+            color: #f9fafb;
+        }
+
+        th,
+        td {
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        th {
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            position: sticky;
+            top: 0;
+            background: #111827;
+            z-index: 1;
+        }
+
+        tbody tr:nth-child(even) td {
+            background: #f9fafb;
+        }
+
+        tbody tr:hover td {
+            background: #eef2ff;
+        }
+
+        /* 삭제 셀 */
+        td.delete-cell {
+            color: var(--danger);
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        td.delete-cell span {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            background: rgba(254, 226, 226, 0.7);
+            font-size: 11px;
+        }
+
+        td.delete-cell span:hover {
+            background: rgba(248, 113, 113, 0.9);
+            color: #fff;
+        }
+
+        /* 등급 컬러는 JS에서 인라인 스타일로 유지 */
+
+        /* 로딩 오버레이 */
         #loadingOverlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.7);
+            inset: 0;
+            background: rgba(15, 23, 42, 0.25);
             z-index: 9999;
             display: none;
         }
 
-        /* 스피너 + 텍스트 중앙 배치 */
         .loading-container {
             position: absolute;
             top: 50%;
@@ -33,21 +230,22 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            padding: 16px 18px;
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.4);
         }
 
-
-        /* 그라데이션 회전 링 */
         .spinner-gradient {
-            width: 60px;
-            height: 60px;
+            width: 42px;
+            height: 42px;
             border-radius: 50%;
-            background: conic-gradient(#3498db, #9b59b6, #e74c3c, #3498db);
-            -webkit-mask: radial-gradient(farthest-side, transparent 70%, black 71%);
-            mask: radial-gradient(farthest-side, transparent 70%, black 71%);
-            animation: spin 1s linear infinite;
+            background: conic-gradient(#2563eb, #9b59b6, #e74c3c, #2563eb);
+            -webkit-mask: radial-gradient(farthest-side, transparent 65%, black 66%);
+            mask: radial-gradient(farthest-side, transparent 65%, black 66%);
+            animation: spin 0.9s linear infinite;
         }
 
-        /* 회전 애니메이션 */
         @keyframes spin {
             0% {
                 transform: rotate(0deg);
@@ -58,203 +256,58 @@
             }
         }
 
-        /* 로딩 텍스트 */
         .loading-text {
-            margin-top: 10px;
-            font-size: 14px;
-            color: #333;
-            font-weight: bold;
+            margin-top: 8px;
+            font-size: 13px;
+            color: var(--text-main);
+            font-weight: 600;
         }
 
-        #loadingBar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 5px;
-            background-color: #f3f3f3;
-            z-index: 9999;
-        }
-
-        #loadingProgress {
-            height: 100%;
-            width: 0;
-            background-color: #4caf50;
-            transition: width 0.4s ease;
-        }
-
-        .red_btn {
-            background-color: red;
-            color: #e5e5e5;
-            margin-bottom: 5px;
-        }
-
-        .orange_btn {
-            background-color: #FFA500;
-            margin-bottom: 5px;
-        }
-
-        .yellow_btn {
-            background-color: yellow;
-            margin-bottom: 5px;
-        }
-
-        .green_btn {
-            background-color: green;
-            color: #e5e5e5;
-            margin-bottom: 5px;
-        }
-
-        .skyblue_btn {
-            background-color: skyblue;
-            margin-bottom: 5px;
-        }
-
-        .purple_btn {
-            background-color: rgb(128, 0, 128);
-            color: #e5e5e5;
-            margin-bottom: 5px;
-        }
-
-        .darkslategrey_btn {
-            background-color: rgb(47, 79, 79);
-            color: #e5e5e5;
-            margin-bottom: 5px;
-        }
-
-        .darkgoldenrod_btn {
-            background-color: rgb(233, 172, 17);
-            margin-bottom: 5px;
-        }
-
-        .olivedrab_btn {
-            background-color: rgb(107, 142, 35);
-            color: #e5e5e5;
-            margin-bottom: 5px;
-        }
-
-        .ligthseagreen_btn {
-            background-color: rgb(32, 178, 170);
-            margin-bottom: 5px;
-        }
-
-        .grey_btn {
-            background-color: rgb(128, 128, 128);
-            margin-bottom: 5px;
-        }
-
-        body {
-            padding: 1.5em;
-            background: #f5f5f5
-        }
-
-        table {
-            border: 1px #a39485 solid;
-            font-size: .9em;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, .25);
-            width: 100%;
-            border-collapse: collapse;
-            border-radius: 5px;
-            overflow: hidden;
-
-        }
-
-        th {
-            text-align: left;
-        }
-
-        thead {
-            font-weight: bold;
-            color: #fff;
-            background: #73685d;
-        }
-
-        td,
-        th {
-            padding: 1em .5em;
-            vertical-align: middle;
-            border-spacing: 1px;
-            border-style: none;
-            padding: 5px;
-        }
-
-        td {
-            border-bottom: 1px solid rgba(0, 0, 0, .1);
-            background: #fff;
-        }
-
-        a {
-            color: #73685d;
-        }
-
-        @media all and (max-width: 768px) {
-
-            table,
-            thead,
-            tbody,
-            th,
-            td,
-            tr {
-                display: block;
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .card {
+                padding: 14px;
             }
 
-            th {
-                text-align: right;
+            .header-title {
+                font-size: 17px;
             }
 
-            table {
-                position: relative;
-                padding-bottom: 0;
-                border: none;
-                box-shadow: 0 0 10px rgba(0, 0, 0, .2);
+            .control-row {
+                flex-direction: column;
+                align-items: stretch;
             }
 
-            thead {
-                float: left;
-                white-space: nowrap;
+            .select-group {
+                width: 100%;
             }
 
-            tbody {
-                overflow-x: auto;
-                overflow-y: hidden;
-                position: relative;
-                white-space: nowrap;
-            }
-
-            tr {
-                display: inline-block;
-                vertical-align: top;
-            }
-
-            th {
-                border-bottom: 1px solid #a39485;
-            }
-
-            td {
-                border-bottom: 1px solid #e5e5e5;
-            }
-
-            .hide {
-                display: none;
+            select {
+                flex: 1;
+                min-width: 0;
             }
 
             .excel-container {
-                position: fixed;
-                right: 10px;
-                top: 10px;
-                z-index: 1000;
-                /* 다른 요소 위에 표시 */
+                justify-content: flex-end;
             }
 
+            .table-scroll {
+                max-height: 60vh;
+            }
+
+            table {
+                font-size: 11px;
+            }
         }
     </style>
+
     <script>
         $(document).ready(function () {
 
+            // 컬럼 정렬
             $("th").css("cursor", "pointer");
 
             $("th").click(function () {
-
                 var table = $(this).closest("table");
                 var columnIndex = $(this).index();
                 var rows = table.find("tbody tr").toArray();
@@ -300,6 +353,7 @@
                 $('#sel_nm').empty().append('<option value="">----------</option>');
                 $('#tbl_aptInfo tbody').empty();
             });
+
             // 특정 td 클릭 시 해당 tr 삭제
             $("table").on("click", "td.delete-cell", function () {
                 $(this).closest("tr").remove();
@@ -318,7 +372,7 @@
                 }
 
                 let wb = XLSX.utils.book_new();
-                let ws = XLSX.utils.table_to_sheet(table, { sheetStubs: true });  // table을 시트로 변환하면서 stub을 추가
+                let ws = XLSX.utils.table_to_sheet(table, { sheetStubs: true });
 
                 // 열 너비 자동 조정
                 let colWidths = [];
@@ -339,18 +393,17 @@
                 }
                 ws['!cols'] = colWidths;
 
-                // 스타일 적용 (기본 적용 확인)
+                // 기본 폰트 스타일
                 Object.keys(ws).forEach(cell => {
                     if (ws[cell] && ws[cell].t) {
                         ws[cell].s = {
-                            font: { name: "Arial", sz: 10 }  // Arial 폰트 + 크기 10
+                            font: { name: "Arial", sz: 10 }
                         };
                     }
                 });
-                XLSX.utils.book_append_sheet(wb, ws, "아파트 정보");  // 시트 추가
+                XLSX.utils.book_append_sheet(wb, ws, "아파트 정보");
 
                 var fileNm = '교통정보' + getNowDate() + '.xlsx'
-                // 엑셀 파일로 저장
                 XLSX.writeFile(wb, fileNm);
             });
         });
@@ -358,29 +411,25 @@
         function getNowDate() {
             let today = new Date();
             let year = today.getFullYear();
-            let month = String(today.getMonth() + 1).padStart(2, "0"); // 1월 = 0이므로 +1
+            let month = String(today.getMonth() + 1).padStart(2, "0");
             let day = String(today.getDate()).padStart(2, "0");
-            return currentDate = `${year}${month}${day}`;
+            return `${year}${month}${day}`;
         }
 
-        // 로딩바 표시
         function showLoadingBar() {
             $("#loadingOverlay").fadeIn(100);
         }
 
-        // 로딩바 숨기기
         function hideLoadingBar() {
             $("#loadingOverlay").fadeOut(200);
         }
 
         function getTrafficData() {
 
-            showLoadingBar(); // 로딩바 시작
+            showLoadingBar();
 
             var id = $('#sel_nm').val();
             var nm = $('#sel_nm option:selected').text();
-
-            console.log(id);
 
             $.getJSON('https://roy-fild.github.io/json/traffic_id_data.json', function (data) {
 
@@ -391,8 +440,8 @@
                     if (item.ID == id) {
 
                         html += '<tr>';
-                        html += '<td class="delete-cell">[Delete]</td>'
-                        html += `<td style="text-align: center">${nm}</td>`;
+                        html += '<td class="delete-cell"><span>삭제</span></td>';
+                        html += `<td>${nm}</td>`;
                         html += chkGrade(item.grade);
                         html += addTimeColor(item.gn);
                         html += addTimeColor(item.city);
@@ -409,16 +458,16 @@
                 });
 
                 if (cnt == 0) {
-                    alert('등록된 교통정보가 없습니다.')
+                    alert('등록된 교통정보가 없습니다.');
                 }
 
-                hideLoadingBar(); // 로딩 완료 후 숨김
+                hideLoadingBar();
             });
         }
 
         function onSearch() {
 
-            showLoadingBar(); // 로딩바 시작
+            showLoadingBar();
 
             var si = $('#sel_si').val();
             var gu = $('#sel_gu').val();
@@ -436,14 +485,12 @@
                         // si 값과 일치하는 gu만 추가
                         $.each(data, function (i, item) {
                             if (item.si.includes(si)) {
-                                guSet.add(item.gu); // 중복 방지
+                                guSet.add(item.gu);
                             }
                         });
 
-
                         // 구
                         if (gu === "") {
-                            // 기존 옵션 초기화 후 새로운 옵션 추가
                             $('#sel_gu').empty().append('<option value="">선택하세요</option>');
                             guSet.forEach(function (gu) {
                                 $('#sel_gu').append(`<option value="${gu}">${gu}</option>`);
@@ -454,11 +501,10 @@
                         if (gu !== "" && dong === "") {
                             $.each(data, function (i, item) {
                                 if (item.si.includes(si) && item.gu.includes(gu)) {
-                                    dongSet.add(item.dong); // 중복 방지
+                                    dongSet.add(item.dong);
                                 }
                             });
 
-                            // 기존 옵션 초기화 후 새로운 옵션 추가
                             $('#sel_dong').empty().append('<option value="">선택하세요</option>');
                             dongSet.forEach(function (dong) {
                                 $('#sel_dong').append(`<option value="${dong}">${dong}</option>`);
@@ -478,7 +524,7 @@
                     }
                 });
 
-                hideLoadingBar(); // 로딩 완료 후 숨김
+                hideLoadingBar();
             });
         }
 
@@ -486,13 +532,13 @@
             var html = "";
 
             if (g.match('S')) {
-                html = "<td style='text-align: center; background-color:red; color:white' >" + g + "</td>"
+                html = "<td style='text-align: center; background-color:red; color:white'>" + g + "</td>";
             } else if (g.match('A')) {
-                html = "<td style='text-align: center; background-color:green; color:white' >" + g + "</td>"
+                html = "<td style='text-align: center; background-color:green; color:white'>" + g + "</td>";
             } else if (g.match('B')) {
-                html = "<td style='text-align: center; background-color:blue; color:white' >" + g + "</td>"
+                html = "<td style='text-align: center; background-color:blue; color:white'>" + g + "</td>";
             } else {
-                html = "<td style='text-align: center; background-color:grey; color:white' >" + g + "</td>"
+                html = "<td style='text-align: center; background-color:grey; color:white'>" + g + "</td>";
             }
             return html;
         }
@@ -500,74 +546,87 @@
         function addTimeColor(t) {
             var html = "";
             if (Number(t) < 31) {
-                html = "<td style='text-align: center; color:blue' >" + t + "</td>"
+                html = "<td style='text-align: center; color:blue'>" + t + "</td>";
             } else if (Number(t) > 60) {
-                html = "<td style='text-align: center; color:red' >" + t + "</td>"
+                html = "<td style='text-align: center; color:red'>" + t + "</td>";
             } else {
-                html = "<td style='text-align: center;' >" + t + "</td>"
+                html = "<td style='text-align: center;'>" + t + "</td>";
             }
             return html;
         }
-
     </script>
 </head>
 
 <body>
-    <h3>아파트 교통 정보 비교 조회<small><i>
-                <font size=1>by 필디</font>
-            </i></small></h3>
-    <div>
-        <!-- 로딩 오버레이 -->
-        <div id="loadingOverlay">
-            <div class="loading-container">
-                <div class="spinner-gradient"></div>
-                <div class="loading-text">데이터 불러오는 중...</div>
+    <div class="app">
+        <div class="card">
+            <div class="header-row">
+                <div class="header-title">아파트 교통 정보 비교 조회</div>
+                <div class="header-meta"><i>by 필디</i></div>
             </div>
+
+            <div class="control-row">
+                <div class="select-group">
+                    <select id="sel_si">
+                        <option value="">시/도 선택</option>
+                        <option value="서울">서울</option>
+                        <option value="경기">경기</option>
+                        <option value="인천">인천</option>
+                    </select>
+                    <select id="sel_gu">
+                        <option value="">구 선택</option>
+                    </select>
+                    <select id="sel_dong">
+                        <option value="">동 선택</option>
+                    </select>
+                    <select id="sel_nm">
+                        <option value="">아파트 선택</option>
+                    </select>
+                </div>
+
+                <div class="excel-container">
+                    <button id="excelDownload" class="btn-excel">EXCEL</button>
+                    <button id="btn_init" class="btn-reset">초기화</button>
+                </div>
+            </div>
+            <div class="note">
+                ※ 시/구/동을 차례대로 선택 후 아파트를 선택하면 아래에 교통 시간이 추가됩니다. (행의 삭제 버튼으로 개별 삭제 가능)
+            </div>
+
+            <div class="table-card">
+                <div class="table-scroll">
+                    <table id="tbl_aptInfo">
+                        <thead>
+                            <tr>
+                                <th style="width:80px"></th>
+                                <th>아파트</th>
+                                <th style="width:80px;">등급</th>
+                                <th>강남</th>
+                                <th>도심</th>
+                                <th>여의도</th>
+                                <th>판교</th>
+                                <th>G밸리</th>
+                                <th>마곡</th>
+                                <th>DMC</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
-
-
-        <select id="sel_si" style="margin-bottom: 10px;">
-            <option value="">선택하세요</option>
-            <option value="서울">서울</option>
-            <option value="경기">경기</option>
-            <option value="인천">인천</option>
-        </select>
-        <select id="sel_gu">
-            <option value="">----------</option>
-        </select>
-        <select id="sel_dong">
-            <option value="">----------</option>
-        </select>
-        <select id="sel_nm">
-            <option value="">----------</option>
-        </select>
-
-    </div>
-    <div class="excel-container" style="margin-left: 80%;">
-        <button id="excelDownload" class="green_btn">EXCEL</button>
-        <button id="btn_init" class="grey_btn" data-no-loading="true">초기화</button>
     </div>
 
-    <div id="result">
-        <table id="tbl_aptInfo">
-            <thead>
-                <tr>
-                    <th style="width:80px"></th>
-                    <th style="text-align:center">아파트</th>
-                    <th style="width:80px;text-align:center">등급</th>
-                    <th style="text-align:center">강남</th>
-                    <th style="text-align:center">도심</th>
-                    <th style="text-align:center">여의도</th>
-                    <th style="text-align:center">판교</th>
-                    <th style="text-align:center">G밸리</th>
-                    <th style="text-align:center">마곡</th>
-                    <th style="text-align:center">DMC</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
+    <!-- 로딩 오버레이 -->
+    <div id="loadingOverlay">
+        <div class="loading-container">
+            <div class="spinner-gradient"></div>
+            <div class="loading-text">데이터 불러오는 중...</div>
+        </div>
     </div>
+
 </body>
 
 </html>
