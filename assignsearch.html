@@ -1,347 +1,223 @@
 <!DOCTYPE html>
-<html>
-
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-
-<script>
-
-    $(function () {
-
-        // 검색
-        $('#tb_btnSearch').on('click', function () {
-            onSearch();
-        });
-
-        //모달 닫기
-        $('.modal-close').on('click', function (e) {
-            e.preventDefault();
-            const modal = $(this).parents('.dialog');
-            modal.fadeOut();
-        });
-
-        // 엔터키 이벤트
-        $("input").on("keyup", function (key) {
-            if (key.keyCode == 13) {
-                onSearch();
-            }
-        });
-
-    });
-
-    function onSearch() {
-        var add = $.trim($('#txt_addr').val());
-        var nm = $.trim($('#txt_nm').val());
-
-        if (add === '' && nm === '') {
-            alert('정보를 입력하세요');
-            return;
-        }
-
-        $.getJSON('https://roy-fild.github.io/assign-school.json', function (data) {
-            var html = [];
-            $.each(data, function (i, item) {
-                if (add !== '') {
-                    var itemAddr = charTrim(item.주소);
-                    add = charTrim(add);
-                    if (itemAddr.match(add)) {
-                        crateHtml(html, item);
-                    }
-                } else {
-                    crateHtml(html, item);
-                }
-
-            });
-
-            $('#tbl_school tbody').empty()
-            $('#tbl_school tbody').append(html);
-
-        });
-
-        setTimeout(function () {
-            if ($('#tbl_school tbody tr').length === 0) {
-                alert('검색된 내역이 없습니다');
-            }
-        }, 1500);
-
-
-    }
-
-    function crateHtml(html, item) {
-        var aptNm = charTrim(item.아파트명);
-        var nm = $.trim($('#txt_nm').val());
-        if (nm !== '') {
-            if (aptNm.match(nm)) {
-                createSchoolList(html, item);
-            }
-        } else {
-            createSchoolList(html, item);
-        }
-    }
-
-    function createSchoolList(html, item) {
-        html.push('<tr>');
-        html.push('<td>' + item.주소 + '</td>');
-        //html.push('<td>' + item.아파트명 + '</td>');
-        html.push('<td id="td_junior" style="color:#0000ff;cursor: pointer;" onClick=\'openAptDtl(' + JSON.stringify(item) + ')\'>'
-            + item.아파트명.replaceAll('|', '<br/>') + '</td>');
-        html.push('<td id="td_junior" style="color:#0000ff;cursor: pointer;" onClick=\'openDtl(' + JSON.stringify(item) + ')\'>'
-            + item.초등학교.replaceAll('|', '<br/>') + '</td>');
-        html.push('<td>' + item.중학교.replaceAll('|', '<br/>') + '</td>');
-        html.push('<td>' + item.고등학교.replaceAll('|', '<br/>') + '</td>');
-        html.push('</tr>');
-    }
-    function openAptDtl(item) {
-        var addr = item.주소.substr(0, item.주소.indexOf('시'));
-        addr = charTrim(removeChar(addr));
-        var nm = charTrim(item.아파트명);
-        nm = removeChar(nm);
-
-        $("#dialog").fadeIn();
-        $('#dialog .ct').empty();
-
-        $.getJSON('https://roy-fild.github.io/json/aptBaseInfo.json', function (data) {
-            var html = [];
-            $.each(data, function (i, item) {
-                if (removeChar(charTrim(item.lnno_adres)).match(addr) && removeChar(charTrim(item.apt_nm)).match(nm)) {
-                     html.push('<table>');         
-                    html.push('<tbody>');
-                    html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>아파트명</font></small></th>');
-                    html.push('<td><small><font size=2>'+ item.apt_nm + '</font></small></td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>연식</font></small></th>');
-                    html.push('<td><small><font size=2>'+item.use_aprv_yr + '</font></small></td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>세대수</font></small></th>');
-                    html.push('<td><small><font size=2>'+ item.nmhsh + '</font></small></td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>동수</font></small></th>');
-                    html.push('<td><small><font size=2>'+ item.dngct + '</font></small></td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>법정동주소</font></small></th>');
-                    html.push('<td><small><font size=2>'+ item.lnno_adres + '</font></small></td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>임대주택여부</font></small></th>');
-                    html.push('<td><small><font size=2>'+ replaceYn(item.let_hus_yn) + '</font></small></td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>복도유형</font></small></th>');
-                    html.push('<td><small><font size=2>'+ item.crrdpr_type + '</font></small></td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>난방유형</font></small></th>');
-                    html.push('<td><small><font size=2>'+ item.htng_mthd + '</font></small></td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>분양유형</font></small></th>');
-                    html.push('<td><small><font size=2>'+ item.ltout_type + '</font></small></td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>총주차대수</font></small></th>');
-                    html.push('<td><small><font size=2>'+ item.totprk_ecct + '</font></small></td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>지상주차</font></small></th>');
-                    html.push('<td><small><font size=2>'+ item.grnd_prkg_ecct + '</font></small></td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>지하주차</font></small></th>');
-                    html.push('<td><small><font size=2>'+ item.undgr_prkg_ecct + '</font></small></td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>시공기업</font></small></th>');
-                    html.push('<td><small><font size=2>'+ item.cnst_entrprs_nm + '</font></small></td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>CCTV수</font></small></th>');
-                    html.push('<td><small><font size=2>'+ item.cctv_cnt + '</font></small></td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<th bgcolor="#73685d" style="color:#fff;"><small><font size=2>복리시설</font></small></th>');
-                    html.push('<td><small><font size=2>'+ item.addi_wlf_fclt.replaceAll('|', ',') + '</font></small></td>');
-                    html.push('</tr>');
-                    html.push('</tbody>');
-                    html.push('</table>');
-                    html.push('</br>');
-
-                    $('#dialog .ct').append(html);
-                }
-            });
-        });
-
-    }
-    function replaceYn(v){
-        if(v === 0){
-            return '부'
-        }else if(v === 1){
-            return '여'
-        }else{
-            return '';
-        }
-    }
-
-
-    function removeChar(v){
-        v = v.replaceAll('(', '');
-        v = v.replaceAll(')', '');
-        return v;
-    }
-
-    function openDtl(item) {
-        $("#dialog").fadeIn();
-        var tArr = [];
-        var t = "";
-        var a = item.주소.substr(0, item.주소.indexOf('시'));
-
-        t = item.초등학교.replaceAll('통학', '');
-        t = t.replaceAll('공동', '');
-        t = t.replaceAll('구역', '');
-        t = t.replaceAll('|', '');
-
-        while (t.match('초')) {
-            tArr.push(t.substr(0, t.indexOf('초') + 1,));
-            t = t.substr(t.indexOf('초') + 1);
-        }
-
-        $('#dialog .ct').empty();
-
-        var dupArr = [...new Set(tArr)];    // 중복제거
-
-        for (var j = 0; j < dupArr.length; j++) {
-            createSchoolInfo(a, dupArr[j]);
-        }
-    }
-
-    function copyOnClipboard(item) {
-        var rate = (Number(item.cnt1) / Number(item.cnt6)) * 100;
-        var v = "";
-
-        v += item.name + '\t' + item.gb + '\r\n';
-        v += item.cntT + '\t' + item.avgT + '\t' + rate.toFixed(2) + '%\r\n'
-        v += '1학년\t' + item.class1 + '\t' + item.cnt1 + '\r\n';
-        v += '2학년\t' + item.class2 + '\t' + item.cnt2 + '\r\n';
-        v += '3학년\t' + item.class3 + '\t' + item.cnt3 + '\r\n';
-        v += '4학년\t' + item.class4 + '\t' + item.cnt4 + '\r\n';
-        v += '5학년\t' + item.class5 + '\t' + item.cnt5 + '\r\n';
-        v += '6학년\t' + item.class6 + '\t' + item.cnt6 + '\r\n';
-
-        $('#data-area').css('display', 'block');
-        $('#data-area').val(v);
-
-
-        // input에 담긴 데이터를 선택
-        $('#data-area').select();
-
-        //  clipboard에 데이터 복사
-        var copy = document.execCommand('copy');
-
-        $('#data-area').css('display', 'none');
-
-        alert('클립보드 복사완료');
-    }
-
-    function createSchoolInfo(a, t) {
-        var html = [];
-        $.getJSON('https://roy-fild.github.io/junior-data.json', function (data) {
-
-            $.each(data, function (i, item) {
-                if (item.region.match(a) && item.name.match(t)) {
-
-                    var rate = (Number(item.cnt1) / Number(item.cnt6)) * 100;
-
-                    html.push('<table>');
-                    html.push('<thead>');
-                    html.push('<tr>');
-                    html.push('<th colspan="3" bgcolor="#CD853F" style="color:#fff;text-align:center;padding-bottom: 2px;padding-top: 2px;">' + item.region + '</th>'); // 주소
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<th colspan="2" bgcolor="#73685d" style="color:#fff;text-align:center;padding-bottom: 2px;padding-top: 2px;cursor: pointer;"onClick=\'copyOnClipboard(' + JSON.stringify(item) + ')\'>' + item.name + '</th>'); // 학교명
-                    html.push('<th bgcolor="#73685d" style="color:#fff;text-align:center;padding-bottom: 2px;padding-top: 2px;">' + item.gb + '</th>'); // 구분
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<th style="text-align:center;padding-bottom: 2px;padding-top: 2px;" bgcolor="#dcdcdc"><small><font size=1>학생수</font></small></th>');
-                    html.push('<th style="text-align:center;padding-bottom: 2px;padding-top: 2px;" bgcolor="#dcdcdc"><small><font size=1>학급당<br/>학생수</font></small></th>');
-                    html.push('<th style="text-align:center;padding-bottom: 2px;padding-top: 2px;" bgcolor="#dcdcdc"><small><font size=1>저학년대비<br/>고학년비율</font></small></th>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<td style="text-align:center">' + item.cntT + '</td>');
-                    html.push('<td style="text-align:center">' + item.avgT + '</td>');
-                    html.push('<td style="text-align:center">' + rate.toFixed(2) + '%</td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<th bgcolor="#e27979" style="color:#fff;text-align:center;padding-bottom: 2px;padding-top: 2px;">' + "학년" + '</th>');
-                    html.push('<th bgcolor="#e27979" style="color:#fff;text-align:center;padding-bottom: 2px;padding-top: 2px;">' + "학급수" + '</th>');
-                    html.push('<th bgcolor="#e27979" style="color:#fff;text-align:center;padding-bottom: 2px;padding-top: 2px;">' + "학생수" + '</th>');
-                    html.push('</tr>');
-                    html.push('</thead>');
-                    html.push('<tbody>');
-                    html.push('<tr>');
-                    html.push('<td style="text-align:center">' + "1학년" + '</td>');
-                    html.push('<td style="text-align:center">' + item.class1 + '</td>');
-                    html.push('<td style="text-align:center">' + item.cnt1 + '</td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<td style="text-align:center">' + "2학년" + '</td>');
-                    html.push('<td style="text-align:center">' + item.class2 + '</td>');
-                    html.push('<td style="text-align:center">' + item.cnt2 + '</td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<td style="text-align:center">' + "3학년" + '</td>');
-                    html.push('<td style="text-align:center">' + item.class3 + '</td>');
-                    html.push('<td style="text-align:center">' + item.cnt3 + '</td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<td style="text-align:center">' + "4학년" + '</td>');
-                    html.push('<td style="text-align:center">' + item.class4 + '</td>');
-                    html.push('<td style="text-align:center">' + item.cnt4 + '</td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<td style="text-align:center">' + "5학년" + '</td>');
-                    html.push('<td style="text-align:center">' + item.class5 + '</td>');
-                    html.push('<td style="text-align:center">' + item.cnt5 + '</td>');
-                    html.push('</tr>');
-                    html.push('<tr>');
-                    html.push('<td style="text-align:center">' + "6학년" + '</td>');
-                    html.push('<td style="text-align:center">' + item.class6 + '</td>');
-                    html.push('<td style="text-align:center">' + item.cnt6 + '</td>');
-                    html.push('</tr>');
-
-                    html.push('</tbody>');
-                    html.push('</table>');
-                    html.push('</br>');
-
-                    $('#dialog .ct').append(html);
-                }
-            });
-
-        });
-    }
-
-    function charTrim(v) {
-        v = v.replace(/\s/gi, "");
-        return v;
-    }
-
-</script>
+<html lang="ko">
 
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
     <title>배정 학군 조회</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- jQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+    <!-- 스타일 -->
     <style>
+        :root {
+            --primary: #2563eb;
+            --primary-soft: #eff4ff;
+            --border: #e5e7eb;
+            --bg: #f3f4f6;
+            --text-main: #111827;
+            --text-sub: #4b5563;
+            --radius-lg: 14px;
+            --shadow-card: 0 10px 24px rgba(15, 23, 42, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+        }
+
+        .app {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 18px 20px 22px;
+        }
+
+        .header-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .header-meta {
+            font-size: 11px;
+            color: var(--text-sub);
+        }
+
+        /* 검색 영역 */
+        .search-card {
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: #f9fafb;
+            padding: 10px 12px 12px;
+            margin-bottom: 12px;
+        }
+
+        .search-grid {
+            display: grid;
+            grid-template-columns: 80px minmax(0, 1fr) 80px minmax(0, 1fr) auto;
+            gap: 8px 10px;
+            align-items: center;
+        }
+
+        .search-label {
+            font-size: 13px;
+            color: var(--text-sub);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 7px 9px;
+            font-size: 13px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            outline: none;
+            background: #ffffff;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25);
+        }
+
+        #tb_btnSearch {
+            border-radius: 999px;
+            background: var(--primary);
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 7px 16px;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+            white-space: nowrap;
+        }
+
+        #tb_btnSearch:hover {
+            background: #1d4ed8;
+        }
+
+        #tb_btnSearch:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 3px rgba(37, 99, 235, 0.4);
+        }
+
+        .source-note {
+            margin-top: 6px;
+            font-size: 11px;
+            color: var(--text-sub);
+        }
+
+        /* 결과 테이블 */
+        .table-container {
+            margin-top: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: #ffffff;
+            overflow: hidden;
+        }
+
+        .table-scroll {
+            max-height: 68vh;
+            overflow: auto;
+        }
+
+        table.result-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        table.result-table thead {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        table.result-table thead tr {
+            background: #111827;
+        }
+
+        table.result-table th,
+        table.result-table td {
+            padding: 6px 8px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            vertical-align: top;
+        }
+
+        table.result-table th {
+            color: #f9fafb;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        table.result-table tbody tr:nth-child(even) {
+            background: #f9fafb;
+        }
+
+        table.result-table tbody tr:hover {
+            background: #eef2ff;
+        }
+
+        /* 링크 chip (단지명 / 초등학교 내 각각 항목) */
+        .link-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            border: 1px solid #dbeafe;
+            background: #eff6ff;
+            font-size: 11px;
+            color: #1d4ed8;
+            cursor: pointer;
+            margin-bottom: 2px;
+        }
+
+        .link-chip::before {
+            content: "🔍";
+            font-size: 11px;
+        }
+
+        .link-chip:hover {
+            background: #dbeafe;
+            border-color: #bfdbfe;
+        }
+
+        /* 모달 디자인 */
         .dialog {
             display: none;
             position: fixed;
             left: 0;
             top: 0;
-            z-index: 10;
+            z-index: 50;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(15, 23, 42, 0.55);
         }
 
         .dialog>.tb {
@@ -350,184 +226,534 @@
             align-items: center;
             width: 100%;
             height: 100%;
+            padding: 12px;
         }
 
         .dialog>.tb .inner {
-            width: 60%;
-            padding: 20px;
-            background: #fff;
-            ;
-            border-radius: 16px;
+            width: fit-content;
+            max-width: 92vw;
+            min-width: 0;
+            padding: 0;
+            /* ← 여백 제거 */
+            border-radius: 10px;
+            /* 둥글기만 유지 */
         }
 
         .dialog .top {
             display: flex;
-            align-item: center;
-            border-bottom: 1px solid #ddd;
+            align-items: center;
             justify-content: space-between;
-            padding-bottom: 15px;
-            margin-bottom: 15px;
+            padding: 10px 16px;
+            background: linear-gradient(90deg, #1d4ed8, #2563eb);
+            color: #ffffff;
         }
 
         .dialog .title {
-            font-weight: bold;
-            font-size: 20px;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .modal-close {
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+            padding: 2px 8px;
+            border-radius: 999px;
+            transition: background 0.15s;
+        }
+
+        .modal-close:hover {
+            background: rgba(15, 23, 42, 0.25);
         }
 
         .dialog .ct {
-            max-height: 60vh;
-            height: 60vh;
+            padding: 10px 14px 14px;
+            max-height: 70vh;
             overflow-y: auto;
-            border-bottom-left-radius: 10px;
-            border-bottom-right-radius: 10px;
-            background-color: #fff;
+            background: #f9fafb;
         }
 
-        body {
-            padding: 1.5em;
-            background: #f5f5f5
-        }
-
-        table {
-            border: 1px #a39485 solid;
-            font-size: .9em;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, .25);
+        /* 모달 내부 테이블: 전체 디자인과 통일 */
+        .dialog .ct table {
+            border: 1px solid var(--border);
+            font-size: 11px;
             width: 100%;
             border-collapse: collapse;
-            border-radius: 5px;
+            border-radius: 10px;
             overflow: hidden;
-
+            box-shadow: 0 2px 5px rgba(15, 23, 42, .12);
+            background: #ffffff;
+            margin-bottom: 10px;
         }
 
-        th {
-            text-align: left;
+        .dialog .ct th,
+        .dialog .ct td {
+            padding: 4px 6px;
+            border-bottom: 1px solid #e5e7eb;
         }
 
-        thead {
-            font-weight: bold;
-            color: #fff;
-            background: #73685d;
+        .dialog .ct thead tr:first-child th {
+            background: #111827 !important;
+            color: #f9fafb !important;
         }
 
-        td,
-        th {
-            padding: 1em .5em;
-            vertical-align: middle;
-            border-spacing: 1px;
-            border-style: none;
-            padding: 5px;
+        .dialog .ct thead tr:nth-child(2) th {
+            background: #2563eb !important;
+            color: #f9fafb !important;
         }
 
-        td {
-            border-bottom: 1px solid rgba(0, 0, 0, .1);
-            background: #fff;
+        .dialog .ct thead tr:nth-child(3) th {
+            background: #e5e7eb !important;
+            color: #374151 !important;
         }
 
-        a {
-            color: #73685d;
+        .dialog .ct tbody tr:nth-child(odd) td {
+            background: #ffffff;
         }
 
-        @media all and (max-width: 768px) {
+        .dialog .ct tbody tr:nth-child(even) td {
+            background: #f9fafb;
+        }
 
-            table,
-            thead,
-            tbody,
-            th,
-            td,
-            tr {
-                display: block;
+        .dialog .ct tbody tr:hover td {
+            background: #eef2ff;
+        }
+
+        /* copyOnClipboard 클릭 영역도 링크 느낌 */
+        .copy-link-header {
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .app {
+                padding: 10px;
             }
 
-            th {
-                text-align: right;
+            .card {
+                padding: 14px;
             }
 
-            table {
-                position: relative;
-                padding-bottom: 0;
-                border: none;
-                box-shadow: 0 0 10px rgba(0, 0, 0, .2);
+            .header-title {
+                font-size: 17px;
             }
 
-            thead {
-                float: left;
-                white-space: nowrap;
+            .search-grid {
+                grid-template-columns: 70px minmax(0, 1fr);
+                grid-auto-rows: auto;
             }
 
-            tbody {
-                overflow-x: auto;
-                overflow-y: hidden;
-                position: relative;
-                white-space: nowrap;
+            .search-grid> :nth-child(5) {
+                grid-column: 1 / -1;
+                justify-self: flex-end;
+                margin-top: 4px;
             }
 
-            tr {
-                display: inline-block;
-                vertical-align: top;
+            .table-scroll {
+                max-height: 60vh;
             }
 
-            th {
-                border-bottom: 1px solid #a39485;
+            table.result-table {
+                font-size: 11px;
             }
 
-            td {
-                border-bottom: 1px solid #e5e5e5;
+            .dialog>.tb .inner {
+                border-radius: 16px;
             }
-
-
         }
     </style>
+
+    <!-- 스크립트 -->
+    <script>
+        $(function () {
+            // 검색 버튼
+            $('#tb_btnSearch').on('click', function () {
+                onSearch();
+            });
+
+            // 모달 닫기
+            $('.modal-close').on('click', function (e) {
+                e.preventDefault();
+                $(this).closest('.dialog').fadeOut();
+            });
+
+            // 엔터키 검색
+            $("input").on("keyup", function (key) {
+                if (key.keyCode == 13) {
+                    onSearch();
+                }
+            });
+
+            // 동적으로 만들어지는 chip에 이벤트 위임
+            $(document).on('click', '.js-apt-link', function (e) {
+                e.preventDefault();
+                const jsonStr = decodeURIComponent($(this).data('item'));
+                const item = JSON.parse(jsonStr);
+                openAptDtl(item);
+            });
+
+            $(document).on('click', '.js-school-link', function (e) {
+                e.preventDefault();
+                const jsonStr = decodeURIComponent($(this).data('item'));
+                const item = JSON.parse(jsonStr);
+                openDtl(item);
+            });
+        });
+
+        function onSearch() {
+            var add = $.trim($('#txt_addr').val());
+            var nm = $.trim($('#txt_nm').val());
+
+            if (add === '' && nm === '') {
+                alert('정보를 입력하세요');
+                return;
+            }
+
+            $.getJSON('https://roy-fild.github.io/assign-school.json', function (data) {
+                var html = [];
+                $.each(data, function (i, item) {
+                    if (add !== '') {
+                        var itemAddr = charTrim(item.주소);
+                        add = charTrim(add);
+                        if (itemAddr.match(add)) {
+                            crateHtml(html, item);
+                        }
+                    } else {
+                        crateHtml(html, item);
+                    }
+                });
+
+                $('#tbl_school tbody').empty();
+                $('#tbl_school tbody').append(html);
+            });
+
+            setTimeout(function () {
+                if ($('#tbl_school tbody tr').length === 0) {
+                    alert('검색된 내역이 없습니다');
+                }
+            }, 1500);
+        }
+
+        function crateHtml(html, item) {
+            var aptNm = charTrim(item.아파트명);
+            var nm = $.trim($('#txt_nm').val());
+            if (nm !== '') {
+                if (aptNm.match(nm)) {
+                    createSchoolList(html, item);
+                }
+            } else {
+                createSchoolList(html, item);
+            }
+        }
+
+        function createSchoolList(html, item) {
+            const encoded = encodeURIComponent(JSON.stringify(item));
+
+            // 단지명 chip 리스트
+            const aptList = (item.아파트명 || '').split('|').filter(v => v);
+            let aptHtml = '';
+            aptList.forEach(function (name, idx) {
+                aptHtml += '<span class="link-chip js-apt-link" data-item="' + encoded + '">'
+                    + name.trim()
+                    + '</span>';
+                if (idx < aptList.length - 1) {
+                    aptHtml += '<br/>';
+                }
+            });
+
+            // 초등학교 chip 리스트
+            const schList = (item.초등학교 || '').split('|').filter(v => v);
+            let schHtml = '';
+            schList.forEach(function (name, idx) {
+                schHtml += '<span class="link-chip js-school-link" data-item="' + encoded + '">'
+                    + name.trim()
+                    + '</span>';
+                if (idx < schList.length - 1) {
+                    schHtml += '<br/>';
+                }
+            });
+
+            html.push('<tr>');
+            html.push('<td>' + item.주소 + '</td>');
+            html.push('<td>' + aptHtml + '</td>');
+            html.push('<td>' + schHtml + '</td>');
+            html.push('<td>' + item.중학교.replaceAll('|', '<br/>') + '</td>');
+            html.push('<td>' + item.고등학교.replaceAll('|', '<br/>') + '</td>');
+            html.push('</tr>');
+        }
+
+        function openAptDtl(item) {
+            var addr = item.주소.substr(0, item.주소.indexOf('시'));
+            addr = charTrim(removeChar(addr));
+            var nm = charTrim(item.아파트명);
+            nm = removeChar(nm);
+
+            $("#dialog").fadeIn();
+            $('#dialog .ct').empty();
+
+            $.getJSON('https://roy-fild.github.io/json/aptBaseInfo.json', function (data) {
+                var html = [];
+                $.each(data, function (i, apt) {
+                    if (removeChar(charTrim(apt.lnno_adres)).match(addr) &&
+                        removeChar(charTrim(apt.apt_nm)).match(nm)) {
+
+                        html.push('<table>');
+                        html.push('<tbody>');
+                        html.push('<tr>');
+                        html.push('<th><small><font size=2>아파트명</font></small></th>');
+                        html.push('<td><small><font size=2>' + apt.apt_nm + '</font></small></td>');
+                        html.push('</tr>');
+                        html.push('<tr>');
+                        html.push('<th><small><font size=2>연식</font></small></th>');
+                        html.push('<td><small><font size=2>' + apt.use_aprv_yr + '</font></small></td>');
+                        html.push('</tr>');
+                        html.push('<tr>');
+                        html.push('<th><small><font size=2>세대수</font></small></th>');
+                        html.push('<td><small><font size=2>' + apt.nmhsh + '</font></small></td>');
+                        html.push('</tr>');
+                        html.push('<tr>');
+                        html.push('<th><small><font size=2>동수</font></small></th>');
+                        html.push('<td><small><font size=2>' + apt.dngct + '</font></small></td>');
+                        html.push('</tr>');
+                        html.push('<tr>');
+                        html.push('<th><small><font size=2>법정동주소</font></small></th>');
+                        html.push('<td><small><font size=2>' + apt.lnno_adres + '</font></small></td>');
+                        html.push('</tr>');
+                        html.push('<tr>');
+                        html.push('<th><small><font size=2>임대주택여부</font></small></th>');
+                        html.push('<td><small><font size=2>' + replaceYn(apt.let_hus_yn) + '</font></small></td>');
+                        html.push('</tr>');
+                        html.push('<tr>');
+                        html.push('<th><small><font size=2>복도유형</font></small></th>');
+                        html.push('<td><small><font size=2>' + apt.crrdpr_type + '</font></small></td>');
+                        html.push('</tr>');
+                        html.push('<tr>');
+                        html.push('<th><small><font size=2>난방유형</font></small></th>');
+                        html.push('<td><small><font size=2>' + apt.htng_mthd + '</font></small></td>');
+                        html.push('</tr>');
+                        html.push('<tr>');
+                        html.push('<th><small><font size=2>분양유형</font></small></th>');
+                        html.push('<td><small><font size=2>' + apt.ltout_type + '</font></small></td>');
+                        html.push('</tr>');
+                        html.push('<tr>');
+                        html.push('<th><small><font size=2>총주차대수</font></small></th>');
+                        html.push('<td><small><font size=2>' + apt.totprk_ecct + '</font></small></td>');
+                        html.push('</tr>');
+                        html.push('<tr>');
+                        html.push('<th><small><font size=2>지상주차</font></small></th>');
+                        html.push('<td><small><font size=2>' + apt.grnd_prkg_ecct + '</font></small></td>');
+                        html.push('</tr>');
+                        html.push('<tr>');
+                        html.push('<th><small><font size=2>지하주차</font></small></th>');
+                        html.push('<td><small><font size=2>' + apt.undgr_prkg_ecct + '</font></small></td>');
+                        html.push('</tr>');
+                        html.push('<tr>');
+                        html.push('<th><small><font size=2>시공기업</font></small></th>');
+                        html.push('<td><small><font size=2>' + apt.cnst_entrprs_nm + '</font></small></td>');
+                        html.push('</tr>');
+                        html.push('<tr>');
+                        html.push('<th><small><font size=2>CCTV수</font></small></th>');
+                        html.push('<td><small><font size=2>' + apt.cctv_cnt + '</font></small></td>');
+                        html.push('</tr>');
+                        html.push('<tr>');
+                        html.push('<th><small><font size=2>복리시설</font></small></th>');
+                        html.push('<td><small><font size=2>' + (apt.addi_wlf_fclt || '').replaceAll('|', ',') + '</font></small></td>');
+                        html.push('</tr>');
+                        html.push('</tbody>');
+                        html.push('</table>');
+
+                        $('#dialog .ct').append(html.join(''));
+                    }
+                });
+            });
+        }
+
+        function replaceYn(v) {
+            if (v === 0) {
+                return '부'
+            } else if (v === 1) {
+                return '여'
+            } else {
+                return '';
+            }
+        }
+
+        function removeChar(v) {
+            v = v.replaceAll('(', '');
+            v = v.replaceAll(')', '');
+            return v;
+        }
+
+        function openDtl(item) {
+            $("#dialog").fadeIn();
+            var tArr = [];
+            var t = "";
+            var a = item.주소.substr(0, item.주소.indexOf('시'));
+
+            t = item.초등학교.replaceAll('통학', '');
+            t = t.replaceAll('공동', '');
+            t = t.replaceAll('구역', '');
+            t = t.replaceAll('|', '');
+
+            while (t.match('초')) {
+                tArr.push(t.substr(0, t.indexOf('초') + 1,));
+                t = t.substr(t.indexOf('초') + 1);
+            }
+
+            $('#dialog .ct').empty();
+
+            var dupArr = [...new Set(tArr)];    // 중복제거
+
+            for (var j = 0; j < dupArr.length; j++) {
+                createSchoolInfo(a, dupArr[j]);
+            }
+        }
+
+        function copyOnClipboard(item) {
+            var rate = (Number(item.cnt1) / Number(item.cnt6)) * 100;
+            var v = "";
+
+            v += item.name + '\t' + item.gb + '\r\n';
+            v += item.cntT + '\t' + item.avgT + '\t' + rate.toFixed(2) + '%\r\n'
+            v += '1학년\t' + item.class1 + '\t' + item.cnt1 + '\r\n';
+            v += '2학년\t' + item.class2 + '\t' + item.cnt2 + '\r\n';
+            v += '3학년\t' + item.class3 + '\t' + item.cnt3 + '\r\n';
+            v += '4학년\t' + item.class4 + '\t' + item.cnt4 + '\r\n';
+            v += '5학년\t' + item.class5 + '\t' + item.cnt5 + '\r\n';
+            v += '6학년\t' + item.class6 + '\t' + item.cnt6 + '\r\n';
+
+            $('#data-area').css('display', 'block');
+            $('#data-area').val(v);
+
+            $('#data-area').select();
+            document.execCommand('copy');
+
+            $('#data-area').css('display', 'none');
+
+            alert('클립보드 복사완료');
+        }
+
+        function createSchoolInfo(a, t) {
+            var html = [];
+            $.getJSON('https://roy-fild.github.io/junior-data.json', function (data) {
+
+                $.each(data, function (i, item) {
+                    if (item.region.match(a) && item.name.match(t)) {
+
+                        var rate = (Number(item.cnt1) / Number(item.cnt6)) * 100;
+
+                        html.push('<table>');
+                        html.push('<thead>');
+                        html.push('<tr>');
+                        html.push('<th colspan="3">' + item.region + '</th>');
+                        html.push('</tr>');
+                        html.push('<tr>');
+                        html.push('<th colspan="2" class="copy-link-header" onClick=\'copyOnClipboard(' + JSON.stringify(item) + ')\'>'
+                            + item.name + '</th>');
+                        html.push('<th>' + item.gb + '</th>');
+                        html.push('</tr>');
+                        html.push('<tr>');
+                        html.push('<th><small><font size=1>학생수</font></small></th>');
+                        html.push('<th><small><font size=1>학급당<br/>학생수</font></small></th>');
+                        html.push('<th><small><font size=1>저학년대비<br/>고학년비율</font></small></th>');
+                        html.push('</tr>');
+                        html.push('</thead>');
+                        html.push('<tbody>');
+                        html.push('<tr>');
+                        html.push('<td style="text-align:center">' + item.cntT + '</td>');
+                        html.push('<td style="text-align:center">' + item.avgT + '</td>');
+                        html.push('<td style="text-align:center">' + rate.toFixed(2) + '%</td>');
+                        html.push('</tr>');
+                        html.push('<tr>');
+                        html.push('<th>학년</th>');
+                        html.push('<th>학급수</th>');
+                        html.push('<th>학생수</th>');
+                        html.push('</tr>');
+                        html.push('<tr><td style="text-align:center">1학년</td><td style="text-align:center">' + item.class1 + '</td><td style="text-align:center">' + item.cnt1 + '</td></tr>');
+                        html.push('<tr><td style="text-align:center">2학년</td><td style="text-align:center">' + item.class2 + '</td><td style="text-align:center">' + item.cnt2 + '</td></tr>');
+                        html.push('<tr><td style="text-align:center">3학년</td><td style="text-align:center">' + item.class3 + '</td><td style="text-align:center">' + item.cnt3 + '</td></tr>');
+                        html.push('<tr><td style="text-align:center">4학년</td><td style="text-align:center">' + item.class4 + '</td><td style="text-align:center">' + item.cnt4 + '</td></tr>');
+                        html.push('<tr><td style="text-align:center">5학년</td><td style="text-align:center">' + item.class5 + '</td><td style="text-align:center">' + item.cnt5 + '</td></tr>');
+                        html.push('<tr><td style="text-align:center">6학년</td><td style="text-align:center">' + item.class6 + '</td><td style="text-align:center">' + item.cnt6 + '</td></tr>');
+                        html.push('</tbody>');
+                        html.push('</table>');
+
+                        $('#dialog .ct').append(html.join(''));
+                    }
+                });
+
+            });
+        }
+
+        function charTrim(v) {
+            v = v.replace(/\s/gi, "");
+            return v;
+        }
+    </script>
 </head>
 
 <body>
-    <h2>배정 학군 조회<small><i>
-                <font size=1>by 필디</font>
-            </i></small></h2>
+    <div class="app">
+        <div class="card">
+            <div class="header-row">
+                <div class="header-title">배정 학군 조회</div>
+                <div class="header-meta"><i>by 필디 · 학교알리미 2024 / 공간데이터 빅데이터 무료데이터 기준</i></div>
+            </div>
 
-    <div class="tab_t tab_box on">
-        <table>
-            <thead>
-                <tr>
-                    <th>주소</th>
-                    <td><input type="text" id="txt_addr"></td>
-                    <th>단지명</th>
-                    <td><input type="text" id="txt_nm"></td>
-                    <td id="tb_btnSearch" style="text-align: center; background-color: slategrey; color:white;">
-                        <div style="cursor: pointer;">검색</div>
-                    </td>
-                </tr>
-            </thead>
-        </table>
-        <small><i>
-                <font size=1>공간데이터 빅데이터 플랫폼 무료데이터 / 학교알리미 2024 기준</font>
-            </i></small>
-        <table id="tbl_school">
-            <thead>
-                <tr>
-                    <th>주소</th>
-                    <th>단지명</th>
-                    <th>초등학교</th>
-                    <th>중학교</th>
-                    <th>고등학교</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
+            <!-- 검색 영역 -->
+            <div class="search-card">
+                <div class="search-grid">
+                    <div class="search-label">주소</div>
+                    <div>
+                        <input type="text" id="txt_addr" class="search-input" placeholder="예) 군포시 산본동">
+                    </div>
 
+                    <div class="search-label">단지명</div>
+                    <div>
+                        <input type="text" id="txt_nm" class="search-input" placeholder="예) 한양, 롯데캐슬 등">
+                    </div>
+
+                    <div>
+                        <button id="tb_btnSearch" type="button">검색</button>
+                    </div>
+                </div>
+                <div class="source-note">
+                    <i>※ 주소 또는 단지명 중 하나만 입력해도 검색됩니다. (단지명/초등학교를 클릭하면 상세정보 팝업)</i>
+                </div>
+            </div>
+
+            <!-- 결과 테이블 -->
+            <div class="table-container">
+                <div class="table-scroll">
+                    <table id="tbl_school" class="result-table">
+                        <thead>
+                            <tr>
+                                <th>주소</th>
+                                <th>단지명</th>
+                                <th>초등학교</th>
+                                <th>중학교</th>
+                                <th>고등학교</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
     </div>
 
-    <!--Layer popup-->
+    <!-- Layer popup -->
     <div id="dialog" class="dialog">
         <div class="tb">
             <textarea id="data-area" class="data-area" style="display: none;"></textarea>
-            <div class="inner" style="max-width:800px;">
-                <div class=" top">
+            <div class="inner">
+                <div class="top">
                     <div class="title">상세정보</div>
-                    <div class="modal-close" style="cursor: pointer;">[닫기]</div>
+                    <div class="modal-close">&times;</div>
                 </div>
-                <div class="ct" style="margin-left: 20%;">
-                </div>
+                <div class="ct"></div>
             </div>
         </div>
     </div>
