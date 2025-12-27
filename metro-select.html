@@ -510,7 +510,7 @@
             ];
 
             XLSX.utils.book_append_sheet(wb, ws, "화면_같이_출력");
-            XLSX.writeFile(wb, "metro.xlsx");
+            XLSX.writeFile(wb, "metro_"+ $('#selMonth').val() +".xlsx");
         }
     </script>
 </head>
