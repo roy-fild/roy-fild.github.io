@@ -493,6 +493,10 @@
             <button id="btn_daejeon-yuseong-gu" class="darkgoldenrod_btn">유성구</button>
             <b>광주[143만]</b>
             <button id="btn_gwangju-buk-gu" class="darkgoldenrod_btn">북구</button>
+            <b>대구[235만]</b>
+            <button id="btn_daegu-suseong-gu" class="darkgoldenrod_btn">수성구</button>
+            <b>부산[320만]</b>
+            <button id="btn_busanjin-gu" class="darkgoldenrod_btn">진구</button>
         </div>
         <div class="btn-row" id="div_jibang">
             <b></b>
@@ -866,6 +870,24 @@
                 beforeSearch(gu);
             });
 
+            // 대구
+
+            // 수성구
+            $('#btn_daegu-suseong-gu').on('click', function() {
+                $('#hdn_sel-gu').val('대구-수성구');
+                let gu = "daegu-suseong-gu";
+                beforeSearch(gu);
+            });
+
+
+            // 부산
+
+            // 진구
+            $('#btn_busanjin-gu').on('click', function() {
+                $('#hdn_sel-gu').val('부산-진구');
+                let gu = "busanjin-gu";
+                beforeSearch(gu);
+            });
 
             /************************************
              *  지방 (중소도시)
