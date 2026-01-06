@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <title>지하철 월간 집계(역별 시간대 승·하차 합계)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- XLSX (엑셀 파싱 & 다운로드용) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+         :root {
+            --primary: #2563eb;
+            --border: #e5e7eb;
+            --bg: #f3f4f6;
+            --text-main: #111827;
+            --text-sub: #4b5563;
+            --radius-lg: 14px;
+            --shadow-card: 0 10px 24px rgba(15, 23, 42, 0.12);
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            margin: 0;
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+        }
+        
+        .app {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background: #ffffff;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-card);
+            padding: 18px 20px 22px;
+        }
+        
+        .header-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        
+        .header-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+        
+        .header-meta {
+            font-size: 11px;
+            color: var(--text-sub);
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        
+        input[type="file"] {
+            font-size: 13px;
+        }
+        
+        .btn {
+            border-radius: 999px;
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--primary);
+            background: var(--primary);
+            color: #ffffff;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+        
+        #status {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+        
+        .table-wrapper {
+            margin-top: 14px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            background: #ffffff;
+        }
+        
+        .table-title {
+            padding: 8px 10px;
+            font-size: 13px;
+            font-weight: 600;
+            background: #111827;
+            color: #f9fafb;
+        }
+        
+        .table-scroll {
+            max-height: 70vh;
+            overflow: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        
+        thead tr {
+            background: #e5e7eb;
+        }
+        
+        th,
+        td {
+            padding: 6px 8px;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+            line-height: 1.4;
+            white-space: nowrap;
+        }
+        
+        tbody tr:nth-child(even) td {
+            background: #f9fafb;
+        }
+        
+        tbody tr:hover td {
+            background: #eff6ff;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <div class="card">
+            <div class="header-row">
+                <div class="header-title">지하철 월간 집계 변환기 (역별 시간대 승·하차 합계)</div>
+                <div class="header-meta"><i>by 필디</i></div>
+            </div>
+
+            <div class="controls">
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+                <button id="btnDownload" class="btn" disabled>집계 결과 엑셀 다운로드</button>
+                <span id="status"></span>
+            </div>
+
+            <div class="table-wrapper">
+                <div class="table-title">집계 결과 미리보기</div>
+                <div class="table-scroll">
+                    <table id="resultTable">
+                        <thead>
+                            <!-- JS에서 동적으로 헤더 생성 -->
+                        </thead>
+                        <tbody>
+                            <!-- JS에서 결과 행 생성 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 최종 집계 데이터 & 시간대 컬럼 목록
+        var aggregatedRows = [];
+        var timeColumns = [];
+
+        // 숫자/문자 어떤 형식이 와도 YYYYMM으로 만들어 주는 함수
+        function getMonthString(raw) {
+            if (raw === null || raw === undefined) return "";
+
+            if (typeof raw === "number") {
+                // 엑셀 시리얼처럼 보이면 (대략 1900~2100년)
+                if (raw > 30000 && raw < 60000) {
+                    var base = new Date(1899, 11, 30); // 1899-12-30
+                    var date = new Date(base.getTime() + raw * 86400000);
+                    var y = date.getFullYear();
+                    var m = ("0" + (date.getMonth() + 1)).slice(-2);
+                    return "" + y + m;
+                } else {
+                    var s = String(raw);
+                    var digits = s.replace(/\D/g, "");
+                    if (digits.length >= 6) return digits.substring(0, 6);
+                    return digits;
+                }
+            }
+
+            // 문자열인 경우
+            var s2 = String(raw);
+            var digits2 = s2.replace(/\D/g, "");
+            if (digits2.length >= 6) return digits2.substring(0, 6);
+            return digits2;
+        }
+
+        // CSV 텍스트 → 행 배열
+        function parseCsvToRows(csvText) {
+            var lines = csvText.trim().split(/\r?\n/);
+            if (!lines.length) return [];
+
+            var headerLine = lines[0].replace(/^\uFEFF/, "");
+            var headers = headerLine.split(",").map(function(h) {
+                return h.trim();
+            });
+
+            var rows = [];
+            for (var i = 1; i < lines.length; i++) {
+                var line = lines[i];
+                if (!line) continue;
+                var cols = line.split(",");
+                var obj = {};
+                for (var j = 0; j < headers.length; j++) {
+                    obj[headers[j]] = cols[j];
+                }
+                rows.push(obj);
+            }
+            return rows;
+        }
+
+        // 파일 읽고 rows로 변환
+        function handleFile(file) {
+            aggregatedRows = [];
+            timeColumns = [];
+            $("#resultTable thead").empty();
+            $("#resultTable tbody").empty();
+            $("#btnDownload").prop("disabled", true);
+            $("#status").text("파일 읽는 중...");
+
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var data = e.target.result;
+                var rows;
+                var name = file.name.toLowerCase();
+
+                try {
+                    if (name.indexOf(".csv") >= 0) {
+                        rows = parseCsvToRows(data);
+                    } else {
+                        var workbook = XLSX.read(data, {
+                            type: "binary"
+                        });
+                        var sheetName = workbook.SheetNames[0];
+                        var sheet = workbook.Sheets[sheetName];
+                        rows = XLSX.utils.sheet_to_json(sheet, {
+                            defval: 0
+                        });
+                    }
+                } catch (err) {
+                    console.error(err);
+                    $("#status").text("파일 파싱 실패: " + err);
+                    return;
+                }
+
+                if (!rows || !rows.length) {
+                    $("#status").text("데이터가 없습니다.");
+                    return;
+                }
+
+                aggregateRows(rows);
+                renderTable();
+                $("#btnDownload").prop("disabled", aggregatedRows.length === 0);
+                if (aggregatedRows.length > 0) {
+                    $("#status").text("집계 완료. 총 " + aggregatedRows.length + "행");
+                } else {
+                    $("#status").text("조건에 맞는 집계 결과가 없습니다.");
+                }
+            };
+
+            if (file.name.toLowerCase().indexOf(".csv") >= 0) {
+                reader.readAsText(file, "utf-8");
+            } else {
+                reader.readAsBinaryString(file);
+            }
+        }
+
+        // 한 달치 원본 rows → 역번호, 역명, 년월, 요일='전체', 구분(승차/하차),
+        // 합계(시간대 전체 합), + 각 시간대별 합계
+        function aggregateRows(rows) {
+            aggregatedRows = [];
+            timeColumns = [];
+
+            if (!rows.length) return;
+
+            var sample = rows[0];
+            var keys = Object.keys(sample);
+
+            // 기본 컬럼 추론
+            var COL_STATION_NO = null;
+            var COL_STATION_NAME = null;
+            var COL_DATE = null;
+            var COL_DAY = null;
+            var COL_TYPE = null; // 구분
+            var COL_TOTAL = null; // 합계(있어도 시간대 합으로 다시 계산)
+
+            for (var i = 0; i < keys.length; i++) {
+                var k = keys[i];
+                if (k.indexOf("역번호") >= 0) COL_STATION_NO = k;
+                else if (k.indexOf("역명") >= 0) COL_STATION_NAME = k;
+                else if (k.indexOf("년월일") >= 0) COL_DATE = k;
+                else if (k.indexOf("요일") >= 0) COL_DAY = k;
+                else if (k.indexOf("구분") >= 0) COL_TYPE = k;
+                else if (k.indexOf("합계") >= 0) COL_TOTAL = k;
+            }
+
+            var coreCols = {};
+            if (COL_STATION_NO) coreCols[COL_STATION_NO] = true;
+            if (COL_STATION_NAME) coreCols[COL_STATION_NAME] = true;
+            if (COL_DATE) coreCols[COL_DATE] = true;
+            if (COL_DAY) coreCols[COL_DAY] = true;
+            if (COL_TYPE) coreCols[COL_TYPE] = true;
+            if (COL_TOTAL) coreCols[COL_TOTAL] = true;
+
+            // 시간대 컬럼: coreCols 아닌 나머지 전부
+            var tCols = [];
+            for (var j = 0; j < keys.length; j++) {
+                var key = keys[j];
+                if (!coreCols[key]) {
+                    tCols.push(key);
+                }
+            }
+            timeColumns = tCols.slice(); // 전역 저장 (렌더/엑셀용)
+
+            function toNumber(v) {
+                if (typeof v === "number") return v;
+                if (v === null || v === undefined || v === "") return 0;
+                var s = String(v).replace(/,/g, "").trim();
+                var n = parseInt(s, 10);
+                if (isNaN(n)) return 0;
+                return n;
+            }
+
+            // 그룹핑: 역번호|역명|년월|구분
+            var map = {};
+
+            for (var r = 0; r < rows.length; r++) {
+                var row = rows[r];
+
+                var stationNo = COL_STATION_NO ? row[COL_STATION_NO] : "";
+                var stationName = COL_STATION_NAME ? row[COL_STATION_NAME] : "";
+                var rawDate = COL_DATE ? row[COL_DATE] : "";
+                var type = COL_TYPE ? row[COL_TYPE] : "";
+
+                var monthStr = getMonthString(rawDate); // YYYYMM
+
+                if (!stationName || !monthStr || !type) continue;
+
+                var key2 = stationNo + "|" + stationName + "|" + monthStr + "|" + type;
+
+                if (!map[key2]) {
+                    var obj = {
+                        역번호: stationNo,
+                        역명: stationName,
+                        년월: monthStr,
+                        요일: "전체",
+                        구분: type,
+                        합계: 0
+                    };
+                    // 시간대별 초기값 0 세팅
+                    for (var t = 0; t < timeColumns.length; t++) {
+                        obj[timeColumns[t]] = 0;
+                    }
+                    map[key2] = obj;
+                }
+
+                var target = map[key2];
+
+                // 각 시간대 합 + 전체 합계
+                for (var c = 0; c < timeColumns.length; c++) {
+                    var colName = timeColumns[c];
+                    var val = toNumber(row[colName]);
+                    target[colName] += val;
+                    target.합계 += val;
+                }
+            }
+
+            // map → 배열
+            for (var k2 in map) {
+                if (Object.prototype.hasOwnProperty.call(map, k2)) {
+                    aggregatedRows.push(map[k2]);
+                }
+            }
+
+            // 정렬: 역번호 → 역명 → 구분
+            aggregatedRows.sort(function(a, b) {
+                var an = parseInt(a.역번호, 10);
+                var bn = parseInt(b.역번호, 10);
+
+                if (!isNaN(an) && !isNaN(bn) && an !== bn) {
+                    return an - bn;
+                }
+
+                if (a.역명 < b.역명) return -1;
+                if (a.역명 > b.역명) return 1;
+
+                if (a.구분 < b.구분) return -1;
+                if (a.구분 > b.구분) return 1;
+
+                return 0;
+            });
+        }
+
+        // 테이블 렌더
+        function renderTable() {
+            var $thead = $("#resultTable thead");
+            var $tbody = $("#resultTable tbody");
+            $thead.empty();
+            $tbody.empty();
+
+            // 헤더 생성
+            var headHtml = "<tr>" +
+                "<th>역번호</th>" +
+                "<th>역명</th>" +
+                "<th>년월(YYYYMM)</th>" +
+                "<th>요일</th>" +
+                "<th>구분</th>" +
+                "<th>합계(전체)</th>";
+
+            for (var i = 0; i < timeColumns.length; i++) {
+                headHtml += "<th>" + timeColumns[i] + "</th>";
+            }
+            headHtml += "</tr>";
+            $thead.append(headHtml);
+
+            if (!aggregatedRows.length) return;
+
+            // 데이터 행
+            for (var r = 0; r < aggregatedRows.length; r++) {
+                var row = aggregatedRows[r];
+                var tr = "<tr>" +
+                    "<td>" + (row.역번호 !== undefined ? row.역번호 : "") + "</td>" +
+                    "<td>" + row.역명 + "</td>" +
+                    "<td>" + row.년월 + "</td>" +
+                    "<td>" + row.요일 + "</td>" +
+                    "<td>" + row.구분 + "</td>" +
+                    "<td>" + row.합계 + "</td>";
+
+                for (var c = 0; c < timeColumns.length; c++) {
+                    var colName = timeColumns[c];
+                    tr += "<td>" + (row[colName] || 0) + "</td>";
+                }
+                tr += "</tr>";
+                $tbody.append(tr);
+            }
+        }
+
+        // 엑셀 다운로드
+        function downloadExcel() {
+            if (!aggregatedRows.length) {
+                alert("집계 결과가 없습니다.");
+                return;
+            }
+
+            var wb = XLSX.utils.book_new();
+
+            // 헤더
+            var aoa = [];
+            var header = ["역번호", "역명", "년월(YYYYMM)", "요일", "구분", "합계(전체)"];
+            for (var i = 0; i < timeColumns.length; i++) {
+                header.push(timeColumns[i]);
+            }
+            aoa.push(header);
+
+            // 데이터
+            for (var r = 0; r < aggregatedRows.length; r++) {
+                var row = aggregatedRows[r];
+                var line = [
+                    row.역번호,
+                    row.역명,
+                    row.년월,
+                    row.요일,
+                    row.구분,
+                    row.합계
+                ];
+                for (var c = 0; c < timeColumns.length; c++) {
+                    var colName = timeColumns[c];
+                    line.push(row[colName] || 0);
+                }
+                aoa.push(line);
+            }
+
+            var ws = XLSX.utils.aoa_to_sheet(aoa);
+            XLSX.utils.book_append_sheet(wb, ws, "월간집계_시간대");
+
+            XLSX.writeFile(wb, "metro_month_agg_time.xlsx");
+        }
+
+        // 이벤트 바인딩
+        $(function() {
+            $("#fileInput").on("change", function(e) {
+                var file = e.target.files[0];
+                if (!file) return;
+                handleFile(file);
+            });
+
+            $("#btnDownload").on("click", function() {
+                downloadExcel();
+            });
+        });
+    </script>
+</body>
+
+</html>
