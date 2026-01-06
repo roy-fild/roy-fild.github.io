@@ -12,7 +12,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
-        :root {
+         :root {
             --primary: #2563eb;
             --primary-soft: #eff6ff;
             --border: #e5e7eb;
@@ -22,11 +22,11 @@
             --radius-lg: 14px;
             --shadow-card: 0 10px 24px rgba(15, 23, 42, 0.12);
         }
-
+        
         * {
             box-sizing: border-box;
         }
-
+        
         body {
             margin: 0;
             padding: 16px;
@@ -34,19 +34,19 @@
             background: var(--bg);
             color: var(--text-main);
         }
-
+        
         .app {
             max-width: 1400px;
             margin: 0 auto;
         }
-
+        
         .card {
             background: #ffffff;
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-card);
             padding: 18px 20px 22px;
         }
-
+        
         .header-row {
             display: flex;
             flex-wrap: wrap;
@@ -55,17 +55,41 @@
             gap: 8px;
             margin-bottom: 10px;
         }
-
+        
         .header-title {
             font-size: 20px;
             font-weight: 700;
         }
-
+        
         .header-meta {
             font-size: 11px;
             color: var(--text-sub);
         }
-
+        /* 도시 탭 */
+        
+        .city-tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        
+        .city-tab {
+            border-radius: 999px;
+            padding: 6px 14px;
+            font-size: 13px;
+            border: 1px solid var(--border);
+            background: #f3f4f6;
+            color: var(--text-main);
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .city-tab.active {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
+        }
+        
         .filter-card {
             border-radius: 12px;
             border: 1px solid var(--border);
@@ -73,19 +97,19 @@
             padding: 10px 12px 12px;
             margin-bottom: 12px;
         }
-
+        
         .filter-grid {
             display: grid;
             grid-template-columns: 90px minmax(0, 1fr) 70px minmax(0, 1fr) 80px minmax(0, 1fr) auto;
             gap: 8px 10px;
             align-items: center;
         }
-
+        
         .filter-label {
             font-size: 13px;
             color: var(--text-sub);
         }
-
+        
         select,
         input[type="text"] {
             width: 100%;
@@ -95,7 +119,7 @@
             border: 1px solid var(--border);
             background: #ffffff;
         }
-
+        
         .btn-search {
             border-radius: 999px;
             background: var(--primary);
@@ -106,7 +130,7 @@
             cursor: pointer;
             border: none;
         }
-
+        
         .btn-excel {
             border-radius: 999px;
             background: #0ea5e9;
@@ -117,13 +141,13 @@
             cursor: pointer;
             border: none;
         }
-
+        
         .tables-toolbar {
             display: flex;
             justify-content: flex-end;
             margin-bottom: 4px;
         }
-
+        
         .tables-wrapper {
             display: flex;
             flex-wrap: nowrap;
@@ -131,7 +155,7 @@
             margin-top: 4px;
             overflow-x: auto;
         }
-
+        
         .table-card {
             flex: 0 0 50%;
             border-radius: 12px;
@@ -142,7 +166,7 @@
             flex-direction: column;
             min-width: 600px;
         }
-
+        
         .table-title {
             padding: 8px 10px;
             font-size: 13px;
@@ -150,23 +174,23 @@
             background: #111827;
             color: #f9fafb;
         }
-
+        
         .table-scroll {
             max-height: 65vh;
             overflow: auto;
         }
-
+        
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 12px;
             table-layout: fixed;
         }
-
+        
         thead tr {
             background: #e5e7eb;
         }
-
+        
         th,
         td {
             padding: 6px 8px;
@@ -174,117 +198,106 @@
             text-align: center;
             line-height: 1.4;
         }
-
         /* THEAD 두 줄 sticky */
+        
         thead th {
             position: sticky;
             z-index: 1;
             background: #e5e7eb;
         }
-
+        
         thead tr:nth-child(1) th {
             top: 0;
         }
-
+        
         thead tr:nth-child(2) th {
             top: 28px;
         }
-
+        
         tbody tr:nth-child(even) td {
             background: #f9fafb;
         }
-
+        
         tbody tr:hover td {
             background: #eff6ff;
         }
-
+        
         #tblBoarding th:nth-child(1),
         #tblAlighting th:nth-child(1) {
             width: 90px;
         }
-
+        
         #tblBoarding th:nth-child(2),
         #tblAlighting th:nth-child(2) {
             width: 180px;
         }
-
+        
         #tblBoarding th:nth-child(n+3),
         #tblAlighting th:nth-child(n+3) {
             width: 90px;
         }
-
+        
         #loading {
             font-size: 11px;
             color: var(--text-sub);
+            margin-top: 4px;
         }
-
         /* =========================
             반응형 최적화
         ========================= */
-
+        
         @media (max-width: 1024px) {
             .app {
                 max-width: 100%;
                 padding: 8px;
             }
-
             table {
                 font-size: 11px;
             }
-
             th,
             td {
                 padding: 5px 6px;
             }
-
             thead tr:nth-child(2) th {
                 top: 26px;
             }
-
             .table-card {
                 min-width: 560px;
             }
         }
-
+        
         @media (max-width: 768px) {
             .tables-wrapper {
                 flex-direction: column;
                 gap: 12px;
             }
-
             .table-card {
                 width: 100%;
             }
-
             .filter-grid {
                 grid-template-columns: 90px 1fr;
             }
-
             .btn-search {
                 width: 100%;
             }
         }
-
+        
         @media (max-width: 480px) {
             .header-row {
                 flex-direction: column;
                 gap: 4px;
             }
-
             table {
                 font-size: 10px;
             }
-
             th,
             td {
                 padding: 4px 5px;
             }
-
             #tblBoarding th:nth-child(1),
             #tblAlighting th:nth-child(1) {
                 width: 70px;
             }
-
             #tblBoarding th:nth-child(2),
             #tblAlighting th:nth-child(2) {
                 width: 120px;
@@ -293,71 +306,170 @@
     </style>
 
     <script>
-        let metroData = [];
-        let lastResult = [];
-        let csvLoaded = false;
-
-        let monthField = null;
-        let lineField = null;
-        let stationField = null;
-
-        const timeFields = {
-            board_07_08: null,
-            board_08_09: null,
-            alight_18_19: null,
-            alight_19_20: null,
-            alight_07_08: null,
-            alight_08_09: null,
-            board_18_19: null,
-            board_19_20: null,
+        // 도시별 상태 관리
+        const cityState = {
+            seoul: {
+                name: '서울',
+                csvPath: 'https://roy-fild.github.io/file/metro_sudo.csv',
+                data: [],
+                lastResult: [],
+                loaded: false,
+                monthField: null,
+                lineField: null,
+                stationField: null,
+                timeFields: {
+                    board_07_08: null,
+                    board_08_09: null,
+                    alight_18_19: null,
+                    alight_19_20: null,
+                    alight_07_08: null,
+                    alight_08_09: null,
+                    board_18_19: null,
+                    board_19_20: null,
+                }
+            },
+            busan: {
+                name: '부산',
+                csvPath: 'https://roy-fild.github.io/file/metro_busan.csv',
+                data: [],
+                lastResult: [],
+                loaded: false,
+                monthField: null,
+                lineField: null,
+                stationField: null,
+                timeFields: {
+                    board_07_08: 'board_07_08',
+                    board_08_09: 'board_08_09',
+                    alight_18_19: 'alight_18_19',
+                    alight_19_20: 'alight_19_20',
+                    alight_07_08: 'alight_07_08',
+                    alight_08_09: 'alight_08_09',
+                    board_18_19: 'board_18_19',
+                    board_19_20: 'board_19_20',
+                }
+            }
         };
 
-        const CSV_PATH = 'https://roy-fild.github.io/file/metro_sudo.csv';
+        let activeCity = 'seoul'; // 기본: 서울
 
-        $(function () {
-            loadCsvData();
-            $('#btnSearch').on('click', applyFilterAndRender);
-            $('#selMonth').on('change', rebuildLineSelect);
+        $(function() {
+            // 초기: 서울 데이터 로딩
+            loadCityData('seoul');
+
+            // 조회 버튼
+            $('#btnSearch').on('click', function() {
+                applyFilterAndRender(activeCity);
+            });
+
+            // 사용월 변경 시 호선 재구성
+            $('#selMonth').on('change', function() {
+                rebuildLineSelect(activeCity);
+            });
+
+            // 탭 클릭 이벤트
+            $('.city-tab').on('click', function() {
+                const city = $(this).data('city');
+                if (city === activeCity) return;
+
+                activeCity = city;
+
+                $('.city-tab').removeClass('active');
+                $(this).addClass('active');
+
+                resetFilterUI();
+                clearTables();
+
+                if (!cityState[city].loaded) {
+                    loadCityData(city);
+                } else {
+                    buildInitialSelects(city);
+                    if (cityState[city].lastResult.length) {
+                        renderTables(cityState[city].lastResult, city);
+                    }
+                }
+            });
         });
 
         function findHeader(headers, keywords) {
             return headers.find(h => keywords.every(k => h.includes(k))) || null;
         }
 
-        function loadCsvData() {
-            $('#loading').text('CSV 불러오는 중...');
+        // 도시별 데이터 로딩
+        function loadCityData(city) {
+            const state = cityState[city];
+            $('#loading').text(state.name + ' 데이터 불러오는 중...');
 
-            fetch(CSV_PATH)
+            fetch(state.csvPath)
                 .then(res => res.arrayBuffer())
                 .then(buffer => {
-                    const decoder = new TextDecoder('euc-kr');
-                    const text = decoder.decode(buffer);
-                    metroData = parseCsv(text);
-                    csvLoaded = true;
+                    if (city === 'seoul') {
+                        // ===== 서울: CSV (euc-kr) =====
+                        const decoder = new TextDecoder('euc-kr');
+                        const text = decoder.decode(buffer);
+                        parseSeoulCsv(text);
+                    } else {
+                        // ===== 부산: CSV/XLSX 모두 XLSX 라이브러리로 처리 (인코딩 신경 X) =====
+                        const bytes = new Uint8Array(buffer);
+
+                        // HTML 방어: GitHub 안내 페이지가 내려오는 경우
+                        const firstChars = String.fromCharCode(
+                            bytes[0] || 0,
+                            bytes[1] || 0,
+                            bytes[2] || 0,
+                            bytes[3] || 0,
+                            bytes[4] || 0,
+                            bytes[5] || 0,
+                        ).toLowerCase();
+
+                        if (firstChars.startsWith('<!doct') || firstChars.startsWith('<html')) {
+                            $('#loading').text('');
+                            alert('부산 데이터 경로에서 CSV/엑셀 대신 HTML 페이지가 내려오고 있어요.\nGitHub에서 "raw" 주소를 넣어주세요.');
+                            return;
+                        }
+
+                        // CSV든 XLSX든 workbook으로 읽어서 첫 시트만 사용
+                        const wb = XLSX.read(buffer, {
+                            type: 'array'
+                        });
+                        const sheet = wb.Sheets[wb.SheetNames[0]];
+                        const rows = XLSX.utils.sheet_to_json(sheet, {
+                            defval: ""
+                        });
+                        parseBusanRows(rows);
+                    }
+
+                    state.loaded = true;
                     $('#loading').text('');
-                    buildInitialSelects();
+                    buildInitialSelects(city);
+                })
+                .catch(err => {
+                    console.error(err);
+                    $('#loading').text(state.name + ' 데이터 로딩 실패');
                 });
         }
 
-        function parseCsv(csvText) {
+        // ---------------- 서울 파서 (기존 로직) ----------------
+        function parseSeoulCsv(csvText) {
+            const state = cityState.seoul;
+
             const lines = csvText.trim().split(/\r?\n/);
             const headers = lines[0].split(',').map(h => h.trim());
 
-            monthField = headers[0];
-            lineField = findHeader(headers, ['호선']) || headers[1];
-            stationField = findHeader(headers, ['역']) || headers[2];
+            state.monthField = headers[0]; // "사용월"
+            state.lineField = findHeader(headers, ['호선']) || headers[1];
+            state.stationField = findHeader(headers, ['역']) || headers[2];
 
-            timeFields.board_07_08 = findHeader(headers, ['07', '승차']);
-            timeFields.board_08_09 = findHeader(headers, ['08', '승차']);
-            timeFields.alight_18_19 = findHeader(headers, ['18', '하차']);
-            timeFields.alight_19_20 = findHeader(headers, ['19', '하차']);
+            state.timeFields.board_07_08 = findHeader(headers, ['07', '승차']);
+            state.timeFields.board_08_09 = findHeader(headers, ['08', '승차']);
+            state.timeFields.alight_18_19 = findHeader(headers, ['18', '하차']);
+            state.timeFields.alight_19_20 = findHeader(headers, ['19', '하차']);
 
-            timeFields.alight_07_08 = findHeader(headers, ['07', '하차']);
-            timeFields.alight_08_09 = findHeader(headers, ['08', '하차']);
-            timeFields.board_18_19 = findHeader(headers, ['18', '승차']);
-            timeFields.board_19_20 = findHeader(headers, ['19', '승차']);
+            state.timeFields.alight_07_08 = findHeader(headers, ['07', '하차']);
+            state.timeFields.alight_08_09 = findHeader(headers, ['08', '하차']);
+            state.timeFields.board_18_19 = findHeader(headers, ['18', '승차']);
+            state.timeFields.board_19_20 = findHeader(headers, ['19', '승차']);
 
-            return lines.slice(1).map(line => {
+            state.data = lines.slice(1).map(line => {
                 const cols = line.split(',');
                 const obj = {};
                 headers.forEach((h, i) => obj[h] = cols[i]);
@@ -365,31 +477,134 @@
             });
         }
 
-        function buildInitialSelects() {
-            const months = [...new Set(metroData.map(r => r[monthField]))].sort();
-            const lines = [...new Set(metroData.map(r => r[lineField]))].sort();
+        // ---------------- 부산 파서 ----------------
+        // 부산: XLSX/CSV 공통 rows → 우리가 쓰기 좋은 구조로 변환
+        function parseBusanRows(rows) {
+            const state = cityState.busan;
+
+            if (!rows || !rows.length) {
+                state.data = [];
+                return;
+            }
+
+            const first = rows[0];
+            const keys = Object.keys(first);
+
+            // 날짜 컬럼: "년월일", "사용월", "년월" 등 포함된 키 찾기
+            const COL_DATE =
+                keys.find(k => k.includes('년월일') || k.includes('사용월') || k.includes('년월')) || keys[2];
+
+            const COL_STATION = keys.find(k => k.includes('역명')) || '역명';
+            const COL_TYPE = keys.find(k => k.includes('구분')) || '구분';
+
+            const COL_B07 = keys.find(k => k.includes('07') && k.includes('시')) || '07시-08시';
+            const COL_B08 = keys.find(k => k.includes('08') && k.includes('시')) || '08시-09시';
+            const COL_B18 = keys.find(k => k.includes('18') && k.includes('시')) || '18시-19시';
+            const COL_B19 = keys.find(k => k.includes('19') && k.includes('시')) || '19시-20시';
+
+            const map = {};
+
+            rows.forEach(r => {
+                const rawDate = r[COL_DATE];
+
+                // ★ C열 값(년월일/사용월)을 그대로 문자열로 사용
+                let date;
+                if (rawDate === null || rawDate === undefined) {
+                    date = "";
+                } else {
+                    date = String(rawDate).trim();
+                }
+
+                const station = r[COL_STATION];
+                const type = r[COL_TYPE];
+
+                if (!date || !station || !type) return;
+
+                const key = date + '|' + station;
+
+                if (!map[key]) {
+                    map[key] = {
+                        사용월: date, // ← 드롭다운/필터에서 그대로 사용
+                        호선명: '부산도시철도',
+                        지하철역: station,
+                        board_07_08: 0,
+                        board_08_09: 0,
+                        alight_18_19: 0,
+                        alight_19_20: 0,
+                        alight_07_08: 0,
+                        alight_08_09: 0,
+                        board_18_19: 0,
+                        board_19_20: 0
+                    };
+                }
+
+                const obj = map[key];
+
+                const n = v => {
+                    if (typeof v === 'number') return v;
+                    if (!v) return 0;
+                    const num = parseInt(String(v).replace(/,/g, ''), 10);
+                    return isNaN(num) ? 0 : num;
+                };
+
+                if (type === '승차') {
+                    obj.board_07_08 += n(r[COL_B07]);
+                    obj.board_08_09 += n(r[COL_B08]);
+                    obj.board_18_19 += n(r[COL_B18]);
+                    obj.board_19_20 += n(r[COL_B19]);
+                } else if (type === '하차') {
+                    obj.alight_07_08 += n(r[COL_B07]);
+                    obj.alight_08_09 += n(r[COL_B08]);
+                    obj.alight_18_19 += n(r[COL_B18]);
+                    obj.alight_19_20 += n(r[COL_B19]);
+                }
+            });
+
+            state.data = Object.values(map);
+
+            // 부산용 필드 정의
+            state.monthField = '사용월';
+            state.lineField = '호선명';
+            state.stationField = '지하철역';
+        }
+
+
+        // ---------------- 공통: 셀렉트/필터/렌더 ----------------
+        function buildInitialSelects(city) {
+            const state = cityState[city];
+            const months = [...new Set(state.data.map(r => r[state.monthField]))].sort();
+            const lines = [...new Set(state.data.map(r => r[state.lineField]))].sort();
 
             $('#selMonth').html('<option value="">사용월 선택</option>' + months.map(m => `<option>${m}</option>`));
             $('#selLine').html('<option value="">전체</option>' + lines.map(l => `<option>${l}</option>`));
         }
 
-        function rebuildLineSelect() {
+        function rebuildLineSelect(city) {
+            const state = cityState[city];
             const month = $('#selMonth').val();
-            const lines = [...new Set(metroData.filter(r => r[monthField] === month).map(r => r[lineField]))];
+
+            const lines = [...new Set(
+                state.data
+                .filter(r => String(r[state.monthField]) === month)
+                .map(r => r[state.lineField])
+            )];
+
             $('#selLine').html('<option value="">전체</option>' + lines.map(l => `<option>${l}</option>`));
         }
 
-        function dedupeRows(rows) {
+        function dedupeRows(state, rows) {
             const seen = new Set();
             return rows.filter(r => {
-                const key = [r[monthField], r[lineField], r[stationField]].join('|');
+                const key = [r[state.monthField], r[state.lineField], r[state.stationField]].join('|');
                 if (seen.has(key)) return false;
                 seen.add(key);
                 return true;
             });
         }
 
-        function applyFilterAndRender() {
+        function applyFilterAndRender(city) {
+            const state = cityState[city];
+
             const month = $('#selMonth').val();
             const line = $('#selLine').val();
             const station = $('#txtStation').val();
@@ -399,40 +614,50 @@
                 return;
             }
 
-            lastResult = dedupeRows(metroData.filter(r =>
-                r[monthField] === month &&
-                (!line || r[lineField] === line) &&
-                (!station || r[stationField].includes(station))
-            ));
+            const filtered = state.data.filter(r =>
+                String(r[state.monthField]) === month &&
+                (!line || r[state.lineField] === line) &&
+                (!station || String(r[state.stationField]).includes(station))
+            );
 
-            renderTables(lastResult);
+            state.lastResult = dedupeRows(state, filtered);
+            renderTables(state.lastResult, city);
         }
 
-        function renderTables(rows) {
+        function clearTables() {
+            $('#tblBoarding tbody').empty();
+            $('#tblAlighting tbody').empty();
+        }
+
+        function renderTables(rows, city) {
+            const state = cityState[city];
+
             const left = $('#tblBoarding tbody').empty();
             const right = $('#tblAlighting tbody').empty();
 
             rows.forEach(r => {
                 left.append(`<tr>
-                    <td>${r[lineField]}</td><td>${r[stationField]}</td>
-                    <td>${r[timeFields.board_07_08]}</td>
-                    <td>${r[timeFields.board_08_09]}</td>
-                    <td>${r[timeFields.alight_18_19]}</td>
-                    <td>${r[timeFields.alight_19_20]}</td>
+                    <td>${r[state.lineField]}</td><td>${r[state.stationField]}</td>
+                    <td>${r[state.timeFields.board_07_08] || ''}</td>
+                    <td>${r[state.timeFields.board_08_09] || ''}</td>
+                    <td>${r[state.timeFields.alight_18_19] || ''}</td>
+                    <td>${r[state.timeFields.alight_19_20] || ''}</td>
                 </tr>`);
 
                 right.append(`<tr>
-                    <td>${r[lineField]}</td><td>${r[stationField]}</td>
-                    <td>${r[timeFields.alight_07_08]}</td>
-                    <td>${r[timeFields.alight_08_09]}</td>
-                    <td>${r[timeFields.board_18_19]}</td>
-                    <td>${r[timeFields.board_19_20]}</td>
+                    <td>${r[state.lineField]}</td><td>${r[state.stationField]}</td>
+                    <td>${r[state.timeFields.alight_07_08] || ''}</td>
+                    <td>${r[state.timeFields.alight_08_09] || ''}</td>
+                    <td>${r[state.timeFields.board_18_19] || ''}</td>
+                    <td>${r[state.timeFields.board_19_20] || ''}</td>
                 </tr>`);
             });
         }
 
         function exportToExcel() {
-            if (!lastResult.length) {
+            const state = cityState[activeCity];
+
+            if (!state.lastResult.length) {
                 alert("조회 후 실행하세요");
                 return;
             }
@@ -442,75 +667,90 @@
 
             // 1행 ─ 화면과 동일한 2줄 헤더 구조
             rows.push([
-                "", "",              // 호선명, 지하철역
-                "승차", "",          // [A] 승차 (07~08 / 08~09)
-                "하차", "",          // [A] 하차 (18~19 / 19~20)
-                "하차", "",          // [B] 하차 (07~08 / 08~09)
-                "승차", ""           // [B] 승차 (18~19 / 19~20)
+                "", "",
+                "승차", "",
+                "하차", "",
+                "하차", "",
+                "승차", ""
             ]);
 
             // 2행 ─ 상세 헤더
             rows.push([
                 "호선명",
                 "지하철역",
-
-                // [A] 출근 승차
                 "07-08",
                 "08-09",
-
-                // [A] 퇴근 하차
                 "18-19",
                 "19-20",
-
-                // [B] 출근 하차
                 "07-08",
                 "08-09",
-
-                // [B] 퇴근 승차
                 "18-19",
                 "19-20"
             ]);
 
-            // 데이터 행 ─ 화면 표시 순서 그대로
-            lastResult.forEach(r => {
+            state.lastResult.forEach(r => {
                 rows.push([
-                    r[lineField],
-                    r[stationField],
-
-                    // [A] 출근 승차
-                    r[timeFields.board_07_08],
-                    r[timeFields.board_08_09],
-
-                    // [A] 퇴근 하차
-                    r[timeFields.alight_18_19],
-                    r[timeFields.alight_19_20],
-
-                    // [B] 출근 하차
-                    r[timeFields.alight_07_08],
-                    r[timeFields.alight_08_09],
-
-                    // [B] 퇴근 승차
-                    r[timeFields.board_18_19],
-                    r[timeFields.board_19_20]
+                    r[state.lineField],
+                    r[state.stationField],
+                    r[state.timeFields.board_07_08],
+                    r[state.timeFields.board_08_09],
+                    r[state.timeFields.alight_18_19],
+                    r[state.timeFields.alight_19_20],
+                    r[state.timeFields.alight_07_08],
+                    r[state.timeFields.alight_08_09],
+                    r[state.timeFields.board_18_19],
+                    r[state.timeFields.board_19_20]
                 ]);
             });
 
             const ws = XLSX.utils.aoa_to_sheet(rows);
 
-            // 병합(화면의 2줄 헤더와 동일)
-            ws['!merges'] = [
-                // [A] 승차(2칸)
-                { s: { r: 0, c: 2 }, e: { r: 0, c: 3 } },
-                // [A] 하차(2칸)
-                { s: { r: 0, c: 4 }, e: { r: 0, c: 5 } },
-                // [B] 하차(2칸)
-                { s: { r: 0, c: 6 }, e: { r: 0, c: 7 } },
-                // [B] 승차(2칸)
-                { s: { r: 0, c: 8 }, e: { r: 0, c: 9 } }
-            ];
+            ws['!merges'] = [{
+                s: {
+                    r: 0,
+                    c: 2
+                },
+                e: {
+                    r: 0,
+                    c: 3
+                }
+            }, {
+                s: {
+                    r: 0,
+                    c: 4
+                },
+                e: {
+                    r: 0,
+                    c: 5
+                }
+            }, {
+                s: {
+                    r: 0,
+                    c: 6
+                },
+                e: {
+                    r: 0,
+                    c: 7
+                }
+            }, {
+                s: {
+                    r: 0,
+                    c: 8
+                },
+                e: {
+                    r: 0,
+                    c: 9
+                }
+            }];
 
             XLSX.utils.book_append_sheet(wb, ws, "화면_같이_출력");
-            XLSX.writeFile(wb, "metro_"+ $('#selMonth').val() +".xlsx");
+            XLSX.writeFile(wb, `metro_${cityState[activeCity].name}_${$('#selMonth').val()}.xlsx`);
+        }
+
+        function resetFilterUI() {
+            $('#selMonth').val('');
+            $('#selLine').val('');
+            $('#txtStation').val('');
         }
     </script>
 </head>
@@ -524,22 +764,36 @@
                 <div class="header-meta"><i>by 필디</i></div>
             </div>
 
+            <!-- 도시 탭 -->
+            <div class="city-tabs">
+                <div class="city-tab active" data-city="seoul">서울</div>
+                <div class="city-tab" data-city="busan">부산</div>
+            </div>
+
             <div class="filter-card">
                 <div class="filter-grid">
                     <div class="filter-label">사용월*</div>
-                    <div><select id="selMonth">
+                    <div>
+                        <select id="selMonth">
                             <option>로딩중</option>
-                        </select></div>
+                        </select>
+                    </div>
 
                     <div class="filter-label">호선명</div>
-                    <div><select id="selLine">
+                    <div>
+                        <select id="selLine">
                             <option>전체</option>
-                        </select></div>
+                        </select>
+                    </div>
 
                     <div class="filter-label">지하철역</div>
-                    <div><input id="txtStation" type="text" placeholder="역 이름 일부 입력 가능"></div>
+                    <div>
+                        <input id="txtStation" type="text" placeholder="역 이름 일부 입력 가능">
+                    </div>
 
-                    <div><button id="btnSearch" class="btn-search">조회</button></div>
+                    <div>
+                        <button id="btnSearch" class="btn-search">조회</button>
+                    </div>
                 </div>
                 <div id="loading"></div>
             </div>
