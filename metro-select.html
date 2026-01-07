@@ -517,6 +517,22 @@
             const COL_STATION = keys.find(k => k.includes('역명')) || '역명';
             const COL_TYPE = keys.find(k => k.includes('구분')) || '구분';
 
+            // ★ 부산인 경우: A열(첫 번째 컬럼)을 호선명/노선명으로 사용
+            //    - 헤더에 '호선', '노선', '라인' 같은 글자가 있으면 그 컬럼을 우선 사용
+            let COL_LINE = null;
+            if (city === 'busan') {
+                COL_LINE =
+                    keys.find(k =>
+                        k.includes('호선') ||
+                        k.includes('노선') ||
+                        k.includes('라인') ||
+                        k.includes('호')
+                    ) || keys[0]; // 못 찾으면 첫 번째 컬럼(A열)
+            } else if (city === 'daejeon') {
+                // 대전은 호선 개념이 없으니 그대로 하나로 묶음
+                COL_LINE = null;
+            }
+
             const COL_B07 = keys.find(k => k.includes('07') && k.includes('시')) || '07시-08시';
             const COL_B08 = keys.find(k => k.includes('08') && k.includes('시')) || '08시-09시';
             const COL_B18 = keys.find(k => k.includes('18') && k.includes('시')) || '18시-19시';
@@ -538,19 +554,20 @@
                 const station = r[COL_STATION];
                 const type = r[COL_TYPE];
 
+                // ★ 부산일 때만 실제 A열 값을 호선명으로 사용
+                const lineValue = (city === 'busan' && COL_LINE) ?
+                    String(r[COL_LINE] || '').trim() :
+                    (city === 'daejeon' ? '대전도시철도' : state.name);
+
                 if (!date || !station || !type) return;
 
-                const key = date + '|' + station;
+                // ★ key 에도 호선명을 포함해서 그룹핑
+                const key = date + '|' + lineValue + '|' + station;
 
                 if (!map[key]) {
-                    const lineName =
-                        city === 'busan' ? '부산도시철도' :
-                        city === 'daejeon' ? '대전도시철도' :
-                        state.name;
-
                     map[key] = {
                         사용월: date, // 드롭다운/필터에서 그대로 사용
-                        호선명: lineName,
+                        호선명: lineValue, // ★ 부산: A열, 대전: '대전도시철도'
                         지하철역: station,
                         board_07_08: 0,
                         board_08_09: 0,
