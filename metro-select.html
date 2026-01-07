@@ -367,6 +367,27 @@
                     board_18_19: 'board_18_19',
                     board_19_20: 'board_19_20',
                 }
+            },
+            daegu: {
+                name: '대구',
+                // 파일 이름은 네가 실제 올린 이름에 맞게 변경해줘 (예: metro_daegu.csv vs metro-daegu.csv)
+                csvPath: 'https://roy-fild.github.io/file/metro_daegu.csv',
+                data: [],
+                lastResult: [],
+                loaded: false,
+                monthField: null,
+                lineField: null,
+                stationField: null,
+                timeFields: {
+                    board_07_08: 'board_07_08',
+                    board_08_09: 'board_08_09',
+                    alight_18_19: 'alight_18_19',
+                    alight_19_20: 'alight_19_20',
+                    alight_07_08: 'alight_07_08',
+                    alight_08_09: 'alight_08_09',
+                    board_18_19: 'board_18_19',
+                    board_19_20: 'board_19_20',
+                }
             }
         };
 
@@ -428,7 +449,7 @@
                         const text = decoder.decode(buffer);
                         parseSeoulCsv(text);
                     } else {
-                        // ===== 비서울(부산/대전): CSV/XLSX 모두 XLSX 라이브러리로 처리 =====
+                        // ===== 비서울(부산/대전/대구): CSV/XLSX 모두 XLSX 라이브러리로 처리 =====
                         const bytes = new Uint8Array(buffer);
 
                         // HTML 방어: GitHub 안내 페이지가 내려오는 경우
@@ -497,8 +518,7 @@
             });
         }
 
-        // ---------------- 비서울(부산/대전) 파서 ----------------
-        // XLSX/CSV 공통 rows → 우리가 쓰기 좋은 구조로 변환
+        // ---------------- 비서울(부산/대전/대구) 파서 ----------------
         function parseNonSeoulRows(rows, city) {
             const state = cityState[city];
 
@@ -517,20 +537,18 @@
             const COL_STATION = keys.find(k => k.includes('역명')) || '역명';
             const COL_TYPE = keys.find(k => k.includes('구분')) || '구분';
 
-            // ★ 부산인 경우: A열(첫 번째 컬럼)을 호선명/노선명으로 사용
-            //    - 헤더에 '호선', '노선', '라인' 같은 글자가 있으면 그 컬럼을 우선 사용
+            // 부산 / 대구는 A열(또는 '호선명'/'노선명' 등)로 호선 사용
             let COL_LINE = null;
-            if (city === 'busan') {
+            if (city === 'busan' || city === 'daegu') {
                 COL_LINE =
                     keys.find(k =>
                         k.includes('호선') ||
                         k.includes('노선') ||
                         k.includes('라인') ||
                         k.includes('호')
-                    ) || keys[0]; // 못 찾으면 첫 번째 컬럼(A열)
+                    ) || keys[0]; // 없으면 첫 번째 컬럼(A열)
             } else if (city === 'daejeon') {
-                // 대전은 호선 개념이 없으니 그대로 하나로 묶음
-                COL_LINE = null;
+                COL_LINE = null; // 대전은 호선 개념 없음
             }
 
             const COL_B07 = keys.find(k => k.includes('07') && k.includes('시')) || '07시-08시';
@@ -554,20 +572,26 @@
                 const station = r[COL_STATION];
                 const type = r[COL_TYPE];
 
-                // ★ 부산일 때만 실제 A열 값을 호선명으로 사용
-                const lineValue = (city === 'busan' && COL_LINE) ?
-                    String(r[COL_LINE] || '').trim() :
-                    (city === 'daejeon' ? '대전도시철도' : state.name);
+                // ★ 부산/대구: 실제 CSV의 호선/노선(A열) 값을 사용
+                let lineValue;
+                if ((city === 'busan' || city === 'daegu') && COL_LINE) {
+                    let rawLineVal = (r[COL_LINE] !== undefined && r[COL_LINE] !== null) ? r[COL_LINE] : '';
+                    lineValue = String(rawLineVal).trim() || state.name;
+                } else if (city === 'daejeon') {
+                    lineValue = '대전도시철도';
+                } else {
+                    lineValue = state.name;
+                }
 
                 if (!date || !station || !type) return;
 
-                // ★ key 에도 호선명을 포함해서 그룹핑
+                // key에 호선명을 포함해서 그룹핑
                 const key = date + '|' + lineValue + '|' + station;
 
                 if (!map[key]) {
                     map[key] = {
-                        사용월: date, // 드롭다운/필터에서 그대로 사용
-                        호선명: lineValue, // ★ 부산: A열, 대전: '대전도시철도'
+                        사용월: date,
+                        호선명: lineValue,
                         지하철역: station,
                         board_07_08: 0,
                         board_08_09: 0,
@@ -810,6 +834,7 @@
                 <div class="city-tab active" data-city="seoul">서울</div>
                 <div class="city-tab" data-city="busan">부산</div>
                 <div class="city-tab" data-city="daejeon">대전</div>
+                <div class="city-tab" data-city="daegu">대구</div>
             </div>
 
             <div class="filter-card">
