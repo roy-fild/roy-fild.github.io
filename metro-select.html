@@ -637,11 +637,32 @@
         // ---------------- 공통: 셀렉트/필터/렌더 ----------------
         function buildInitialSelects(city) {
             const state = cityState[city];
-            const months = [...new Set(state.data.map(r => r[state.monthField]))].sort();
-            const lines = [...new Set(state.data.map(r => r[state.lineField]))].sort();
 
-            $('#selMonth').html('<option value="">사용월 선택</option>' + months.map(m => `<option>${m}</option>`));
-            $('#selLine').html('<option value="">전체</option>' + lines.map(l => `<option>${l}</option>`));
+            const months = [...new Set(
+                state.data
+                .map(r => r[state.monthField])
+                .filter(v => v !== null && v !== undefined && v !== '')
+            )].sort();
+
+            const lines = [...new Set(
+                state.data
+                .map(r => r[state.lineField])
+                .filter(v => v !== null && v !== undefined && v !== '')
+            )].sort();
+
+            // 🔹 사용월 셀렉트 생성
+            $('#selMonth').html(
+                months.length ?
+                months.map((m, i) => `<option value="${m}" ${i === 0 ? 'selected' : ''}>${m}</option>`) :
+                '<option value="">사용월 없음</option>'
+            );
+
+            // 🔹 첫 번째 사용월 자동 선택 → 호선 재구성
+            if (months.length > 0) {
+                rebuildLineSelect(city);
+            } else {
+                $('#selLine').html('<option value="">전체</option>');
+            }
         }
 
         function rebuildLineSelect(city) {
