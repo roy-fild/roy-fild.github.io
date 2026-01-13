@@ -1373,7 +1373,7 @@
         }
 
         function loadData() {
-            setStatus("데이터 불러오는 중…", true);
+            // setStatus("데이터 불러오는 중…", true);
 
             tryFetchCsvFixedByUrls(DATA_URLS).then(function(res1) {
                 rawRows = normalizeRows(res1.data);
