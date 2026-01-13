@@ -197,7 +197,8 @@
 
 <body>
     <div class="wrap">
-        <h1>인구 통계 그래프(25.12)<div class="muted">by 필디</div></h1>
+        <h1>인구 통계 그래프(25.12)<div class="muted">by 필디</div>
+        </h1>
         <div class="panel">
             <div class="row">
                 <div class="col">
@@ -732,7 +733,7 @@
 
         function renderBar() {
             var rows = filteredRows();
-            updateKpis(rows);
+            //updateKpis(rows);
 
             var level = pickLevel();
             var agg = aggregate(rows, level);
@@ -745,6 +746,27 @@
             });
 
             var top = agg.slice(0, 25);
+            // ✅ KPI는 "그래프에 실제 표시되는 top(25)" 기준으로 합계
+            var popSum = 0, houseSum = 0;
+            for (var ti = 0; ti < top.length; ti++) {
+                popSum += (top[ti].pop || 0);
+                houseSum += (top[ti].house || 0);
+            }
+            var pphSum = houseSum ? (popSum / houseSum) : 0;
+
+            // 영역 표시는 기존 로직 그대로 유지
+            var sido = $("#sidoSelect").val();
+            var sigungu = $("#sigunguSelect").val();
+            var area = "전체";
+            var sub = "—";
+            if (sido && sigungu) { area = sido + " / " + sigungu; sub = "선택 시/군/구 기준"; }
+            else if (sido) { area = sido; sub = "선택 시/도 기준"; }
+
+            $("#kpiArea").text(area);
+            $("#kpiAreaSub").text(sub);
+            $("#kpiPop").text(fmt(popSum));
+            $("#kpiHouse").text(fmt(houseSum));
+            $("#kpiPph").text(pphSum ? pphSum.toFixed(2) : "-");
             var labels = [],
                 popData = [],
                 houseData = [],
