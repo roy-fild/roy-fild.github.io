@@ -143,7 +143,6 @@
             min-width: 820px;
             width: 100%;
             background: #fff;
-            /* ✅ 전체 흰 바탕 */
         }
         
         table.heat th,
@@ -166,7 +165,6 @@
             color: #000;
             font-weight: 700;
         }
-        /* 평균 이상: 핑크 강조 */
         
         table.heat td.hit {
             background: #ffd0d8;
@@ -174,7 +172,6 @@
             text-align: right;
             font-weight: 800;
         }
-        /* ✅ 평균 이하도 표시: 흰 배경 + 회색 글씨 */
         
         table.heat td.miss {
             background: #ffffff;
@@ -244,16 +241,16 @@
         <div class="panel">
             <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
                 <div>
-                    <div style="font-weight:700;">상위 20 (필터 적용)</div>
+                    <div style="font-weight:700;">상위 25 (필터 적용)</div>
                     <div class="muted">선택 상태에 따라 시/도 → 시/군/구 → 읍/면/동 단위로 자동 집계</div>
                 </div>
                 <div style="min-width:220px;">
                     <label>정렬 기준</label>
                     <select id="sortMetric">
-            <option value="pop">총인구수</option>
-            <option value="house">세대수</option>
-            <option value="pph">세대당 인구</option>
-          </select>
+                        <option value="pop">총인구수</option>
+                        <option value="house">세대수</option>
+                        <option value="pph">세대당 인구</option>
+                    </select>
                 </div>
             </div>
             <div class="chartBox"><canvas id="barChart"></canvas></div>
@@ -269,9 +266,9 @@
                 <div style="min-width:240px;">
                     <label>정렬 기준</label>
                     <select id="ageSortMetric">
-            <option value="popDesc">총인구 (내림)</option>
-            <option value="nameAsc">동 이름 (오름)</option>
-          </select>
+                        <option value="popDesc">총인구 (내림)</option>
+                        <option value="nameAsc">동 이름 (오름)</option>
+                    </select>
                 </div>
             </div>
 
@@ -294,6 +291,22 @@
             <div class="heatWrap">
                 <table class="heat" id="ageHeatTable"></table>
             </div>
+
+            <!-- ✅ 청소년(0-9 / 10-19) 그래프 추가 -->
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-top:14px;">
+                <div>
+                    <div style="font-weight:700;">청소년(0~9 / 10~19) 인구</div>
+                </div>
+                <div style="min-width:240px;">
+                    <label>정렬 기준</label>
+                    <select id="youthSortMetric">
+                        <option value="sumDesc">총합 (내림차순)</option>
+                        <option value="a0_9Desc">0~9세 (내림차순)</option>
+                        <option value="a10_19Desc">10~19세 (내림차순)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="chartBox" style="height:420px; margin-top:10px;"><canvas id="youthChart"></canvas></div>
         </div>
 
         <div class="panel">
@@ -322,6 +335,7 @@
         var rawAgeRows = [];
         var barChart = null;
         var ageChart = null;
+        var youthChart = null;
         var dt = null;
         var ageDt = null;
 
@@ -429,7 +443,6 @@
                 }
             });
         }
-
 
         function nf(x) {
             if (x === null || x === undefined || x === "") return 0;
@@ -617,6 +630,7 @@
             var q = $.trim($("#emdFilter").val());
             var qLower = q ? q.toLowerCase() : "";
             var hasQuery = !!qLower;
+            var isGuSelected = !!sigungu;
             var out = [];
 
             for (var i = 0; i < rawRows.length; i++) {
@@ -627,7 +641,7 @@
                     var hay = (r.sido + " " + r.sigungu + " " + r.emd).toLowerCase();
                     if (hay.indexOf(qLower) < 0) continue;
                 }
-                if (hasQuery && /구$/.test(String(r.emd || "").trim())) continue;
+                if ((isGuSelected || hasQuery) && /구$/.test(String(r.emd || "").trim())) continue;
                 out.push(r);
             }
             return out;
@@ -727,7 +741,7 @@
                 return b.pop - a.pop;
             });
 
-            var top = agg.slice(0, 20);
+            var top = agg.slice(0, 25);
             var labels = [],
                 popData = [],
                 houseData = [],
@@ -981,6 +995,7 @@
             var q = $.trim($("#emdFilter").val());
             var qLower = q ? q.toLowerCase() : "";
             var hasQuery = !!qLower;
+            var isGuSelected = !!sigungu;
             var out = [];
 
             for (var i = 0; i < rawAgeRows.length; i++) {
@@ -993,7 +1008,7 @@
                     var hay = (r.sido + " " + r.sigungu + " " + r.emd).toLowerCase();
                     if (hay.indexOf(qLower) < 0) continue;
                 }
-                if (hasQuery && /구$/.test(String(r.emd || "").trim())) continue;
+                if ((isGuSelected || hasQuery) && /구$/.test(String(r.emd || "").trim())) continue;
                 out.push(r);
             }
             return out;
@@ -1132,6 +1147,99 @@
             $("#ageHeatTable").html(html);
         }
 
+        // ✅ 청소년(0-9 / 10-19) 집계 + 그래프
+        function aggregateYouthByDong(rows) {
+            var map = {};
+            for (var i = 0; i < rows.length; i++) {
+                var r = rows[i];
+                var key = r.emd;
+                if (!key) continue;
+
+                if (!map[key]) map[key] = {
+                    name: key,
+                    a0_9: 0,
+                    a10_19: 0,
+                    sum: 0
+                };
+
+                map[key].a0_9 += (r.a0_9 || 0);
+                map[key].a10_19 += (r.a10_19 || 0);
+                map[key].sum += ((r.a0_9 || 0) + (r.a10_19 || 0));
+            }
+
+            var out = [];
+            for (var k in map) {
+                if (!map.hasOwnProperty(k)) continue;
+                out.push(map[k]);
+            }
+            return out;
+        }
+
+        function renderYouthChart() {
+            var rows = filteredAgeRows();
+            var agg = aggregateYouthByDong(rows);
+
+            var m = $("#youthSortMetric").val();
+            agg.sort(function(a, b) {
+                if (m === "a0_9Desc") return (b.a0_9 - a.a0_9);
+                if (m === "a10_19Desc") return (b.a10_19 - a.a10_19);
+                return (b.sum - a.sum);
+            });
+
+            var maxN = 25;
+            if (agg.length > maxN) agg = agg.slice(0, maxN);
+
+            var labels = [];
+            var d0_9 = [];
+            var d10_19 = [];
+
+            for (var i = 0; i < agg.length; i++) {
+                labels.push(agg[i].name);
+                d0_9.push(agg[i].a0_9);
+                d10_19.push(agg[i].a10_19);
+            }
+
+            if (youthChart) youthChart.destroy();
+            youthChart = new Chart(document.getElementById("youthChart"), {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "0~9세",
+                        data: d0_9
+                    }, {
+                        label: "10~19세",
+                        data: d10_19
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    return ctx.dataset.label + ": " + fmt(ctx.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(v) {
+                                    return fmt(v);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
         function renderAgeChartAndTable() {
             var rows = filteredAgeRows();
             var agg = aggregateAgeByDong(rows);
@@ -1260,6 +1368,7 @@
                 plugins: [percentLabelPlugin]
             });
 
+            renderYouthChart();
             renderAgeDetailTable();
         }
 
@@ -1273,7 +1382,6 @@
 
                 return tryFetchCsvFixedByUrls(AGE_URLS).then(function(res2) {
                     rawAgeRows = normalizeAgeRows(res2.data);
-                    setStatus("불러오기 완료: people(" + res1.encoding + "), age(" + res2.encoding + ")", true);
                     renderAll();
                     renderAgeChartAndTable();
                 });
@@ -1302,6 +1410,10 @@
 
             $("#ageSortMetric").on("change", function() {
                 renderAgeChartAndTable();
+            });
+
+            $("#youthSortMetric").on("change", function() {
+                renderYouthChart();
             });
 
             $("#emdFilter").on("input", function() {
