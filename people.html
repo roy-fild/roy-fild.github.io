@@ -252,8 +252,7 @@
                             <option value="20">20</option>
                             <option value="25" selected>25</option>
                             <option value="30">30</option>
-                            <option value="40">40</option>
-                            <option value="50">50</option>
+                            <option value="40">50</option>                            
                         </select>
                     </div>
                     <div class="muted">선택 상태에 따라 시/도 → 시/군/구 → 읍/면/동 단위로 자동 집계</div>
@@ -659,22 +658,41 @@
             return "sido";
         }
 
+        function isBlank(v) {
+            return v === null || v === undefined || String(v).trim() === "";
+        }
+
+        /**
+         * ✅ level에 맞는 "원천행"만 true
+         * - sido 레벨: sigungu/emd가 비어있는 행만 (시도 합계행)
+         * - sigungu 레벨: sigungu는 있고 emd는 비어있는 행만 (시군구 합계행)
+         * - emd 레벨: emd가 있는 행만 (읍면동 행)
+         */
+        function isSourceRowForLevel(r, level) {
+            var sg = String(r.sigungu || "").trim();
+            var emd = String(r.emd || "").trim();
+
+            if (level === "sido") return !isBlank(r.sido) && isBlank(sg) && isBlank(emd);
+            if (level === "sigungu") return !isBlank(sg) && isBlank(emd);
+            return !isBlank(emd); // emd
+        }
+
+
         function aggregate(rows, level) {
             var map = {};
+
             for (var i = 0; i < rows.length; i++) {
                 var r = rows[i];
-                var key = "";
 
-                if (level === "emd") {
-                    if (!r.emd || !String(r.emd).trim()) continue;
-                    key = r.emd;
-                } else if (level === "sigungu") {
-                    if (!r.sigungu || !String(r.sigungu).trim()) continue;
-                    key = r.sigungu;
-                } else {
-                    if (!r.sido || !String(r.sido).trim()) continue;
-                    key = r.sido;
-                }
+                // ✅ 핵심: 해당 레벨 "원천행"만 집계
+                if (!isSourceRowForLevel(r, level)) continue;
+
+                var key = "";
+                if (level === "emd") key = String(r.emd || "").trim();
+                else if (level === "sigungu") key = String(r.sigungu || "").trim();
+                else key = String(r.sido || "").trim();
+
+                if (!key) continue;
 
                 if (!map[key]) map[key] = {
                     name: key,
@@ -683,8 +701,11 @@
                     pphSum: 0,
                     pphCnt: 0
                 };
-                map[key].pop += r.pop;
-                map[key].house += r.house;
+
+                map[key].pop += (r.pop || 0);
+                map[key].house += (r.house || 0);
+
+                // pph는 원천행 기준 평균(기존 방식 유지)
                 if (r.pph) {
                     map[key].pphSum += r.pph;
                     map[key].pphCnt += 1;
@@ -699,8 +720,10 @@
                     house: map[k].house,
                     pph: map[k].pphCnt ? (map[k].pphSum / map[k].pphCnt) : 0
                 });
+
             return out;
         }
+
 
         function renderBar() {
             var rows = filteredRows();
@@ -1050,9 +1073,12 @@
 
         // ✅ 상단과 동일 단위(level)로 연령 집계
         function aggregateAge(rows, level) {
+
             var map = {};
             for (var i = 0; i < rows.length; i++) {
                 var r = rows[i];
+
+                if (!isSourceRowForLevel(r, level)) continue;
 
                 var key = "";
                 if (level === "sido") key = String(r.sido || "").trim();
@@ -1194,9 +1220,12 @@
         }
 
         function aggregateYouth(rows, level) {
+
             var map = {};
             for (var i = 0; i < rows.length; i++) {
                 var r = rows[i];
+
+                if (!isSourceRowForLevel(r, level)) continue;
 
                 var key = "";
                 if (level === "sido") key = String(r.sido || "").trim();
