@@ -16,8 +16,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
     <!-- DataTables -->
-    <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/datatables.net-dt@2.0.8/css/dataTables.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/datatables.net-dt@2.0.8/css/dataTables.dataTables.min.css">
     <script src="https://cdn.jsdelivr.net/npm/datatables.net@2.0.8/js/dataTables.min.js"></script>
 
     <style>
@@ -26,18 +25,18 @@
             margin: 0;
             background: #fafafa;
         }
-
+        
         .wrap {
             max-width: 1200px;
             margin: 0 auto;
             padding: 18px;
         }
-
+        
         h1 {
             margin: 0 0 6px 0;
             font-size: 22px;
         }
-
+        
         .panel {
             background: #fff;
             border: 1px solid #e6e6e6;
@@ -45,25 +44,25 @@
             padding: 14px;
             margin: 12px 0;
         }
-
+        
         .row {
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
         }
-
+        
         .col {
             flex: 1;
             min-width: 280px;
         }
-
+        
         label {
             font-size: 12px;
             color: #555;
             display: block;
             margin-bottom: 6px;
         }
-
+        
         select,
         input {
             width: 100%;
@@ -72,13 +71,13 @@
             border-radius: 10px;
             background: #fff;
         }
-
+        
         .kpis {
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
         }
-
+        
         .kpi {
             flex: 1;
             min-width: 180px;
@@ -87,66 +86,65 @@
             border-radius: 12px;
             padding: 12px;
         }
-
+        
         .kpi .t {
             font-size: 12px;
             color: #666;
         }
-
+        
         .kpi .v {
             font-size: 20px;
             font-weight: 700;
             margin-top: 6px;
         }
-
+        
         .kpi .s {
             font-size: 12px;
             color: #888;
             margin-top: 4px;
         }
-
+        
         .chartBox {
             height: 360px;
         }
-
+        
         .muted {
             color: #888;
             font-size: 12px;
         }
-
+        
         .status {
             margin-top: 8px;
             font-size: 12px;
         }
-
+        
         .ok {
             color: #0a7a2f;
         }
-
+        
         .err {
             color: #b00020;
         }
-
+        
         table.dataTable {
             width: 100% !important;
         }
-
         /* ===== Heat Table (white background for <=avg) ===== */
-
+        
         .heatWrap {
             overflow: auto;
             border-radius: 10px;
             border: 1px solid #ddd;
             background: #fff;
         }
-
+        
         table.heat {
             border-collapse: collapse;
             min-width: 820px;
             width: 100%;
             background: #fff;
         }
-
+        
         table.heat th,
         table.heat td {
             border: 1px solid #cfcfcf;
@@ -154,41 +152,41 @@
             font-size: 14px;
             white-space: nowrap;
         }
-
+        
         table.heat th {
             background: #f2f2f2;
             color: #000;
             font-weight: 700;
             text-align: center;
         }
-
+        
         table.heat td.name {
             background: #f2f2f2;
             color: #000;
             font-weight: 700;
         }
-
+        
         table.heat td.hit {
             background: #ffd0d8;
             color: #c00000;
             text-align: right;
             font-weight: 800;
         }
-
+        
         table.heat td.miss {
             background: #ffffff;
             color: #444;
             text-align: right;
             font-weight: 600;
         }
-
+        
         table.heat tr.avg td {
             background: #e9edf2;
             color: #000;
             font-weight: 800;
             text-align: right;
         }
-
+        
         table.heat tr.avg td.name {
             text-align: left;
         }
@@ -197,8 +195,10 @@
 
 <body>
     <div class="wrap">
-        <h1>인구 통계 그래프(25.12)<div class="muted">by 필디</div>
+        <h1>인구 통계 그래프(25.12)
+            <div class="muted">by 필디</div>
         </h1>
+
         <div class="panel">
             <div class="row">
                 <div class="col">
@@ -226,12 +226,12 @@
             <div class="kpi">
                 <div class="t">총인구수</div>
                 <div class="v" id="kpiPop">-</div>
-                <div class="s">필터 적용 합계</div>
+                <div class="s">그래프 표시 항목 합계(Top 25)</div>
             </div>
             <div class="kpi">
                 <div class="t">세대수</div>
                 <div class="v" id="kpiHouse">-</div>
-                <div class="s">필터 적용 합계</div>
+                <div class="s">그래프 표시 항목 합계(Top 25)</div>
             </div>
             <div class="kpi">
                 <div class="t">세대당 인구</div>
@@ -258,18 +258,17 @@
             <div class="chartBox"><canvas id="barChart"></canvas></div>
         </div>
 
-        <!-- ✅ 연령대(%) 100% 누적 막대 + 표 -->
         <div class="panel">
             <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
                 <div>
                     <div style="font-weight:700;">연령대 비중(%) 100% 누적 막대</div>
-                    <div class="muted">(~10대/20/30/40/50/60대~) / 동 값 없는 행 제외</div>
+                    <div class="muted">상단 그래프 집계 단위(시/도 or 시/군/구 or 동)와 동일 단위로 표시</div>
                 </div>
                 <div style="min-width:240px;">
                     <label>정렬 기준</label>
                     <select id="ageSortMetric">
                         <option value="popDesc">총인구 (내림)</option>
-                        <option value="nameAsc">동 이름 (오름)</option>
+                        <option value="nameAsc">이름 (오름)</option>
                     </select>
                 </div>
             </div>
@@ -278,12 +277,12 @@
                 <div class="kpi">
                     <div class="t">연령 데이터 총인구 합</div>
                     <div class="v" id="kpiAgeTotal">-</div>
-                    <div class="s">필터 적용 후 합계</div>
+                    <div class="s">표시 항목 합계(Top 25)</div>
                 </div>
                 <div class="kpi">
-                    <div class="t">표시된 동 개수</div>
+                    <div class="t">표시된 항목 개수</div>
                     <div class="v" id="kpiAgeDongCnt">-</div>
-                    <div class="s">동 값 없는 행 제외</div>
+                    <div class="s">상단과 동일 단위</div>
                 </div>
             </div>
 
@@ -295,11 +294,10 @@
                 <table class="heat" id="ageHeatTable"></table>
             </div>
 
-            <!-- ✅ 청소년(0-9 / 10-19) 그래프 추가 -->
-            <div
-                style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-top:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-top:14px;">
                 <div>
                     <div style="font-weight:700;">청소년(0~9 / 10~19) 인구</div>
+                    <div class="muted">상단 그래프 집계 단위와 동일 단위로 표시</div>
                 </div>
                 <div style="min-width:240px;">
                     <label>정렬 기준</label>
@@ -314,12 +312,12 @@
         </div>
 
         <div class="panel">
-            <div style="font-weight:700; margin-bottom:10px;">상세 데이터</div>
+            <div style="font-weight:700; margin-bottom:10px;">상세 데이터(원천)</div>
             <table id="detailTable" class="display"></table>
         </div>
 
         <div class="panel">
-            <div style="font-weight:700; margin-bottom:10px;">연령 데이터 </div>
+            <div style="font-weight:700; margin-bottom:10px;">연령 데이터(원천)</div>
             <table id="ageDetailTable" class="display"></table>
         </div>
     </div>
@@ -335,6 +333,18 @@
             "https://roy-fild.github.io/file/people/ingu_age_202512"
         ];
 
+        // 그룹 옵션 값
+        var SIDO_GROUP_METRO = "__GROUP_METRO__";
+        var SIDO_GROUP_SMALL = "__GROUP_SMALL__";
+
+        // 광역시(서울 제외) + 세종 포함
+        var METRO_SIDOS = [
+            "부산광역시", "대구광역시", "인천광역시", "광주광역시", "대전광역시", "울산광역시", "세종특별자치시"
+        ];
+
+        // 중소도시(경기도 제외) - 시군구 기준 매칭
+        var SMALL_CITIES = ["창원", "청주", "천안", "전주", "김해", "포항"];
+
         var rawRows = [];
         var rawAgeRows = [];
         var barChart = null;
@@ -343,10 +353,949 @@
         var dt = null;
         var ageDt = null;
 
-        function renderAgeDetailTable() {
-            var rows = filteredAgeRows();
-            var data = [];
+        // ✅ 상단 그래프(Top 25) 기준으로 하단도 동일 단위/동일 항목으로 맞추기 위한 상태
+        //    level: "sido" | "sigungu" | "emd"
+        //    keys:  상단 그래프 라벨(Top 25)
+        var TOP_SCOPE = {
+            level: "",
+            keys: []
+        };
 
+        function nf(x) {
+            if (x === null || x === undefined || x === "") return 0;
+            if (typeof x === "number") return x;
+            return Number(String(x).replace(/,/g, "").trim()) || 0;
+        }
+
+        function fmt(n) {
+            try {
+                return (Number(n) || 0).toLocaleString("ko-KR");
+            } catch (e) {
+                return String(n);
+            }
+        }
+
+        function safeText(s) {
+            return (s === null || s === undefined) ? "" : String(s);
+        }
+
+        function setStatus(msg, ok) {
+            $("#loadStatus").removeClass("ok err").addClass(ok ? "ok" : "err").text(msg);
+        }
+
+        function fetchTextWithEncoding(url, encoding) {
+            return fetch(url, {
+                    cache: "no-store"
+                })
+                .then(function(resp) {
+                    if (!resp.ok) throw new Error("HTTP " + resp.status + " (" + url + ")");
+                    return resp.arrayBuffer();
+                })
+                .then(function(buf) {
+                    if (typeof TextDecoder === "undefined") throw new Error("TextDecoder not supported");
+                    return new TextDecoder(encoding).decode(buf);
+                });
+        }
+
+        function papaDownload(url) {
+            return new Promise(function(resolve, reject) {
+                Papa.parse(url, {
+                    download: true,
+                    header: true,
+                    skipEmptyLines: true,
+                    complete: function(res) {
+                        if (res && res.data && res.data.length) resolve({
+                            url: url,
+                            encoding: "server/default",
+                            data: res.data
+                        });
+                        else reject(new Error("Empty CSV (" + url + ")"));
+                    },
+                    error: function(err) {
+                        reject(err || new Error("Papa download failed (" + url + ")"));
+                    }
+                });
+            });
+        }
+
+        function tryFetchCsvFixedByUrls(urls) {
+            return new Promise(function(resolve, reject) {
+                var i = 0;
+
+                function nextUrl() {
+                    if (i >= urls.length) return reject(new Error("모든 URL에서 CSV를 불러오지 못했습니다."));
+                    var u = urls[i++];
+                    var encs = ["euc-kr", "windows-949", "utf-8"];
+                    var j = 0;
+
+                    function nextEnc() {
+                        if (j >= encs.length) {
+                            papaDownload(u).then(resolve).catch(function() {
+                                nextUrl();
+                            });
+                            return;
+                        }
+                        var enc = encs[j++];
+                        fetchTextWithEncoding(u, enc).then(function(text) {
+                            var parsed = Papa.parse(text, {
+                                header: true,
+                                skipEmptyLines: true
+                            });
+                            if (parsed && parsed.data && parsed.data.length) resolve({
+                                url: u,
+                                encoding: enc,
+                                data: parsed.data
+                            });
+                            else nextEnc();
+                        }).catch(function() {
+                            nextEnc();
+                        });
+                    }
+                    nextEnc();
+                }
+                nextUrl();
+            });
+        }
+
+        function normalizeRows(rows) {
+            var cols = rows.length ? Object.keys(rows[0]) : [];
+            var colSido = "행정구역";
+            if ($.inArray(colSido, cols) < 0) colSido = cols[0];
+
+            var colSigungu = null,
+                colEmd = null;
+            for (var k = 0; k < cols.length; k++) {
+                if (!colSigungu && /Unnamed:\s*1/.test(cols[k])) colSigungu = cols[k];
+                if (!colEmd && /Unnamed:\s*2/.test(cols[k])) colEmd = cols[k];
+            }
+            if (!colSigungu) colSigungu = cols[1];
+            if (!colEmd) colEmd = cols[2];
+
+            var colPop = null,
+                colHouse = null,
+                colPph = null;
+            for (var k4 = 0; k4 < cols.length; k4++) {
+                if (!colPop && (cols[k4] === "총인구수" || /총인구/.test(cols[k4]))) colPop = cols[k4];
+                if (!colHouse && (cols[k4] === "세대수" || /세대수/.test(cols[k4]))) colHouse = cols[k4];
+                if (!colPph && (cols[k4] === "세대당 인구" || /세대당/.test(cols[k4]))) colPph = cols[k4];
+            }
+
+            var out = [];
+            for (var r = 0; r < rows.length; r++) {
+                var row = rows[r];
+                var sido = safeText(row[colSido]).trim();
+                if (!sido) continue;
+                out.push({
+                    sido: sido,
+                    sigungu: safeText(row[colSigungu]).trim(),
+                    emd: safeText(row[colEmd]).trim(),
+                    pop: nf(row[colPop]),
+                    house: nf(row[colHouse]),
+                    pph: nf(row[colPph])
+                });
+            }
+            return out;
+        }
+
+        function uniq(arr) {
+            var map = {},
+                out = [];
+            for (var i = 0; i < arr.length; i++) {
+                var v = arr[i];
+                if (v === null || v === undefined) continue;
+                v = String(v).trim();
+                if (!v) continue;
+                if (!map[v]) {
+                    map[v] = true;
+                    out.push(v);
+                }
+            }
+            return out;
+        }
+
+        // 그룹 필터 판정
+        function getSidoGroupMode() {
+            var v = $("#sidoSelect").val();
+            if (v === SIDO_GROUP_METRO) return "metro";
+            if (v === SIDO_GROUP_SMALL) return "small";
+            return "";
+        }
+
+        // 그룹 기준으로 row 통과 여부
+        function passSidoGroupFilter(row) {
+            var mode = getSidoGroupMode();
+            if (!mode) return true;
+
+            if (mode === "metro") return $.inArray(row.sido, METRO_SIDOS) >= 0;
+
+            if (row.sido === "경기도") return false;
+            var sg = String(row.sigungu || "").trim();
+            for (var i = 0; i < SMALL_CITIES.length; i++) {
+                var c = SMALL_CITIES[i];
+                if (sg.indexOf(c) === 0) return true;
+            }
+            return false;
+        }
+
+        function rebuildSelectors() {
+            var sidos = uniq($.map(rawRows, function(r) {
+                return r.sido;
+            }));
+            var $s = $("#sidoSelect");
+            $s.empty();
+            $s.append('<option value="">(전체)</option>');
+            $s.append('<option value="' + SIDO_GROUP_METRO + '">광역시</option>');
+            $s.append('<option value="' + SIDO_GROUP_SMALL + '">중소도시</option>');
+            for (var i = 0; i < sidos.length; i++) $s.append('<option value="' + sidos[i] + '">' + sidos[i] + '</option>');
+
+            $("#sigunguSelect").empty().append('<option value="">(전체)</option>');
+        }
+
+        function refreshSigungu() {
+            var mode = getSidoGroupMode();
+
+            // 그룹(광역시/중소도시) 선택 시: 시군구 셀렉트는 (전체)만
+            if (mode) {
+                $("#sigunguSelect").prop("disabled", true)
+                    .html('<option value="">(전체)</option>')
+                    .val("");
+                return;
+            }
+
+            $("#sigunguSelect").prop("disabled", false);
+
+            var sido = $("#sidoSelect").val();
+            var list = [];
+            for (var i = 0; i < rawRows.length; i++) {
+                var r = rawRows[i];
+                if (sido && r.sido !== sido) continue;
+                list.push(r.sigungu);
+            }
+            list = uniq(list);
+
+            var $g = $("#sigunguSelect");
+            var cur = $g.val();
+            $g.empty().append('<option value="">(전체)</option>');
+            for (var j = 0; j < list.length; j++) $g.append('<option value="' + list[j] + '">' + list[j] + '</option>');
+            for (var j2 = 0; j2 < list.length; j2++)
+                if (list[j2] === cur) {
+                    $g.val(cur);
+                    break;
+                }
+        }
+
+        // ✅ TOP_SCOPE를 이용해 row를 "상단 그래프 항목"에 맞춰 제한
+        function passTopScope(row, level) {
+            if (!TOP_SCOPE || !TOP_SCOPE.level || !TOP_SCOPE.keys || !TOP_SCOPE.keys.length) return true;
+            if (TOP_SCOPE.level !== level) return true; // 단위가 다른 경우는 제한하지 않음(안전)
+            var key = (level === "sido") ? row.sido : (level === "sigungu") ? row.sigungu : row.emd;
+            key = String(key || "").trim();
+            if (!key) return false;
+            return TOP_SCOPE.keys.indexOf(key) >= 0;
+        }
+
+        function filteredRows() {
+            var sido = $("#sidoSelect").val();
+            var sigungu = $("#sigunguSelect").val();
+            var mode = getSidoGroupMode();
+
+            var q = $.trim($("#emdFilter").val());
+            var qLower = q ? q.toLowerCase() : "";
+            var hasQuery = !!qLower;
+            var isGuSelected = !!sigungu;
+
+            var out = [];
+
+            for (var i = 0; i < rawRows.length; i++) {
+                var r = rawRows[i];
+
+                if (mode) {
+                    if (!passSidoGroupFilter(r)) continue;
+                } else {
+                    if (sido && r.sido !== sido) continue;
+                }
+
+                if (!mode && sigungu && r.sigungu !== sigungu) continue;
+
+                if (qLower) {
+                    var hay = (r.sido + " " + r.sigungu + " " + r.emd).toLowerCase();
+                    if (hay.indexOf(qLower) < 0) continue;
+                }
+
+                if ((isGuSelected || hasQuery) && /구$/.test(String(r.emd || "").trim())) continue;
+
+                out.push(r);
+            }
+            return out;
+        }
+
+        function pickLevel() {
+            var mode = getSidoGroupMode();
+            var sigungu = $("#sigunguSelect").val();
+
+            if (mode === "metro") return "sido";
+            if (mode === "small") return "sigungu";
+
+            if (sigungu) return "emd";
+            var sido = $("#sidoSelect").val();
+            if (sido) return "sigungu";
+            return "sido";
+        }
+
+        function aggregate(rows, level) {
+            var map = {};
+            for (var i = 0; i < rows.length; i++) {
+                var r = rows[i];
+                var key = "";
+
+                if (level === "emd") {
+                    if (!r.emd || !String(r.emd).trim()) continue;
+                    key = r.emd;
+                } else if (level === "sigungu") {
+                    if (!r.sigungu || !String(r.sigungu).trim()) continue;
+                    key = r.sigungu;
+                } else {
+                    if (!r.sido || !String(r.sido).trim()) continue;
+                    key = r.sido;
+                }
+
+                if (!map[key]) map[key] = {
+                    name: key,
+                    pop: 0,
+                    house: 0,
+                    pphSum: 0,
+                    pphCnt: 0
+                };
+                map[key].pop += r.pop;
+                map[key].house += r.house;
+                if (r.pph) {
+                    map[key].pphSum += r.pph;
+                    map[key].pphCnt += 1;
+                }
+            }
+
+            var out = [];
+            for (var k in map)
+                if (map.hasOwnProperty(k)) out.push({
+                    name: map[k].name,
+                    pop: map[k].pop,
+                    house: map[k].house,
+                    pph: map[k].pphCnt ? (map[k].pphSum / map[k].pphCnt) : 0
+                });
+            return out;
+        }
+
+        function renderBar() {
+            var rows = filteredRows();
+            var level = pickLevel();
+            var agg = aggregate(rows, level);
+
+            var metric = $("#sortMetric").val();
+            agg.sort(function(a, b) {
+                if (metric === "house") return b.house - a.house;
+                if (metric === "pph") return b.pph - a.pph;
+                return b.pop - a.pop;
+            });
+
+            var top = agg.slice(0, 25);
+
+            // ✅ TOP_SCOPE 업데이트: 하단(연령/표/청소년)도 동일 단위/동일 항목으로 맞추기
+            TOP_SCOPE.level = level;
+            TOP_SCOPE.keys = $.map(top, function(x) {
+                return x.name;
+            });
+
+            // KPI는 "그래프에 실제 표시되는 top(25)" 기준
+            var popSum = 0,
+                houseSum = 0;
+            for (var ti = 0; ti < top.length; ti++) {
+                popSum += (top[ti].pop || 0);
+                houseSum += (top[ti].house || 0);
+            }
+            var pphSum = houseSum ? (popSum / houseSum) : 0;
+
+            var sido = $("#sidoSelect").val();
+            var sigungu = $("#sigunguSelect").val();
+            var mode = getSidoGroupMode();
+
+            var area = "전체";
+            var sub = "—";
+            if (mode === "metro") {
+                area = "광역시";
+                sub = "서울 제외 광역시 (시 단위)";
+            } else if (mode === "small") {
+                area = "중소도시";
+                sub = "경기도 제외: 창원/청주/천안/전주/김해/포항 (시 단위)";
+            } else if (sido && sigungu) {
+                area = sido + " / " + sigungu;
+                sub = "선택 시/군/구 기준";
+            } else if (sido) {
+                area = sido;
+                sub = "선택 시/도 기준";
+            }
+
+            $("#kpiArea").text(area);
+            $("#kpiAreaSub").text(sub);
+            $("#kpiPop").text(fmt(popSum));
+            $("#kpiHouse").text(fmt(houseSum));
+            $("#kpiPph").text(pphSum ? pphSum.toFixed(2) : "-");
+
+            var labels = [],
+                popData = [],
+                houseData = [],
+                pphData = [];
+            for (var i = 0; i < top.length; i++) {
+                labels.push(top[i].name);
+                popData.push(top[i].pop);
+                houseData.push(top[i].house);
+                pphData.push(Number(top[i].pph ? top[i].pph.toFixed(2) : 0));
+            }
+
+            var lineValuePlugin = {
+                id: "lineValuePlugin",
+                afterDatasetsDraw: function(chart) {
+                    var ctx = chart.ctx;
+                    ctx.save();
+                    ctx.font = "12px Arial";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "bottom";
+                    var meta = chart.getDatasetMeta(2);
+                    if (!meta || !meta.data) {
+                        ctx.restore();
+                        return;
+                    }
+                    for (var j = 0; j < meta.data.length; j++) {
+                        var pt = meta.data[j];
+                        if (!pt) continue;
+                        var v = pphData[j];
+                        if (v === null || v === undefined) continue;
+                        ctx.fillText(String(v), pt.x, pt.y - 6);
+                    }
+                    ctx.restore();
+                }
+            };
+
+            if (barChart) barChart.destroy();
+            barChart = new Chart(document.getElementById("barChart"), {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        type: "bar",
+                        label: "총인구수",
+                        data: popData,
+                        yAxisID: "y"
+                    }, {
+                        type: "bar",
+                        label: "세대수",
+                        data: houseData,
+                        yAxisID: "y"
+                    }, {
+                        type: "line",
+                        label: "세대당 인구",
+                        data: pphData,
+                        yAxisID: "y1",
+                        tension: 0.25,
+                        pointRadius: 3,
+                        pointHoverRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    var label = ctx.dataset.label || "";
+                                    var v = ctx.raw;
+                                    if (ctx.dataset.yAxisID === "y1") return label + ": " + v;
+                                    return label + ": " + fmt(v);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            position: "left",
+                            ticks: {
+                                callback: function(v) {
+                                    return fmt(v);
+                                }
+                            }
+                        },
+                        y1: {
+                            position: "right",
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            ticks: {
+                                callback: function(v) {
+                                    return v;
+                                }
+                            }
+                        }
+                    }
+                },
+                plugins: [lineValuePlugin]
+            });
+        }
+
+        function renderTable() {
+            // ✅ 상세데이터도 상단 그래프 단위/항목에 대응되도록 제한
+            var base = filteredRows();
+            var level = pickLevel();
+
+            var rows = [];
+            for (var i = 0; i < base.length; i++) {
+                if (!passTopScope(base[i], level)) continue;
+                rows.push(base[i]);
+            }
+
+            var data = [];
+            for (var i = 0; i < rows.length; i++) data.push({
+                시도: rows[i].sido,
+                시군구: rows[i].sigungu,
+                읍면동: rows[i].emd,
+                총인구수: rows[i].pop,
+                세대수: rows[i].house,
+                "세대당 인구": rows[i].pph
+            });
+
+            var columns = [{
+                title: "시/도",
+                data: "시도"
+            }, {
+                title: "시/군/구",
+                data: "시군구"
+            }, {
+                title: "읍/면/동",
+                data: "읍면동"
+            }, {
+                title: "총인구수",
+                data: "총인구수",
+                render: function(d) {
+                    return fmt(d);
+                }
+            }, {
+                title: "세대수",
+                data: "세대수",
+                render: function(d) {
+                    return fmt(d);
+                }
+            }, {
+                title: "세대당 인구",
+                data: "세대당 인구",
+                render: function(d) {
+                    return d ? Number(d).toFixed(2) : "-";
+                }
+            }];
+
+            if (dt) {
+                dt.clear();
+                dt.rows.add(data);
+                dt.draw();
+                return;
+            }
+
+            dt = new DataTable("#detailTable", {
+                data: data,
+                columns: columns,
+                pageLength: 25,
+                order: [
+                    [3, "desc"]
+                ],
+                language: {
+                    search: "검색:",
+                    lengthMenu: "_MENU_ 개씩 보기",
+                    info: "총 _TOTAL_개 중 _START_~_END_",
+                    paginate: {
+                        previous: "이전",
+                        next: "다음"
+                    },
+                    emptyTable: "표시할 데이터가 없습니다."
+                }
+            });
+        }
+
+        function renderAll() {
+            renderBar();
+            renderTable();
+        }
+
+        /* ========================= AGE ========================= */
+
+        function normalizeAgeRows(rows) {
+            var cols = rows.length ? Object.keys(rows[0]) : [];
+            var colSido = "행정구역";
+            if ($.inArray(colSido, cols) < 0) colSido = cols[0];
+
+            var colSigungu = null,
+                colEmd = null;
+            for (var k = 0; k < cols.length; k++) {
+                if (!colSigungu && /Unnamed:\s*1/.test(cols[k])) colSigungu = cols[k];
+                if (!colEmd && /Unnamed:\s*2/.test(cols[k])) colEmd = cols[k];
+            }
+            if (!colSigungu) colSigungu = cols[1];
+            if (!colEmd) colEmd = cols[2];
+
+            function findCol(regex) {
+                for (var i = 0; i < cols.length; i++)
+                    if (regex.test(cols[i])) return cols[i];
+                return null;
+            }
+
+            var c0_9 = findCol(/^0\s*~\s*9\s*세/);
+            var c10_19 = findCol(/^10\s*~\s*19\s*세/);
+            var c20_29 = findCol(/^20\s*~\s*29\s*세/);
+            var c30_39 = findCol(/^30\s*~\s*39\s*세/);
+            var c40_49 = findCol(/^40\s*~\s*49\s*세/);
+            var c50_59 = findCol(/^50\s*~\s*59\s*세/);
+            var c60_69 = findCol(/^60\s*~\s*69\s*세/);
+            var c70_79 = findCol(/^70\s*~\s*79\s*세/);
+            var c80_89 = findCol(/^80\s*~\s*89\s*세/);
+            var c90_99 = findCol(/^90\s*~\s*99\s*세/);
+            var c100p = findCol(/^100\s*세\s*이상/);
+            if (!c100p) {
+                for (var i2 = 0; i2 < cols.length; i2++) {
+                    if (cols[i2].indexOf("100") >= 0 && cols[i2].indexOf("이상") >= 0) {
+                        c100p = cols[i2];
+                        break;
+                    }
+                }
+            }
+
+            var out = [];
+            for (var r = 0; r < rows.length; r++) {
+                var row = rows[r];
+                var sido = safeText(row[colSido]).trim();
+                if (!sido) continue;
+
+                out.push({
+                    sido: sido,
+                    sigungu: safeText(row[colSigungu]).trim(),
+                    emd: safeText(row[colEmd]).trim(),
+                    a0_9: nf(row[c0_9]),
+                    a10_19: nf(row[c10_19]),
+                    a20_29: nf(row[c20_29]),
+                    a30_39: nf(row[c30_39]),
+                    a40_49: nf(row[c40_49]),
+                    a50_59: nf(row[c50_59]),
+                    a60_69: nf(row[c60_69]),
+                    a70_79: nf(row[c70_79]),
+                    a80_89: nf(row[c80_89]),
+                    a90_99: nf(row[c90_99]),
+                    a100p: nf(row[c100p])
+                });
+            }
+            return out;
+        }
+
+        function filteredAgeRows() {
+            var sido = $("#sidoSelect").val();
+            var sigungu = $("#sigunguSelect").val();
+            var mode = getSidoGroupMode();
+
+            var q = $.trim($("#emdFilter").val());
+            var qLower = q ? q.toLowerCase() : "";
+            var hasQuery = !!qLower;
+            var isGuSelected = !!sigungu;
+
+            var out = [];
+            for (var i = 0; i < rawAgeRows.length; i++) {
+                var r = rawAgeRows[i];
+
+                if (mode) {
+                    if (!passSidoGroupFilter(r)) continue;
+                } else {
+                    if (sido && r.sido !== sido) continue;
+                }
+
+                if (!mode && sigungu && r.sigungu !== sigungu) continue;
+
+                // 동 단위를 쓰는 경우에만 emd 유효 체크
+                // (sido/sigungu 단위에서는 emd 없어도 집계 가능)
+                if (qLower) {
+                    var hay = (r.sido + " " + r.sigungu + " " + r.emd).toLowerCase();
+                    if (hay.indexOf(qLower) < 0) continue;
+                }
+
+                if ((isGuSelected || hasQuery) && /구$/.test(String(r.emd || "").trim())) continue;
+
+                out.push(r);
+            }
+            return out;
+        }
+
+        // ✅ 상단과 동일 단위(level)로 연령 집계
+        function aggregateAge(rows, level) {
+            var map = {};
+            for (var i = 0; i < rows.length; i++) {
+                var r = rows[i];
+
+                var key = "";
+                if (level === "sido") key = String(r.sido || "").trim();
+                else if (level === "sigungu") key = String(r.sigungu || "").trim();
+                else key = String(r.emd || "").trim();
+
+                if (!key) continue;
+
+                if (!map[key]) map[key] = {
+                    name: key,
+                    teen: 0,
+                    a20: 0,
+                    a30: 0,
+                    a40: 0,
+                    a50: 0,
+                    a60p: 0,
+                    total: 0,
+                    pTeen: 0,
+                    p20: 0,
+                    p30: 0,
+                    p40: 0,
+                    p50: 0,
+                    p60p: 0,
+                    pFamily: 0
+                };
+
+                var teen = (r.a0_9 || 0) + (r.a10_19 || 0);
+                var a20 = (r.a20_29 || 0);
+                var a30 = (r.a30_39 || 0);
+                var a40 = (r.a40_49 || 0);
+                var a50 = (r.a50_59 || 0);
+                var a60p = (r.a60_69 || 0) + (r.a70_79 || 0) + (r.a80_89 || 0) + (r.a90_99 || 0) + (r.a100p || 0);
+
+                map[key].teen += teen;
+                map[key].a20 += a20;
+                map[key].a30 += a30;
+                map[key].a40 += a40;
+                map[key].a50 += a50;
+                map[key].a60p += a60p;
+                map[key].total += (teen + a20 + a30 + a40 + a50 + a60p);
+            }
+
+            var out = [];
+            for (var k in map) {
+                if (!map.hasOwnProperty(k)) continue;
+                var o = map[k];
+                if (!o.total) continue;
+
+                o.pTeen = (o.teen / o.total) * 100;
+                o.p20 = (o.a20 / o.total) * 100;
+                o.p30 = (o.a30 / o.total) * 100;
+                o.p40 = (o.a40 / o.total) * 100;
+                o.p50 = (o.a50 / o.total) * 100;
+                o.p60p = (o.a60p / o.total) * 100;
+                o.pFamily = ((o.teen + o.a30 + o.a40 + o.a50) / o.total) * 100;
+
+                out.push(o);
+            }
+
+            // ✅ 상단 Top 25 항목에 맞춰 제한
+            var scoped = [];
+            for (var i2 = 0; i2 < out.length; i2++) {
+                // out은 {name: key} 형태라서 TOP_SCOPE.keys로 직접 비교
+                if (TOP_SCOPE && TOP_SCOPE.level === level && TOP_SCOPE.keys && TOP_SCOPE.keys.length) {
+                    if (TOP_SCOPE.keys.indexOf(out[i2].name) < 0) continue;
+                }
+                scoped.push(out[i2]);
+            }
+            return scoped;
+        }
+
+        function updateAgeKpis(agg) {
+            var totalPop = 0;
+            for (var i = 0; i < agg.length; i++) totalPop += agg[i].total;
+            $("#kpiAgeTotal").text(fmt(totalPop));
+            $("#kpiAgeDongCnt").text(fmt(agg.length));
+        }
+
+        function buildAgeHeatTable(agg) {
+            var cols = [{
+                key: "pTeen",
+                title: "~10대"
+            }, {
+                key: "p20",
+                title: "20대"
+            }, {
+                key: "p30",
+                title: "30대"
+            }, {
+                key: "p40",
+                title: "40대"
+            }, {
+                key: "p50",
+                title: "50대"
+            }, {
+                key: "p60p",
+                title: "60대"
+            }, {
+                key: "pFamily",
+                title: "완성형"
+            }];
+
+            if (!agg.length) {
+                $("#ageHeatTable").html("");
+                return;
+            }
+
+            var avg = {};
+            for (var c = 0; c < cols.length; c++) avg[cols[c].key] = 0;
+            for (var i = 0; i < agg.length; i++)
+                for (var c2 = 0; c2 < cols.length; c2++) avg[cols[c2].key] += agg[i][cols[c2].key];
+            for (var c3 = 0; c3 < cols.length; c3++) avg[cols[c3].key] = avg[cols[c3].key] / agg.length;
+
+            var html = "";
+            html += "<thead><tr><th></th>";
+            for (var h = 0; h < cols.length; h++) html += "<th>" + cols[h].title + "</th>";
+            html += "</tr></thead><tbody>";
+
+            for (var r = 0; r < agg.length; r++) {
+                html += "<tr>";
+                html += "<td class='name'>" + agg[r].name + "</td>";
+                for (var cc = 0; cc < cols.length; cc++) {
+                    var k = cols[cc].key;
+                    var v = Number(agg[r][k] || 0);
+                    var txt = Math.round(v) + "%";
+                    if (v >= avg[k]) html += "<td class='hit'>" + txt + "</td>";
+                    else html += "<td class='miss'>" + txt + "</td>";
+                }
+                html += "</tr>";
+            }
+
+            html += "<tr class='avg'>";
+            html += "<td class='name'> </td>";
+            for (var a = 0; a < cols.length; a++) html += "<td>" + Math.round(avg[cols[a].key]) + "%</td>";
+            html += "</tr>";
+
+            html += "</tbody>";
+            $("#ageHeatTable").html(html);
+        }
+
+        function aggregateYouth(rows, level) {
+            var map = {};
+            for (var i = 0; i < rows.length; i++) {
+                var r = rows[i];
+
+                var key = "";
+                if (level === "sido") key = String(r.sido || "").trim();
+                else if (level === "sigungu") key = String(r.sigungu || "").trim();
+                else key = String(r.emd || "").trim();
+                if (!key) continue;
+
+                if (!map[key]) map[key] = {
+                    name: key,
+                    a0_9: 0,
+                    a10_19: 0,
+                    sum: 0
+                };
+                map[key].a0_9 += (r.a0_9 || 0);
+                map[key].a10_19 += (r.a10_19 || 0);
+                map[key].sum += ((r.a0_9 || 0) + (r.a10_19 || 0));
+            }
+
+            var out = [];
+            for (var k in map)
+                if (map.hasOwnProperty(k)) out.push(map[k]);
+
+                // ✅ 상단 Top 25 항목에 맞춰 제한
+            var scoped = [];
+            for (var i2 = 0; i2 < out.length; i2++) {
+                if (TOP_SCOPE && TOP_SCOPE.level === level && TOP_SCOPE.keys && TOP_SCOPE.keys.length) {
+                    if (TOP_SCOPE.keys.indexOf(out[i2].name) < 0) continue;
+                }
+                scoped.push(out[i2]);
+            }
+            return scoped;
+        }
+
+        function renderYouthChart() {
+            var rows0 = filteredAgeRows();
+            var level = pickLevel();
+            var agg = aggregateYouth(rows0, level);
+
+            var m = $("#youthSortMetric").val();
+            agg.sort(function(a, b) {
+                if (m === "a0_9Desc") return (b.a0_9 - a.a0_9);
+                if (m === "a10_19Desc") return (b.a10_19 - a.a10_19);
+                return (b.sum - a.sum);
+            });
+
+            // 상단이 Top 25이면 이미 제한되어 있지만, 안전하게 한번 더
+            var maxN = 25;
+            if (agg.length > maxN) agg = agg.slice(0, maxN);
+
+            var labels = [],
+                d0_9 = [],
+                d10_19 = [];
+            for (var i = 0; i < agg.length; i++) {
+                labels.push(agg[i].name);
+                d0_9.push(agg[i].a0_9);
+                d10_19.push(agg[i].a10_19);
+            }
+
+            if (youthChart) youthChart.destroy();
+            youthChart = new Chart(document.getElementById("youthChart"), {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "0~9세",
+                        data: d0_9
+                    }, {
+                        label: "10~19세",
+                        data: d10_19
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    return ctx.dataset.label + ": " + fmt(ctx.raw);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(v) {
+                                    return fmt(v);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderAgeDetailTable() {
+            // ✅ 원천데이터도 "상단 그래프 단위/항목"에 대응되도록 제한
+            var base = filteredAgeRows();
+            var level = pickLevel();
+
+            var rows = [];
+            for (var i = 0; i < base.length; i++) {
+                var rr = base[i];
+                // level 기준으로 TOP_SCOPE에 포함되는 것만 남김
+                if (TOP_SCOPE && TOP_SCOPE.level === level && TOP_SCOPE.keys && TOP_SCOPE.keys.length) {
+                    var key = (level === "sido") ? rr.sido : (level === "sigungu") ? rr.sigungu : rr.emd;
+                    key = String(key || "").trim();
+                    if (TOP_SCOPE.keys.indexOf(key) < 0) continue;
+                }
+                rows.push(rr);
+            }
+
+            var data = [];
             for (var i = 0; i < rows.length; i++) {
                 data.push({
                     시도: rows[i].sido,
@@ -448,829 +1397,13 @@
             });
         }
 
-        function nf(x) {
-            if (x === null || x === undefined || x === "") return 0;
-            if (typeof x === "number") return x;
-            return Number(String(x).replace(/,/g, "").trim()) || 0;
-        }
-
-        function fmt(n) {
-            try {
-                return (Number(n) || 0).toLocaleString("ko-KR");
-            } catch (e) {
-                return String(n);
-            }
-        }
-
-        function safeText(s) {
-            return (s === null || s === undefined) ? "" : String(s);
-        }
-
-        function setStatus(msg, ok) {
-            $("#loadStatus").removeClass("ok err").addClass(ok ? "ok" : "err").text(msg);
-        }
-
-        function fetchTextWithEncoding(url, encoding) {
-            return fetch(url, {
-                cache: "no-store"
-            })
-                .then(function (resp) {
-                    if (!resp.ok) throw new Error("HTTP " + resp.status + " (" + url + ")");
-                    return resp.arrayBuffer();
-                })
-                .then(function (buf) {
-                    if (typeof TextDecoder === "undefined") throw new Error("TextDecoder not supported");
-                    return new TextDecoder(encoding).decode(buf);
-                });
-        }
-
-        function papaDownload(url) {
-            return new Promise(function (resolve, reject) {
-                Papa.parse(url, {
-                    download: true,
-                    header: true,
-                    skipEmptyLines: true,
-                    complete: function (res) {
-                        if (res && res.data && res.data.length) resolve({
-                            url: url,
-                            encoding: "server/default",
-                            data: res.data
-                        });
-                        else reject(new Error("Empty CSV (" + url + ")"));
-                    },
-                    error: function (err) {
-                        reject(err || new Error("Papa download failed (" + url + ")"));
-                    }
-                });
-            });
-        }
-
-        function tryFetchCsvFixedByUrls(urls) {
-            return new Promise(function (resolve, reject) {
-                var i = 0;
-
-                function nextUrl() {
-                    if (i >= urls.length) return reject(new Error("모든 URL에서 CSV를 불러오지 못했습니다."));
-                    var u = urls[i++];
-                    var encs = ["euc-kr", "windows-949", "utf-8"];
-                    var j = 0;
-
-                    function nextEnc() {
-                        if (j >= encs.length) {
-                            papaDownload(u).then(resolve).catch(function () {
-                                nextUrl();
-                            });
-                            return;
-                        }
-                        var enc = encs[j++];
-                        fetchTextWithEncoding(u, enc).then(function (text) {
-                            var parsed = Papa.parse(text, {
-                                header: true,
-                                skipEmptyLines: true
-                            });
-                            if (parsed && parsed.data && parsed.data.length) resolve({
-                                url: u,
-                                encoding: enc,
-                                data: parsed.data
-                            });
-                            else nextEnc();
-                        }).catch(function () {
-                            nextEnc();
-                        });
-                    }
-                    nextEnc();
-                }
-                nextUrl();
-            });
-        }
-
-        function normalizeRows(rows) {
-            var cols = rows.length ? Object.keys(rows[0]) : [];
-            var colSido = "행정구역";
-            if ($.inArray(colSido, cols) < 0) colSido = cols[0];
-
-            var colSigungu = null,
-                colEmd = null;
-            for (var k = 0; k < cols.length; k++) {
-                if (!colSigungu && /Unnamed:\s*1/.test(cols[k])) colSigungu = cols[k];
-                if (!colEmd && /Unnamed:\s*2/.test(cols[k])) colEmd = cols[k];
-            }
-            if (!colSigungu) colSigungu = cols[1];
-            if (!colEmd) colEmd = cols[2];
-
-            var colPop = null,
-                colHouse = null,
-                colPph = null;
-            for (var k4 = 0; k4 < cols.length; k4++) {
-                if (!colPop && (cols[k4] === "총인구수" || /총인구/.test(cols[k4]))) colPop = cols[k4];
-                if (!colHouse && (cols[k4] === "세대수" || /세대수/.test(cols[k4]))) colHouse = cols[k4];
-                if (!colPph && (cols[k4] === "세대당 인구" || /세대당/.test(cols[k4]))) colPph = cols[k4];
-            }
-
-            var out = [];
-            for (var r = 0; r < rows.length; r++) {
-                var row = rows[r];
-                var sido = safeText(row[colSido]).trim();
-                if (!sido) continue;
-                out.push({
-                    sido: sido,
-                    sigungu: safeText(row[colSigungu]).trim(),
-                    emd: safeText(row[colEmd]).trim(),
-                    pop: nf(row[colPop]),
-                    house: nf(row[colHouse]),
-                    pph: nf(row[colPph])
-                });
-            }
-            return out;
-        }
-
-        function uniq(arr) {
-            var map = {},
-                out = [];
-            for (var i = 0; i < arr.length; i++) {
-                var v = arr[i];
-                if (v === null || v === undefined) continue;
-                v = String(v).trim();
-                if (!v) continue;
-                if (!map[v]) {
-                    map[v] = true;
-                    out.push(v);
-                }
-            }
-            return out;
-        }
-
-        function rebuildSelectors() {
-            var sidos = uniq($.map(rawRows, function (r) {
-                return r.sido;
-            }));
-            var $s = $("#sidoSelect");
-            $s.empty().append('<option value="">(전체)</option>');
-            for (var i = 0; i < sidos.length; i++) $s.append('<option value="' + sidos[i] + '">' + sidos[i] + '</option>');
-            $("#sigunguSelect").empty().append('<option value="">(전체)</option>');
-        }
-
-        function refreshSigungu() {
-            var sido = $("#sidoSelect").val();
-            var list = [];
-            for (var i = 0; i < rawRows.length; i++)
-                if (!sido || rawRows[i].sido === sido) list.push(rawRows[i].sigungu);
-            list = uniq(list);
-
-            var $g = $("#sigunguSelect");
-            var cur = $g.val();
-            $g.empty().append('<option value="">(전체)</option>');
-            for (var j = 0; j < list.length; j++) $g.append('<option value="' + list[j] + '">' + list[j] + '</option>');
-            for (var j2 = 0; j2 < list.length; j2++)
-                if (list[j2] === cur) {
-                    $g.val(cur);
-                    break;
-                }
-        }
-
-        function filteredRows() {
-            var sido = $("#sidoSelect").val();
-            var sigungu = $("#sigunguSelect").val();
-            var q = $.trim($("#emdFilter").val());
-            var qLower = q ? q.toLowerCase() : "";
-            var hasQuery = !!qLower;
-            var isGuSelected = !!sigungu;
-            var out = [];
-
-            for (var i = 0; i < rawRows.length; i++) {
-                var r = rawRows[i];
-                if (sido && r.sido !== sido) continue;
-                if (sigungu && r.sigungu !== sigungu) continue;
-                if (qLower) {
-                    var hay = (r.sido + " " + r.sigungu + " " + r.emd).toLowerCase();
-                    if (hay.indexOf(qLower) < 0) continue;
-                }
-                if ((isGuSelected || hasQuery) && /구$/.test(String(r.emd || "").trim())) continue;
-                out.push(r);
-            }
-            return out;
-        }
-
-        function pickLevel() {
-            var sido = $("#sidoSelect").val();
-            var sigungu = $("#sigunguSelect").val();
-            if (sigungu) return "emd";
-            if (sido) return "sigungu";
-            return "sido";
-        }
-
-        function aggregate(rows, level) {
-            var map = {};
-            for (var i = 0; i < rows.length; i++) {
-                var r = rows[i];
-                var key = "";
-
-                if (level === "emd") {
-                    if (!r.emd || !String(r.emd).trim()) continue;
-                    key = r.emd;
-                } else if (level === "sigungu") {
-                    if (!r.sigungu || !String(r.sigungu).trim()) continue;
-                    key = r.sigungu;
-                } else {
-                    if (!r.sido || !String(r.sido).trim()) continue;
-                    key = r.sido;
-                }
-
-                if (!map[key]) map[key] = {
-                    name: key,
-                    pop: 0,
-                    house: 0,
-                    pphSum: 0,
-                    pphCnt: 0
-                };
-                map[key].pop += r.pop;
-                map[key].house += r.house;
-                if (r.pph) {
-                    map[key].pphSum += r.pph;
-                    map[key].pphCnt += 1;
-                }
-            }
-
-            var out = [];
-            for (var k in map)
-                if (map.hasOwnProperty(k)) out.push({
-                    name: map[k].name,
-                    pop: map[k].pop,
-                    house: map[k].house,
-                    pph: map[k].pphCnt ? (map[k].pphSum / map[k].pphCnt) : 0
-                });
-            return out;
-        }
-
-        function updateKpis(rows) {
-            var sido = $("#sidoSelect").val();
-            var sigungu = $("#sigunguSelect").val();
-
-            var area = "전체";
-            var sub = "—";
-            if (sido && sigungu) {
-                area = sido + " / " + sigungu;
-                sub = "선택 시/군/구 기준";
-            } else if (sido) {
-                area = sido;
-                sub = "선택 시/도 기준";
-            }
-
-            var pop = 0,
-                house = 0;
-            for (var i = 0; i < rows.length; i++) {
-                pop += rows[i].pop;
-                house += rows[i].house;
-            }
-            var pph = house ? (pop / house) : 0;
-
-            $("#kpiArea").text(area);
-            $("#kpiAreaSub").text(sub);
-            $("#kpiPop").text(fmt(pop));
-            $("#kpiHouse").text(fmt(house));
-            $("#kpiPph").text(pph ? pph.toFixed(2) : "-");
-        }
-
-        function renderBar() {
-            var rows = filteredRows();
-            //updateKpis(rows);
-
-            var level = pickLevel();
-            var agg = aggregate(rows, level);
-
-            var metric = $("#sortMetric").val();
-            agg.sort(function (a, b) {
-                if (metric === "house") return b.house - a.house;
-                if (metric === "pph") return b.pph - a.pph;
-                return b.pop - a.pop;
-            });
-
-            var top = agg.slice(0, 25);
-            // ✅ KPI는 "그래프에 실제 표시되는 top(25)" 기준으로 합계
-            var popSum = 0, houseSum = 0;
-            for (var ti = 0; ti < top.length; ti++) {
-                popSum += (top[ti].pop || 0);
-                houseSum += (top[ti].house || 0);
-            }
-            var pphSum = houseSum ? (popSum / houseSum) : 0;
-
-            // 영역 표시는 기존 로직 그대로 유지
-            var sido = $("#sidoSelect").val();
-            var sigungu = $("#sigunguSelect").val();
-            var area = "전체";
-            var sub = "—";
-            if (sido && sigungu) { area = sido + " / " + sigungu; sub = "선택 시/군/구 기준"; }
-            else if (sido) { area = sido; sub = "선택 시/도 기준"; }
-
-            $("#kpiArea").text(area);
-            $("#kpiAreaSub").text(sub);
-            $("#kpiPop").text(fmt(popSum));
-            $("#kpiHouse").text(fmt(houseSum));
-            $("#kpiPph").text(pphSum ? pphSum.toFixed(2) : "-");
-            var labels = [],
-                popData = [],
-                houseData = [],
-                pphData = [];
-
-            for (var i = 0; i < top.length; i++) {
-                labels.push(top[i].name);
-                popData.push(top[i].pop);
-                houseData.push(top[i].house);
-                pphData.push(Number(top[i].pph ? top[i].pph.toFixed(2) : 0));
-            }
-
-            var lineValuePlugin = {
-                id: "lineValuePlugin",
-                afterDatasetsDraw: function (chart) {
-                    var ctx = chart.ctx;
-                    ctx.save();
-                    ctx.font = "12px Arial";
-                    ctx.textAlign = "center";
-                    ctx.textBaseline = "bottom";
-                    var meta = chart.getDatasetMeta(2);
-                    if (!meta || !meta.data) {
-                        ctx.restore();
-                        return;
-                    }
-                    for (var j = 0; j < meta.data.length; j++) {
-                        var pt = meta.data[j];
-                        if (!pt) continue;
-                        var v = pphData[j];
-                        if (v === null || v === undefined) continue;
-                        ctx.fillText(String(v), pt.x, pt.y - 6);
-                    }
-                    ctx.restore();
-                }
-            };
-
-            if (barChart) barChart.destroy();
-            barChart = new Chart(document.getElementById("barChart"), {
-                type: "bar",
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        type: "bar",
-                        label: "총인구수",
-                        data: popData,
-                        yAxisID: "y"
-                    }, {
-                        type: "bar",
-                        label: "세대수",
-                        data: houseData,
-                        yAxisID: "y"
-                    }, {
-                        type: "line",
-                        label: "세대당 인구",
-                        data: pphData,
-                        yAxisID: "y1",
-                        tension: 0.25,
-                        pointRadius: 3,
-                        pointHoverRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (ctx) {
-                                    var label = ctx.dataset.label || "";
-                                    var v = ctx.raw;
-                                    if (ctx.dataset.yAxisID === "y1") return label + ": " + v;
-                                    return label + ": " + fmt(v);
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            position: "left",
-                            ticks: {
-                                callback: function (v) {
-                                    return fmt(v);
-                                }
-                            }
-                        },
-                        y1: {
-                            position: "right",
-                            grid: {
-                                drawOnChartArea: false
-                            },
-                            ticks: {
-                                callback: function (v) {
-                                    return v;
-                                }
-                            }
-                        }
-                    }
-                },
-                plugins: [lineValuePlugin]
-            });
-        }
-
-        function renderTable() {
-            var rows = filteredRows();
-            var data = [];
-            for (var i = 0; i < rows.length; i++) data.push({
-                시도: rows[i].sido,
-                시군구: rows[i].sigungu,
-                읍면동: rows[i].emd,
-                총인구수: rows[i].pop,
-                세대수: rows[i].house,
-                "세대당 인구": rows[i].pph
-            });
-
-            var columns = [{
-                title: "시/도",
-                data: "시도"
-            }, {
-                title: "시/군/구",
-                data: "시군구"
-            }, {
-                title: "읍/면/동",
-                data: "읍면동"
-            }, {
-                title: "총인구수",
-                data: "총인구수",
-                render: function (d) {
-                    return fmt(d);
-                }
-            }, {
-                title: "세대수",
-                data: "세대수",
-                render: function (d) {
-                    return fmt(d);
-                }
-            }, {
-                title: "세대당 인구",
-                data: "세대당 인구",
-                render: function (d) {
-                    return d ? Number(d).toFixed(2) : "-";
-                }
-            }];
-
-            if (dt) {
-                dt.clear();
-                dt.rows.add(data);
-                dt.draw();
-                return;
-            }
-
-            dt = new DataTable("#detailTable", {
-                data: data,
-                columns: columns,
-                pageLength: 25,
-                order: [
-                    [3, "desc"]
-                ],
-                language: {
-                    search: "검색:",
-                    lengthMenu: "_MENU_ 개씩 보기",
-                    info: "총 _TOTAL_개 중 _START_~_END_",
-                    paginate: {
-                        previous: "이전",
-                        next: "다음"
-                    },
-                    emptyTable: "표시할 데이터가 없습니다."
-                }
-            });
-        }
-
-        function renderAll() {
-            renderBar();
-            renderTable();
-        }
-
-        /* ========================= AGE ========================= */
-
-        function normalizeAgeRows(rows) {
-            var cols = rows.length ? Object.keys(rows[0]) : [];
-            var colSido = "행정구역";
-            if ($.inArray(colSido, cols) < 0) colSido = cols[0];
-
-            var colSigungu = null,
-                colEmd = null;
-            for (var k = 0; k < cols.length; k++) {
-                if (!colSigungu && /Unnamed:\s*1/.test(cols[k])) colSigungu = cols[k];
-                if (!colEmd && /Unnamed:\s*2/.test(cols[k])) colEmd = cols[k];
-            }
-            if (!colSigungu) colSigungu = cols[1];
-            if (!colEmd) colEmd = cols[2];
-
-            function findCol(regex) {
-                for (var i = 0; i < cols.length; i++)
-                    if (regex.test(cols[i])) return cols[i];
-                return null;
-            }
-
-            var c0_9 = findCol(/^0\s*~\s*9\s*세/);
-            var c10_19 = findCol(/^10\s*~\s*19\s*세/);
-            var c20_29 = findCol(/^20\s*~\s*29\s*세/);
-            var c30_39 = findCol(/^30\s*~\s*39\s*세/);
-            var c40_49 = findCol(/^40\s*~\s*49\s*세/);
-            var c50_59 = findCol(/^50\s*~\s*59\s*세/);
-            var c60_69 = findCol(/^60\s*~\s*69\s*세/);
-            var c70_79 = findCol(/^70\s*~\s*79\s*세/);
-            var c80_89 = findCol(/^80\s*~\s*89\s*세/);
-            var c90_99 = findCol(/^90\s*~\s*99\s*세/);
-            var c100p = findCol(/^100\s*세\s*이상/);
-
-            if (!c100p) {
-                for (var i2 = 0; i2 < cols.length; i2++) {
-                    if (cols[i2].indexOf("100") >= 0 && cols[i2].indexOf("이상") >= 0) {
-                        c100p = cols[i2];
-                        break;
-                    }
-                }
-            }
-
-            var out = [];
-            for (var r = 0; r < rows.length; r++) {
-                var row = rows[r];
-                var sido = safeText(row[colSido]).trim();
-                if (!sido) continue;
-
-                out.push({
-                    sido: sido,
-                    sigungu: safeText(row[colSigungu]).trim(),
-                    emd: safeText(row[colEmd]).trim(),
-                    a0_9: nf(row[c0_9]),
-                    a10_19: nf(row[c10_19]),
-                    a20_29: nf(row[c20_29]),
-                    a30_39: nf(row[c30_39]),
-                    a40_49: nf(row[c40_49]),
-                    a50_59: nf(row[c50_59]),
-                    a60_69: nf(row[c60_69]),
-                    a70_79: nf(row[c70_79]),
-                    a80_89: nf(row[c80_89]),
-                    a90_99: nf(row[c90_99]),
-                    a100p: nf(row[c100p])
-                });
-            }
-            return out;
-        }
-
-        function filteredAgeRows() {
-            var sido = $("#sidoSelect").val();
-            var sigungu = $("#sigunguSelect").val();
-            var q = $.trim($("#emdFilter").val());
-            var qLower = q ? q.toLowerCase() : "";
-            var hasQuery = !!qLower;
-            var isGuSelected = !!sigungu;
-            var out = [];
-
-            for (var i = 0; i < rawAgeRows.length; i++) {
-                var r = rawAgeRows[i];
-                if (sido && r.sido !== sido) continue;
-                if (sigungu && r.sigungu !== sigungu) continue;
-                if (!r.emd || !String(r.emd).trim()) continue;
-
-                if (qLower) {
-                    var hay = (r.sido + " " + r.sigungu + " " + r.emd).toLowerCase();
-                    if (hay.indexOf(qLower) < 0) continue;
-                }
-                if ((isGuSelected || hasQuery) && /구$/.test(String(r.emd || "").trim())) continue;
-                out.push(r);
-            }
-            return out;
-        }
-
-        function aggregateAgeByDong(rows) {
-            var map = {};
-            for (var i = 0; i < rows.length; i++) {
-                var r = rows[i];
-                var key = r.emd;
-                if (!key) continue;
-
-                if (!map[key]) map[key] = {
-                    name: key,
-                    teen: 0,
-                    a20: 0,
-                    a30: 0,
-                    a40: 0,
-                    a50: 0,
-                    a60p: 0,
-                    total: 0,
-                    pTeen: 0,
-                    p20: 0,
-                    p30: 0,
-                    p40: 0,
-                    p50: 0,
-                    p60p: 0,
-                    pFamily: 0
-                };
-
-                var teen = r.a0_9 + r.a10_19;
-                var a20 = r.a20_29;
-                var a30 = r.a30_39;
-                var a40 = r.a40_49;
-                var a50 = r.a50_59;
-                var a60p = r.a60_69 + r.a70_79 + r.a80_89 + r.a90_99 + r.a100p;
-
-                map[key].teen += teen;
-                map[key].a20 += a20;
-                map[key].a30 += a30;
-                map[key].a40 += a40;
-                map[key].a50 += a50;
-                map[key].a60p += a60p;
-
-                map[key].total += (teen + a20 + a30 + a40 + a50 + a60p);
-            }
-
-            var out = [];
-            for (var k in map) {
-                if (!map.hasOwnProperty(k)) continue;
-                var o = map[k];
-                if (!o.total) continue;
-
-                o.pTeen = (o.teen / o.total) * 100;
-                o.p20 = (o.a20 / o.total) * 100;
-                o.p30 = (o.a30 / o.total) * 100;
-                o.p40 = (o.a40 / o.total) * 100;
-                o.p50 = (o.a50 / o.total) * 100;
-                o.p60p = (o.a60p / o.total) * 100;
-
-                o.pFamily = ((o.teen + o.a30 + o.a40 + o.a50) / o.total) * 100;
-
-                out.push(o);
-            }
-            return out;
-        }
-
-        function updateAgeKpis(agg) {
-            var totalPop = 0;
-            for (var i = 0; i < agg.length; i++) totalPop += agg[i].total;
-            $("#kpiAgeTotal").text(fmt(totalPop));
-            $("#kpiAgeDongCnt").text(fmt(agg.length));
-        }
-
-        function buildAgeHeatTable(agg) {
-            var cols = [{
-                key: "pTeen",
-                title: "~10대"
-            }, {
-                key: "p20",
-                title: "20대"
-            }, {
-                key: "p30",
-                title: "30대"
-            }, {
-                key: "p40",
-                title: "40대"
-            }, {
-                key: "p50",
-                title: "50대"
-            }, {
-                key: "p60p",
-                title: "60대"
-            }, {
-                key: "pFamily",
-                title: "완성형"
-            }];
-
-            if (!agg.length) {
-                $("#ageHeatTable").html("");
-                return;
-            }
-
-            var avg = {};
-            for (var c = 0; c < cols.length; c++) avg[cols[c].key] = 0;
-            for (var i = 0; i < agg.length; i++) {
-                for (var c2 = 0; c2 < cols.length; c2++) avg[cols[c2].key] += agg[i][cols[c2].key];
-            }
-            for (var c3 = 0; c3 < cols.length; c3++) avg[cols[c3].key] = avg[cols[c3].key] / agg.length;
-
-            var html = "";
-            html += "<thead><tr><th></th>";
-            for (var h = 0; h < cols.length; h++) html += "<th>" + cols[h].title + "</th>";
-            html += "</tr></thead><tbody>";
-
-            for (var r = 0; r < agg.length; r++) {
-                html += "<tr>";
-                html += "<td class='name'>" + agg[r].name + "</td>";
-
-                for (var cc = 0; cc < cols.length; cc++) {
-                    var k = cols[cc].key;
-                    var v = Number(agg[r][k] || 0);
-                    var txt = Math.round(v) + "%";
-                    if (v >= avg[k]) html += "<td class='hit'>" + txt + "</td>";
-                    else html += "<td class='miss'>" + txt + "</td>";
-                }
-                html += "</tr>";
-            }
-
-            html += "<tr class='avg'>";
-            html += "<td class='name'> </td>";
-            for (var a = 0; a < cols.length; a++) html += "<td>" + Math.round(avg[cols[a].key]) + "%</td>";
-            html += "</tr>";
-
-            html += "</tbody>";
-            $("#ageHeatTable").html(html);
-        }
-
-        // ✅ 청소년(0-9 / 10-19) 집계 + 그래프
-        function aggregateYouthByDong(rows) {
-            var map = {};
-            for (var i = 0; i < rows.length; i++) {
-                var r = rows[i];
-                var key = r.emd;
-                if (!key) continue;
-
-                if (!map[key]) map[key] = {
-                    name: key,
-                    a0_9: 0,
-                    a10_19: 0,
-                    sum: 0
-                };
-
-                map[key].a0_9 += (r.a0_9 || 0);
-                map[key].a10_19 += (r.a10_19 || 0);
-                map[key].sum += ((r.a0_9 || 0) + (r.a10_19 || 0));
-            }
-
-            var out = [];
-            for (var k in map) {
-                if (!map.hasOwnProperty(k)) continue;
-                out.push(map[k]);
-            }
-            return out;
-        }
-
-        function renderYouthChart() {
-            var rows = filteredAgeRows();
-            var agg = aggregateYouthByDong(rows);
-
-            var m = $("#youthSortMetric").val();
-            agg.sort(function (a, b) {
-                if (m === "a0_9Desc") return (b.a0_9 - a.a0_9);
-                if (m === "a10_19Desc") return (b.a10_19 - a.a10_19);
-                return (b.sum - a.sum);
-            });
-
-            var maxN = 25;
-            if (agg.length > maxN) agg = agg.slice(0, maxN);
-
-            var labels = [];
-            var d0_9 = [];
-            var d10_19 = [];
-
-            for (var i = 0; i < agg.length; i++) {
-                labels.push(agg[i].name);
-                d0_9.push(agg[i].a0_9);
-                d10_19.push(agg[i].a10_19);
-            }
-
-            if (youthChart) youthChart.destroy();
-            youthChart = new Chart(document.getElementById("youthChart"), {
-                type: "bar",
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: "0~9세",
-                        data: d0_9
-                    }, {
-                        label: "10~19세",
-                        data: d10_19
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (ctx) {
-                                    return ctx.dataset.label + ": " + fmt(ctx.raw);
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            ticks: {
-                                callback: function (v) {
-                                    return fmt(v);
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
         function renderAgeChartAndTable() {
-            var rows = filteredAgeRows();
-            var agg = aggregateAgeByDong(rows);
+            var rows0 = filteredAgeRows();
+            var level = pickLevel(); // ✅ 상단과 동일 단위
+            var agg = aggregateAge(rows0, level);
 
             var m = $("#ageSortMetric").val();
-            agg.sort(function (a, b) {
+            agg.sort(function(a, b) {
                 if (m === "nameAsc") return String(a.name).localeCompare(String(b.name), "ko");
                 return b.total - a.total;
             });
@@ -1300,7 +1433,7 @@
 
             var percentLabelPlugin = {
                 id: "percentLabelPlugin",
-                afterDatasetsDraw: function (c) {
+                afterDatasetsDraw: function(c) {
                     var ctx = c.ctx;
                     ctx.save();
                     ctx.font = "12px Arial";
@@ -1318,17 +1451,14 @@
                             var v = c.data.datasets[di].data[j];
                             if (!v || v < 3) continue;
 
-                            // ✅ 세그먼트 가운데로
                             var props = el.getProps(["x", "y", "base"], true);
                             var midY = (props.y + props.base) / 2;
-
                             ctx.fillText(String(v) + "%", props.x, midY);
                         }
                     }
                     ctx.restore();
                 }
             };
-
 
             if (ageChart) ageChart.destroy();
             ageChart = new Chart(document.getElementById("ageStackChart"), {
@@ -1376,7 +1506,7 @@
                         },
                         tooltip: {
                             callbacks: {
-                                label: function (ctx) {
+                                label: function(ctx) {
                                     return ctx.dataset.label + ": " + ctx.raw + "%";
                                 }
                             }
@@ -1391,7 +1521,7 @@
                             min: 0,
                             max: 100,
                             ticks: {
-                                callback: function (v) {
+                                callback: function(v) {
                                     return v + "%";
                                 }
                             }
@@ -1406,52 +1536,51 @@
         }
 
         function loadData() {
-            // setStatus("데이터 불러오는 중…", true);
-
-            tryFetchCsvFixedByUrls(DATA_URLS).then(function (res1) {
+            tryFetchCsvFixedByUrls(DATA_URLS).then(function(res1) {
                 rawRows = normalizeRows(res1.data);
                 rebuildSelectors();
                 refreshSigungu();
 
-                return tryFetchCsvFixedByUrls(AGE_URLS).then(function (res2) {
+                return tryFetchCsvFixedByUrls(AGE_URLS).then(function(res2) {
                     rawAgeRows = normalizeAgeRows(res2.data);
                     renderAll();
                     renderAgeChartAndTable();
                 });
-            }).catch(function (e) {
+            }).catch(function(e) {
                 console.log(e);
                 setStatus("오류: " + (e && e.message ? e.message : e), false);
             });
         }
 
-        $(function () {
-            $("#sidoSelect").on("change", function () {
+        $(function() {
+            $("#sidoSelect").on("change", function() {
+                $("#sigunguSelect").val("");
                 refreshSigungu();
                 renderAll();
                 renderAgeChartAndTable();
             });
 
-            $("#sigunguSelect").on("change", function () {
+            $("#sigunguSelect").on("change", function() {
                 renderAll();
                 renderAgeChartAndTable();
             });
 
-            $("#sortMetric").on("change", function () {
+            $("#sortMetric").on("change", function() {
                 renderAll();
                 renderAgeChartAndTable();
             });
 
-            $("#ageSortMetric").on("change", function () {
+            $("#ageSortMetric").on("change", function() {
                 renderAgeChartAndTable();
             });
 
-            $("#youthSortMetric").on("change", function () {
+            $("#youthSortMetric").on("change", function() {
                 renderYouthChart();
             });
 
-            $("#emdFilter").on("input", function () {
+            $("#emdFilter").on("input", function() {
                 if (window.__t) clearTimeout(window.__t);
-                window.__t = setTimeout(function () {
+                window.__t = setTimeout(function() {
                     renderAll();
                     renderAgeChartAndTable();
                 }, 200);
