@@ -432,6 +432,53 @@
             keys: []
         };
 
+        function shouldUseSummaryRows(rows, level) {
+            var cnt = 0;
+
+            for (var i = 0; i < rows.length; i++) {
+                var r = rows[i];
+                var sg = String(r.sigungu || "").trim();
+                var emd = String(r.emd || "").trim();
+                var sd = String(r.sido || "").trim();
+
+                if (level === "sido") {
+                    if (sd && !sg && !emd) cnt++;
+                } else if (level === "sigungu") {
+                    if (sg && !emd) cnt++;
+                } else { // emd
+                    if (emd) cnt++;
+                }
+            }
+
+            // sido는 보통 10개 이상, sigungu는 10개 이상이면 합계행이 "있다"고 판단
+            if (level === "sido") return cnt >= 10;
+            if (level === "sigungu") return cnt >= 10;
+            return true;
+        }
+
+        /**
+         * ✅ 연령/청소년 집계용: level별로 "집계에 사용할 원천행"만 true
+         * - 요약행이 충분하면 요약행(emd 빈 행)을 사용
+         * - 요약행이 부족하면 하위행(emd 있는 동행)을 사용해서 상위로 roll-up
+         */
+        function isAgeSourceRowForLevel(r, level, useSummary) {
+            var sg = String(r.sigungu || "").trim();
+            var emd = String(r.emd || "").trim();
+            var sd = String(r.sido || "").trim();
+
+            if (level === "emd") return !!emd;
+
+            if (level === "sigungu") {
+                if (useSummary) return !!sg && !emd; // 구 합계행
+                return !!sg && !!emd; // 동행을 모아 구로 집계
+            }
+
+            // level === "sido"
+            if (useSummary) return !!sd && !sg && !emd; // 시도 합계행
+            return !!sd && !!sg; // 구/동행을 모아 시도로 집계(둘 다 OK)
+        }
+
+
         function getTopN() {
             var v = Number($("#topNSelect").val());
             return (v && v > 0) ? v : 25;
@@ -1103,10 +1150,10 @@
 
         function aggregateAge(rows, level) {
             var map = {};
+            var useSummary = shouldUseSummaryRows(rows, level);
             for (var i = 0; i < rows.length; i++) {
                 var r = rows[i];
-                if (!isSourceRowForLevel(r, level)) continue;
-
+                if (!isAgeSourceRowForLevel(r, level, useSummary)) continue;
                 var key = "";
                 if (level === "sido") key = String(r.sido || "").trim();
                 else if (level === "sigungu") key = String(r.sigungu || "").trim();
@@ -1245,9 +1292,10 @@
 
         function aggregateYouth(rows, level) {
             var map = {};
+            var useSummary = shouldUseSummaryRows(rows, level);
             for (var i = 0; i < rows.length; i++) {
                 var r = rows[i];
-                if (!isSourceRowForLevel(r, level)) continue;
+                if (!isAgeSourceRowForLevel(r, level, useSummary)) continue;
 
                 var key = "";
                 if (level === "sido") key = String(r.sido || "").trim();
