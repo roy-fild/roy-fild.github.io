@@ -15,6 +15,9 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
+    <!-- html2canvas (표를 이미지로 복사) -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
     <!-- DataTables -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/datatables.net-dt@2.0.8/css/dataTables.dataTables.min.css">
     <script src="https://cdn.jsdelivr.net/npm/datatables.net@2.0.8/js/dataTables.min.js"></script>
@@ -129,6 +132,31 @@
         table.dataTable {
             width: 100% !important;
         }
+        /* ===== Copy Buttons ===== */
+        
+        .btnCopy {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border: 1px solid #d7d7d7;
+            border-radius: 10px;
+            background: #fff;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 700;
+            user-select: none;
+        }
+        
+        .btnCopy:active {
+            transform: translateY(1px);
+        }
+        
+        .btnCopy[disabled] {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         /* ===== Heat Table (white background for <=avg) ===== */
         
         .heatWrap {
@@ -226,12 +254,12 @@
             <div class="kpi">
                 <div class="t">총인구수</div>
                 <div class="v" id="kpiPop">-</div>
-                <div class="s">그래프 표시 항목 합계(Top 25)</div>
+                <div class="s">그래프 표시 항목 합계(Top N)</div>
             </div>
             <div class="kpi">
                 <div class="t">세대수</div>
                 <div class="v" id="kpiHouse">-</div>
-                <div class="s">그래프 표시 항목 합계(Top 25)</div>
+                <div class="s">그래프 표시 항목 합계(Top N)</div>
             </div>
             <div class="kpi">
                 <div class="t">세대당 인구</div>
@@ -240,47 +268,65 @@
             </div>
         </div>
 
-        <div class="panel">
+        <div class="panel" id="panelBar">
             <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
                 <div>
-                    <div style="min-width:140px;">
-                        <label>상위 N</label>
-                        <select id="topNSelect">
-                            <option value="5">5</option>
-                            <option value="10">10</option>
-                            <option value="15">15</option>
-                            <option value="20">20</option>
-                            <option value="25" selected>25</option>
-                            <option value="30">30</option>
-                            <option value="40">50</option>                            
-                        </select>
+                    <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+                        <div style="min-width:140px;">
+                            <label>상위 N</label>
+                            <select id="topNSelect">
+                                <option value="5">5</option>
+                                <option value="10">10</option>
+                                <option value="15">15</option>
+                                <option value="20">20</option>
+                                <option value="25" selected>25</option>
+                                <option value="30">30</option>
+                                <option value="40">40</option>
+                                <option value="50">50</option>
+                            </select>
+                        </div>
+
+                        <div style="min-width:220px;">
+                            <label>정렬 기준</label>
+                            <select id="sortMetric">
+                                <option value="pop">총인구수</option>
+                                <option value="house">세대수</option>
+                                <option value="pph">세대당 인구</option>
+                            </select>
+                        </div>
+
+                        <div style="padding-top:18px;">
+                            <button class="btnCopy" id="copyBarBtn" type="button">복사</button>
+                        </div>
                     </div>
+
                     <div class="muted">선택 상태에 따라 시/도 → 시/군/구 → 읍/면/동 단위로 자동 집계</div>
-                </div>
-                <div style="min-width:220px;">
-                    <label>정렬 기준</label>
-                    <select id="sortMetric">
-                        <option value="pop">총인구수</option>
-                        <option value="house">세대수</option>
-                        <option value="pph">세대당 인구</option>
-                    </select>
                 </div>
             </div>
             <div class="chartBox"><canvas id="barChart"></canvas></div>
         </div>
 
-        <div class="panel">
+        <div class="panel" id="panelAge">
             <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
                 <div>
-                    <div style="font-weight:700;">연령대 비중(%) 100% 누적 막대</div>
-                    <div class="muted">상단 그래프 집계 단위(시/도 or 시/군/구 or 동)와 동일 단위로 표시</div>
-                </div>
-                <div style="min-width:240px;">
-                    <label>정렬 기준</label>
-                    <select id="ageSortMetric">
-                        <option value="popDesc">총인구 (내림)</option>
-                        <option value="nameAsc">이름 (오름)</option>
-                    </select>
+                    <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+                        <div>
+                            <div style="font-weight:700;">연령대 비중(%) 100% 누적 막대</div>
+                            <div class="muted">상단 그래프 집계 단위(시/도 or 시/군/구 or 동)와 동일 단위로 표시</div>
+                        </div>
+
+                        <div style="min-width:240px;">
+                            <label>정렬 기준</label>
+                            <select id="ageSortMetric">
+                                <option value="popDesc">총인구 (내림)</option>
+                                <option value="nameAsc">이름 (오름)</option>
+                            </select>
+                        </div>
+
+                        <div style="padding-top:18px;">
+                            <button class="btnCopy" id="copyAgeStackBtn" type="button">복사</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -288,7 +334,7 @@
                 <div class="kpi">
                     <div class="t">연령 데이터 총인구 합</div>
                     <div class="v" id="kpiAgeTotal">-</div>
-                    <div class="s">표시 항목 합계(Top 25)</div>
+                    <div class="s">표시 항목 합계(Top N)</div>
                 </div>
                 <div class="kpi">
                     <div class="t">표시된 항목 개수</div>
@@ -299,9 +345,17 @@
 
             <div class="chartBox" style="height:520px; margin-top:10px;"><canvas id="ageStackChart"></canvas></div>
 
-            <div style="font-weight:700; margin:14px 0 8px 0;">평균 기준 표 (평균 이상: 핑크 / 평균 이하: 흰색)</div>
-            <div class="muted">완성형 = 10 +30 + 40 + 50</div>
-            <div class="heatWrap">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-top:14px;">
+                <div>
+                    <div style="font-weight:700; margin:0 0 6px 0;">평균 기준 표 (평균 이상: 핑크 / 평균 이하: 흰색)</div>
+                    <div class="muted">완성형 = 10 +30 + 40 + 50</div>
+                </div>
+                <div style="padding-top:6px;">
+                    <button class="btnCopy" id="copyHeatBtn" type="button">복사</button>
+                </div>
+            </div>
+
+            <div class="heatWrap" id="heatWrap">
                 <table class="heat" id="ageHeatTable"></table>
             </div>
 
@@ -310,18 +364,24 @@
                     <div style="font-weight:700;">청소년(0~9 / 10~19) 인구</div>
                     <div class="muted">상단 그래프 집계 단위와 동일 단위로 표시</div>
                 </div>
-                <div style="min-width:240px;">
-                    <label>정렬 기준</label>
-                    <select id="youthSortMetric">
-                        <option value="sumDesc">총합 (내림차순)</option>
-                        <option value="a0_9Desc">0~9세 (내림차순)</option>
-                        <option value="a10_19Desc">10~19세 (내림차순)</option>
-                    </select>
+                <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+                    <div style="min-width:240px;">
+                        <label>정렬 기준</label>
+                        <select id="youthSortMetric">
+                            <option value="sumDesc">총합 (내림차순)</option>
+                            <option value="a0_9Desc">0~9세 (내림차순)</option>
+                            <option value="a10_19Desc">10~19세 (내림차순)</option>
+                        </select>
+                    </div>
+                    <div style="padding-top:18px;">
+                        <button class="btnCopy" id="copyYouthBtn" type="button">복사</button>
+                    </div>
                 </div>
             </div>
             <div class="chartBox" style="height:420px; margin-top:10px;"><canvas id="youthChart"></canvas></div>
         </div>
 
+        <!-- ✅ 원천데이터 영역은 복사 기능 제외 -->
         <div class="panel">
             <div style="font-weight:700; margin-bottom:10px;">상세 데이터(원천)</div>
             <table id="detailTable" class="display"></table>
@@ -364,9 +424,9 @@
         var dt = null;
         var ageDt = null;
 
-        // ✅ 상단 그래프(Top 25) 기준으로 하단도 동일 단위/동일 항목으로 맞추기 위한 상태
+        // ✅ 상단 그래프(Top N) 기준으로 하단도 동일 단위/동일 항목으로 맞추기 위한 상태
         //    level: "sido" | "sigungu" | "emd"
-        //    keys:  상단 그래프 라벨(Top 25)
+        //    keys:  상단 그래프 라벨(Top N)
         var TOP_SCOPE = {
             level: "",
             keys: []
@@ -563,21 +623,15 @@
             $s.append('<option value="' + SIDO_GROUP_METRO + '">광역시</option>');
             $s.append('<option value="' + SIDO_GROUP_SMALL + '">중소도시</option>');
             for (var i = 0; i < sidos.length; i++) $s.append('<option value="' + sidos[i] + '">' + sidos[i] + '</option>');
-
             $("#sigunguSelect").empty().append('<option value="">(전체)</option>');
         }
 
         function refreshSigungu() {
             var mode = getSidoGroupMode();
-
-            // 그룹(광역시/중소도시) 선택 시: 시군구 셀렉트는 (전체)만
             if (mode) {
-                $("#sigunguSelect").prop("disabled", true)
-                    .html('<option value="">(전체)</option>')
-                    .val("");
+                $("#sigunguSelect").prop("disabled", true).html('<option value="">(전체)</option>').val("");
                 return;
             }
-
             $("#sigunguSelect").prop("disabled", false);
 
             var sido = $("#sidoSelect").val();
@@ -600,10 +654,9 @@
                 }
         }
 
-        // ✅ TOP_SCOPE를 이용해 row를 "상단 그래프 항목"에 맞춰 제한
         function passTopScope(row, level) {
             if (!TOP_SCOPE || !TOP_SCOPE.level || !TOP_SCOPE.keys || !TOP_SCOPE.keys.length) return true;
-            if (TOP_SCOPE.level !== level) return true; // 단위가 다른 경우는 제한하지 않음(안전)
+            if (TOP_SCOPE.level !== level) return true;
             var key = (level === "sido") ? row.sido : (level === "sigungu") ? row.sigungu : row.emd;
             key = String(key || "").trim();
             if (!key) return false;
@@ -621,7 +674,6 @@
             var isGuSelected = !!sigungu;
 
             var out = [];
-
             for (var i = 0; i < rawRows.length; i++) {
                 var r = rawRows[i];
 
@@ -662,36 +714,24 @@
             return v === null || v === undefined || String(v).trim() === "";
         }
 
-        /**
-         * ✅ level에 맞는 "원천행"만 true
-         * - sido 레벨: sigungu/emd가 비어있는 행만 (시도 합계행)
-         * - sigungu 레벨: sigungu는 있고 emd는 비어있는 행만 (시군구 합계행)
-         * - emd 레벨: emd가 있는 행만 (읍면동 행)
-         */
         function isSourceRowForLevel(r, level) {
             var sg = String(r.sigungu || "").trim();
             var emd = String(r.emd || "").trim();
-
             if (level === "sido") return !isBlank(r.sido) && isBlank(sg) && isBlank(emd);
             if (level === "sigungu") return !isBlank(sg) && isBlank(emd);
-            return !isBlank(emd); // emd
+            return !isBlank(emd);
         }
-
 
         function aggregate(rows, level) {
             var map = {};
-
             for (var i = 0; i < rows.length; i++) {
                 var r = rows[i];
-
-                // ✅ 핵심: 해당 레벨 "원천행"만 집계
                 if (!isSourceRowForLevel(r, level)) continue;
 
                 var key = "";
                 if (level === "emd") key = String(r.emd || "").trim();
                 else if (level === "sigungu") key = String(r.sigungu || "").trim();
                 else key = String(r.sido || "").trim();
-
                 if (!key) continue;
 
                 if (!map[key]) map[key] = {
@@ -701,11 +741,8 @@
                     pphSum: 0,
                     pphCnt: 0
                 };
-
                 map[key].pop += (r.pop || 0);
                 map[key].house += (r.house || 0);
-
-                // pph는 원천행 기준 평균(기존 방식 유지)
                 if (r.pph) {
                     map[key].pphSum += r.pph;
                     map[key].pphCnt += 1;
@@ -720,10 +757,8 @@
                     house: map[k].house,
                     pph: map[k].pphCnt ? (map[k].pphSum / map[k].pphCnt) : 0
                 });
-
             return out;
         }
-
 
         function renderBar() {
             var rows = filteredRows();
@@ -740,13 +775,11 @@
             var topN = getTopN();
             var top = agg.slice(0, topN);
 
-            // ✅ TOP_SCOPE 업데이트: 하단(연령/표/청소년)도 동일 단위/동일 항목으로 맞추기
             TOP_SCOPE.level = level;
             TOP_SCOPE.keys = $.map(top, function(x) {
                 return x.name;
             });
 
-            // KPI는 "그래프에 실제 표시되는 top(25)" 기준
             var popSum = 0,
                 houseSum = 0;
             for (var ti = 0; ti < top.length; ti++) {
@@ -886,7 +919,6 @@
         }
 
         function renderTable() {
-            // ✅ 상세데이터도 상단 그래프 단위/항목에 대응되도록 제한
             var base = filteredRows();
             var level = pickLevel();
 
@@ -1057,8 +1089,6 @@
 
                 if (!mode && sigungu && r.sigungu !== sigungu) continue;
 
-                // 동 단위를 쓰는 경우에만 emd 유효 체크
-                // (sido/sigungu 단위에서는 emd 없어도 집계 가능)
                 if (qLower) {
                     var hay = (r.sido + " " + r.sigungu + " " + r.emd).toLowerCase();
                     if (hay.indexOf(qLower) < 0) continue;
@@ -1071,20 +1101,16 @@
             return out;
         }
 
-        // ✅ 상단과 동일 단위(level)로 연령 집계
         function aggregateAge(rows, level) {
-
             var map = {};
             for (var i = 0; i < rows.length; i++) {
                 var r = rows[i];
-
                 if (!isSourceRowForLevel(r, level)) continue;
 
                 var key = "";
                 if (level === "sido") key = String(r.sido || "").trim();
                 else if (level === "sigungu") key = String(r.sigungu || "").trim();
                 else key = String(r.emd || "").trim();
-
                 if (!key) continue;
 
                 if (!map[key]) map[key] = {
@@ -1138,10 +1164,8 @@
                 out.push(o);
             }
 
-            // ✅ 상단 Top 25 항목에 맞춰 제한
             var scoped = [];
             for (var i2 = 0; i2 < out.length; i2++) {
-                // out은 {name: key} 형태라서 TOP_SCOPE.keys로 직접 비교
                 if (TOP_SCOPE && TOP_SCOPE.level === level && TOP_SCOPE.keys && TOP_SCOPE.keys.length) {
                     if (TOP_SCOPE.keys.indexOf(out[i2].name) < 0) continue;
                 }
@@ -1220,11 +1244,9 @@
         }
 
         function aggregateYouth(rows, level) {
-
             var map = {};
             for (var i = 0; i < rows.length; i++) {
                 var r = rows[i];
-
                 if (!isSourceRowForLevel(r, level)) continue;
 
                 var key = "";
@@ -1248,7 +1270,6 @@
             for (var k in map)
                 if (map.hasOwnProperty(k)) out.push(map[k]);
 
-                // ✅ 상단 Top 25 항목에 맞춰 제한
             var scoped = [];
             for (var i2 = 0; i2 < out.length; i2++) {
                 if (TOP_SCOPE && TOP_SCOPE.level === level && TOP_SCOPE.keys && TOP_SCOPE.keys.length) {
@@ -1271,7 +1292,6 @@
                 return (b.sum - a.sum);
             });
 
-            // 상단이 Top 25이면 이미 제한되어 있지만, 안전하게 한번 더
             var maxN = getTopN();
             if (agg.length > maxN) agg = agg.slice(0, maxN);
 
@@ -1326,14 +1346,12 @@
         }
 
         function renderAgeDetailTable() {
-            // ✅ 원천데이터도 "상단 그래프 단위/항목"에 대응되도록 제한
             var base = filteredAgeRows();
             var level = pickLevel();
 
             var rows = [];
             for (var i = 0; i < base.length; i++) {
                 var rr = base[i];
-                // level 기준으로 TOP_SCOPE에 포함되는 것만 남김
                 if (TOP_SCOPE && TOP_SCOPE.level === level && TOP_SCOPE.keys && TOP_SCOPE.keys.length) {
                     var key = (level === "sido") ? rr.sido : (level === "sigungu") ? rr.sigungu : rr.emd;
                     key = String(key || "").trim();
@@ -1446,7 +1464,7 @@
 
         function renderAgeChartAndTable() {
             var rows0 = filteredAgeRows();
-            var level = pickLevel(); // ✅ 상단과 동일 단위
+            var level = pickLevel();
             var agg = aggregateAge(rows0, level);
 
             var m = $("#ageSortMetric").val();
@@ -1582,6 +1600,104 @@
             renderAgeDetailTable();
         }
 
+        /* ========================= COPY (PPT Ctrl+V) ========================= */
+
+        function setCopyBusy($btn, busy) {
+            if (!$btn || !$btn.length) return;
+            $btn.prop("disabled", !!busy);
+            $btn.text(busy ? "복사중..." : "복사");
+        }
+
+        function canvasToBlob(canvas, mime, quality) {
+            return new Promise(function(resolve) {
+                if (canvas.toBlob) {
+                    canvas.toBlob(function(blob) {
+                        resolve(blob);
+                    }, mime || "image/png", quality || 0.92);
+                } else {
+                    // fallback
+                    var dataUrl = canvas.toDataURL(mime || "image/png", quality || 0.92);
+                    var bin = atob(dataUrl.split(",")[1]);
+                    var len = bin.length;
+                    var arr = new Uint8Array(len);
+                    for (var i = 0; i < len; i++) arr[i] = bin.charCodeAt(i);
+                    resolve(new Blob([arr], {
+                        type: mime || "image/png"
+                    }));
+                }
+            });
+        }
+
+        function upscaleCanvas(sourceCanvas, scale) {
+            scale = scale || 2;
+            var w = sourceCanvas.width || sourceCanvas.clientWidth;
+            var h = sourceCanvas.height || sourceCanvas.clientHeight;
+
+            var out = document.createElement("canvas");
+            out.width = Math.round(w * scale);
+            out.height = Math.round(h * scale);
+
+            var ctx = out.getContext("2d");
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+            ctx.drawImage(sourceCanvas, 0, 0, out.width, out.height);
+            return out;
+        }
+
+        function copyBlobToClipboard(blob) {
+            if (!navigator.clipboard || !window.ClipboardItem) {
+                return Promise.reject(new Error("Clipboard API not supported"));
+            }
+            return navigator.clipboard.write([new ClipboardItem({
+                "image/png": blob
+            })]);
+        }
+
+        function copyChartCanvasById(canvasId, $btn) {
+            setCopyBusy($btn, true);
+            try {
+                var canvas = document.getElementById(canvasId);
+                if (!canvas) throw new Error("Canvas not found: " + canvasId);
+
+                var hi = upscaleCanvas(canvas, 2);
+                return canvasToBlob(hi, "image/png", 0.98)
+                    .then(copyBlobToClipboard)
+                    .then(function() {
+                        setStatus("복사 완료: PPT에서 Ctrl+V", true);
+                    })
+                    .catch(function(e) {
+                        console.log(e);
+                        setStatus("복사 실패(브라우저 권한/보안 설정 확인): " + (e && e.message ? e.message : e), false);
+                    })
+                    .finally(function() {
+                        setCopyBusy($btn, false);
+                    });
+            } catch (e) {
+                console.log(e);
+                setStatus("복사 실패: " + (e && e.message ? e.message : e), false);
+                setCopyBusy($btn, false);
+                return Promise.resolve();
+            }
+        }
+
+        function copyElementAsImage(el, $btn) {
+            setCopyBusy($btn, true);
+            return html2canvas(el, {
+                backgroundColor: "#ffffff",
+                scale: 2,
+                useCORS: true
+            }).then(function(canvas) {
+                return canvasToBlob(canvas, "image/png", 0.98);
+            }).then(copyBlobToClipboard).then(function() {
+                setStatus("복사 완료: PPT에서 Ctrl+V", true);
+            }).catch(function(e) {
+                console.log(e);
+                setStatus("복사 실패(브라우저 권한/보안 설정 확인): " + (e && e.message ? e.message : e), false);
+            }).finally(function() {
+                setCopyBusy($btn, false);
+            });
+        }
+
         function loadData() {
             tryFetchCsvFixedByUrls(DATA_URLS).then(function(res1) {
                 rawRows = normalizeRows(res1.data);
@@ -1592,6 +1708,7 @@
                     rawAgeRows = normalizeAgeRows(res2.data);
                     renderAll();
                     renderAgeChartAndTable();
+                    setStatus("로드 완료", true);
                 });
             }).catch(function(e) {
                 console.log(e);
@@ -1636,6 +1753,24 @@
             $("#topNSelect").on("change", function() {
                 renderAll();
                 renderAgeChartAndTable();
+            });
+
+            // ✅ 복사 버튼들 (원천데이터 제외)
+            $("#copyBarBtn").on("click", function() {
+                copyChartCanvasById("barChart", $("#copyBarBtn"));
+            });
+
+            $("#copyAgeStackBtn").on("click", function() {
+                copyChartCanvasById("ageStackChart", $("#copyAgeStackBtn"));
+            });
+
+            $("#copyYouthBtn").on("click", function() {
+                copyChartCanvasById("youthChart", $("#copyYouthBtn"));
+            });
+
+            $("#copyHeatBtn").on("click", function() {
+                var el = document.getElementById("heatWrap");
+                copyElementAsImage(el, $("#copyHeatBtn"));
             });
 
             loadData();
