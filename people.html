@@ -243,7 +243,19 @@
         <div class="panel">
             <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
                 <div>
-                    <div style="font-weight:700;">상위 25 (필터 적용)</div>
+                    <div style="min-width:140px;">
+                        <label>상위 N</label>
+                        <select id="topNSelect">
+                            <option value="5">5</option>
+                            <option value="10">10</option>
+                            <option value="15">15</option>
+                            <option value="20">20</option>
+                            <option value="25" selected>25</option>
+                            <option value="30">30</option>
+                            <option value="40">40</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
                     <div class="muted">선택 상태에 따라 시/도 → 시/군/구 → 읍/면/동 단위로 자동 집계</div>
                 </div>
                 <div style="min-width:220px;">
@@ -360,6 +372,11 @@
             level: "",
             keys: []
         };
+
+        function getTopN() {
+            var v = Number($("#topNSelect").val());
+            return (v && v > 0) ? v : 25;
+        }
 
         function nf(x) {
             if (x === null || x === undefined || x === "") return 0;
@@ -697,7 +714,8 @@
                 return b.pop - a.pop;
             });
 
-            var top = agg.slice(0, 25);
+            var topN = getTopN();
+            var top = agg.slice(0, topN);
 
             // ✅ TOP_SCOPE 업데이트: 하단(연령/표/청소년)도 동일 단위/동일 항목으로 맞추기
             TOP_SCOPE.level = level;
@@ -1225,7 +1243,7 @@
             });
 
             // 상단이 Top 25이면 이미 제한되어 있지만, 안전하게 한번 더
-            var maxN = 25;
+            var maxN = getTopN();
             if (agg.length > maxN) agg = agg.slice(0, maxN);
 
             var labels = [],
@@ -1408,7 +1426,7 @@
                 return b.total - a.total;
             });
 
-            var maxN = 25;
+            var maxN = getTopN();
             if (agg.length > maxN) agg = agg.slice(0, maxN);
 
             updateAgeKpis(agg);
@@ -1584,6 +1602,11 @@
                     renderAll();
                     renderAgeChartAndTable();
                 }, 200);
+            });
+
+            $("#topNSelect").on("change", function() {
+                renderAll();
+                renderAgeChartAndTable();
             });
 
             loadData();
