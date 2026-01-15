@@ -218,6 +218,45 @@
         table.heat tr.avg td.name {
             text-align: left;
         }
+        
+        .top5Table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border: 1px solid #e6e6e6;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .top5Table th,
+        .top5Table td {
+            border-bottom: 1px solid #eee;
+            padding: 8px 10px;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        
+        .top5Table th {
+            background: #f7f7f7;
+            text-align: left;
+            font-weight: 800;
+        }
+        
+        .top5Table td.rank {
+            width: 46px;
+            text-align: right;
+            font-weight: 800;
+            color: #666;
+        }
+        
+        .top5Table td.val {
+            text-align: right;
+            font-weight: 800;
+        }
+        
+        .top5Table tr:last-child td {
+            border-bottom: none;
+        }
     </style>
 </head>
 
@@ -381,7 +420,57 @@
             <div class="chartBox" style="height:420px; margin-top:10px;"><canvas id="youthChart"></canvas></div>
         </div>
 
-        <!-- ✅ 원천데이터 영역은 복사 기능 제외 -->
+        <!-- ✅ (추가) 아래 "상세 데이터(원천)" 나오기 직전에 그대로 삽입 -->
+        <div class="panel" id="panelTop5">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+                <div>
+                    <div style="font-weight:700;">TOP 5 요약</div>
+                    <div class="muted">상단 그래프(Top N)와 동일한 집계 단위/동일 항목 기준</div>
+                </div>
+            </div>
+
+            <div class="row" style="margin-top:10px;">
+                <div class="col">
+                    <div style="font-weight:700; margin:0 0 6px 0;">인구 TOP 5</div>
+                    <div id="top5_pop"></div>
+                </div>
+                <div class="col">
+                    <div style="font-weight:700; margin:0 0 6px 0;">세대수 TOP 5</div>
+                    <div id="top5_house"></div>
+                </div>
+                <div class="col">
+                    <div style="font-weight:700; margin:0 0 6px 0;">세대당 인구 TOP 5</div>
+                    <div id="top5_pph"></div>
+                </div>
+            </div>
+
+            <div class="row" style="margin-top:12px;">
+                <div class="col">
+                    <div style="font-weight:700; margin:0 0 6px 0;">완성형 가족 비율 TOP 5</div>
+                    <div id="top5_family"></div>
+                </div>
+                <div class="col">
+                    <div style="font-weight:700; margin:0 0 6px 0;">0~9세 TOP 5</div>
+                    <div id="top5_0_9"></div>
+                </div>
+                <div class="col">
+                    <div style="font-weight:700; margin:0 0 6px 0;">10~19세 TOP 5</div>
+                    <div id="top5_10_19"></div>
+                </div>
+            </div>
+
+            <div class="row" style="margin-top:12px;">
+                <div class="col">
+                    <div style="font-weight:700; margin:0 0 6px 0;">(0~9 + 10~19) 총합 TOP 5</div>
+                    <div id="top5_teen_sum"></div>
+                </div>
+                <div class="col"></div>
+                <div class="col"></div>
+            </div>
+        </div>
+
+
+        <!--  원천데이터 영역은 복사 기능 제외 -->
         <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
             <div style="font-weight:700; margin-bottom:10px;">상세 데이터(원천)</div>
             <button class="btnCopy" id="excelDetailBtn" type="button">Excel</button>
@@ -389,7 +478,7 @@
         <table id="detailTable" class="display"></table>
 
 
-        <!-- (2) ✅ "연령 데이터(원천)" 패널 제목줄 우측에 Excel 버튼 추가 -->
+        <!-- (2)  "연령 데이터(원천)" 패널 제목줄 우측에 Excel 버튼 추가 -->
         <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
             <div style="font-weight:700; margin-bottom:10px;">연령 데이터(원천)</div>
             <button class="btnCopy" id="excelAgeDetailBtn" type="button">Excel</button>
@@ -1113,6 +1202,7 @@
         function renderAll() {
             renderBar();
             renderTable();
+            renderTop5Summary();
         }
 
         /* ========================= AGE ========================= */
@@ -1832,6 +1922,177 @@
                 setStatus("오류: " + (e && e.message ? e.message : e), false);
             });
         }
+
+
+        /* ✅ (추가) script 영역 아무데나(예: aggregateAge 아래) 그대로 추가 */
+        function topN(arr, n, getValue) {
+            var a = arr.slice(0);
+            a.sort(function(x, y) {
+                return (getValue(y) - getValue(x));
+            });
+            return a.slice(0, n);
+        }
+
+        function renderTop5Table($elId, titleValueLabel, items, valueFormatter) {
+            var html = "";
+            html += "<table class='top5Table'>";
+            html += "<thead><tr><th style='width:46px;'>#</th><th>이름</th><th style='text-align:right;'>" + titleValueLabel + "</th></tr></thead>";
+            html += "<tbody>";
+            if (!items || !items.length) {
+                html += "<tr><td class='rank'>-</td><td colspan='2' style='color:#888;'>표시할 데이터가 없습니다.</td></tr>";
+            } else {
+                for (var i = 0; i < items.length; i++) {
+                    html += "<tr>";
+                    html += "<td class='rank'>" + (i + 1) + "</td>";
+                    html += "<td>" + safeText(items[i].name) + "</td>";
+                    html += "<td class='val'>" + valueFormatter(items[i]) + "</td>";
+                    html += "</tr>";
+                }
+            }
+            html += "</tbody></table>";
+            $("#" + $elId).html(html);
+        }
+
+        function renderTop5Summary() {
+            // 상단(인구/세대/pph) 기준: 상단 그래프와 동일 단위/동일 항목
+            var rows = filteredRows();
+            var level = pickLevel();
+            var agg = aggregate(rows, level);
+
+            // TOP_SCOPE 반영(상단 그래프 Top N과 동일 항목)
+            if (TOP_SCOPE && TOP_SCOPE.level === level && TOP_SCOPE.keys && TOP_SCOPE.keys.length) {
+                var scoped = [];
+                for (var i = 0; i < agg.length; i++) {
+                    if (TOP_SCOPE.keys.indexOf(agg[i].name) >= 0) scoped.push(agg[i]);
+                }
+                agg = scoped;
+            }
+
+            // 인구/세대/pph TOP5
+            var popTop = topN(agg, 5, function(o) {
+                return o.pop || 0;
+            });
+            var houseTop = topN(agg, 5, function(o) {
+                return o.house || 0;
+            });
+            var pphTop = topN(agg, 5, function(o) {
+                return o.pph || 0;
+            });
+
+            renderTop5Table("top5_pop", "총인구수", popTop, function(o) {
+                return fmt(o.pop || 0);
+            });
+            renderTop5Table("top5_house", "세대수", houseTop, function(o) {
+                return fmt(o.house || 0);
+            });
+            renderTop5Table("top5_pph", "세대당", pphTop, function(o) {
+                return (o.pph ? Number(o.pph).toFixed(2) : "0.00");
+            });
+
+            // 연령/완성가족/0-9/10-19/청소년합 TOP5: 연령 집계(상단과 동일 단위/동일 항목)
+            var ageRows = filteredAgeRows();
+            var ageAgg = aggregateAge(ageRows, level);
+
+            // (이미 aggregateAge에서 TOP_SCOPE 반영하지만, 안전하게 한번 더)
+            if (TOP_SCOPE && TOP_SCOPE.level === level && TOP_SCOPE.keys && TOP_SCOPE.keys.length) {
+                var a2 = [];
+                for (var j = 0; j < ageAgg.length; j++) {
+                    if (TOP_SCOPE.keys.indexOf(ageAgg[j].name) >= 0) a2.push(ageAgg[j]);
+                }
+                ageAgg = a2;
+            }
+
+            // 완성가족(비율), 0-9(명), 10-19(명), 청소년합(명)
+            var famTop = topN(ageAgg, 5, function(o) {
+                return o.pFamily || 0;
+            });
+            var a0Top = topN(ageAgg, 5, function(o) {
+                return (o.teen - (o.a10 || 0));
+            }); // ❌ 잘못계산 방지 위해 아래에서 다시 정의
+            // 위 줄은 쓰지 않고 아래에서 정확히 계산용 배열 생성
+
+            var ageAgg2 = [];
+            for (var k = 0; k < ageAgg.length; k++) {
+                var o = ageAgg[k];
+                ageAgg2.push({
+                    name: o.name,
+                    pFamily: o.pFamily || 0,
+                    a0_9: Math.max(0, (o.teen || 0) - (o._a10_19 || 0)), // placeholder(없음) -> 아래에서 원천으로 다시 계산
+                    a10_19: 0,
+                    teenSum: o.teen || 0
+                });
+            }
+
+            // 원천(동/구)에서 0-9, 10-19를 직접 집계(aggregateYouth가 이미 합계만 갖고있어서 별도 집계)
+            // 같은 level / 동일 TOP_SCOPE 항목만
+            var useSummary = shouldUseSummaryRows(ageRows, level);
+            var map = {};
+            for (var r = 0; r < ageRows.length; r++) {
+                var rr = ageRows[r];
+                if (!isAgeSourceRowForLevel(rr, level, useSummary)) continue;
+
+                var key = (level === "sido") ? String(rr.sido || "").trim() :
+                    (level === "sigungu") ? String(rr.sigungu || "").trim() :
+                    String(rr.emd || "").trim();
+                if (!key) continue;
+                if (TOP_SCOPE && TOP_SCOPE.level === level && TOP_SCOPE.keys && TOP_SCOPE.keys.length) {
+                    if (TOP_SCOPE.keys.indexOf(key) < 0) continue;
+                }
+                if (!map[key]) map[key] = {
+                    name: key,
+                    a0_9: 0,
+                    a10_19: 0,
+                    teenSum: 0,
+                    pFamily: 0
+                };
+                map[key].a0_9 += (rr.a0_9 || 0);
+                map[key].a10_19 += (rr.a10_19 || 0);
+                map[key].teenSum += ((rr.a0_9 || 0) + (rr.a10_19 || 0));
+            }
+
+            // pFamily는 aggregateAge 결과에서 가져오기
+            var famMap = {};
+            for (var t = 0; t < ageAgg.length; t++) famMap[ageAgg[t].name] = (ageAgg[t].pFamily || 0);
+
+            var ageList = [];
+            for (var kk in map)
+                if (map.hasOwnProperty(kk)) {
+                    ageList.push({
+                        name: map[kk].name,
+                        a0_9: map[kk].a0_9,
+                        a10_19: map[kk].a10_19,
+                        teenSum: map[kk].teenSum,
+                        pFamily: famMap[kk] || 0
+                    });
+                }
+
+            var a0Top2 = topN(ageList, 5, function(o) {
+                return o.a0_9 || 0;
+            });
+            var a10Top2 = topN(ageList, 5, function(o) {
+                return o.a10_19 || 0;
+            });
+            var teenTop2 = topN(ageList, 5, function(o) {
+                return o.teenSum || 0;
+            });
+            var famTop2 = topN(ageList, 5, function(o) {
+                return o.pFamily || 0;
+            });
+
+            renderTop5Table("top5_family", "비율", famTop2, function(o) {
+                return Math.round(o.pFamily || 0) + "%";
+            });
+            renderTop5Table("top5_0_9", "인구", a0Top2, function(o) {
+                return fmt(o.a0_9 || 0);
+            });
+            renderTop5Table("top5_10_19", "인구", a10Top2, function(o) {
+                return fmt(o.a10_19 || 0);
+            });
+            renderTop5Table("top5_teen_sum", "인구", teenTop2, function(o) {
+                return fmt(o.teenSum || 0);
+            });
+        }
+
 
         $(function() {
             $("#sidoSelect").on("change", function() {
