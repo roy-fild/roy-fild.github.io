@@ -11,7 +11,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <!-- 스타일 -->
     <style>
-        :root {
+         :root {
             --primary: #2563eb;
             --primary-soft: #eff4ff;
             --border: #e5e7eb;
@@ -21,11 +21,11 @@
             --radius-lg: 14px;
             --shadow-card: 0 10px 24px rgba(15, 23, 42, 0.12);
         }
-
+        
         * {
             box-sizing: border-box;
         }
-
+        
         body {
             margin: 0;
             padding: 0;
@@ -33,20 +33,20 @@
             background: var(--bg);
             color: var(--text-main);
         }
-
+        
         .app {
-            max-width: 1180px;
+            max-width: 1440px;
             margin: 0 auto;
             padding: 16px;
         }
-
+        
         .card {
             background: #ffffff;
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-card);
-            padding: 18px 20px 22px;
+            padding: 26px 28px 30px;
         }
-
+        
         .header-row {
             display: flex;
             flex-wrap: wrap;
@@ -54,18 +54,18 @@
             gap: 8px;
             margin-bottom: 14px;
         }
-
+        
         .header-title {
-            font-size: 20px;
+            font-size: 24px;
             font-weight: 700;
         }
-
+        
         .header-meta {
             font-size: 11px;
             color: var(--text-sub);
         }
-
         /* 검색 영역 */
+        
         .search-card {
             border-radius: 12px;
             border: 1px solid var(--border);
@@ -73,35 +73,35 @@
             padding: 10px 12px 12px;
             margin-bottom: 12px;
         }
-
+        
         .search-grid {
             display: grid;
             grid-template-columns: 80px minmax(0, 1fr) 80px minmax(0, 1fr) auto;
             gap: 8px 10px;
             align-items: center;
         }
-
+        
         .search-label {
-            font-size: 13px;
+            font-size: 14px;
             color: var(--text-sub);
         }
-
+        
         .search-input {
             width: 100%;
-            padding: 7px 9px;
-            font-size: 13px;
-            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 15px;
+            border-radius: 10px;
             border: 1px solid #d1d5db;
             outline: none;
             background: #ffffff;
             transition: border-color 0.15s, box-shadow 0.15s;
         }
-
+        
         .search-input:focus {
             border-color: var(--primary);
             box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25);
         }
-
+        
         #tb_btnSearch {
             border-radius: 999px;
             background: var(--primary);
@@ -114,23 +114,23 @@
             box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
             white-space: nowrap;
         }
-
+        
         #tb_btnSearch:hover {
             background: #1d4ed8;
         }
-
+        
         #tb_btnSearch:active {
             transform: translateY(1px);
             box-shadow: 0 1px 3px rgba(37, 99, 235, 0.4);
         }
-
+        
         .source-note {
             margin-top: 6px;
             font-size: 11px;
             color: var(--text-sub);
         }
-
         /* 결과 테이블 */
+        
         .table-container {
             margin-top: 12px;
             border-radius: 12px;
@@ -138,52 +138,52 @@
             background: #ffffff;
             overflow: hidden;
         }
-
+        
         .table-scroll {
             max-height: 68vh;
             overflow: auto;
         }
-
+        
         table.result-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 12px;
+            font-size: 14px;
         }
-
+        
         table.result-table thead {
             position: sticky;
             top: 0;
             z-index: 1;
         }
-
+        
         table.result-table thead tr {
             background: #111827;
         }
-
+        
         table.result-table th,
         table.result-table td {
-            padding: 6px 8px;
+            padding: 10px 12px;
             text-align: left;
             border-bottom: 1px solid var(--border);
             white-space: nowrap;
             vertical-align: top;
         }
-
+        
         table.result-table th {
             color: #f9fafb;
             font-weight: 600;
             font-size: 12px;
         }
-
+        
         table.result-table tbody tr:nth-child(even) {
             background: #f9fafb;
         }
-
+        
         table.result-table tbody tr:hover {
             background: #eef2ff;
         }
-
         /* 링크 chip (단지명 / 초등학교 내 각각 항목) */
+        
         .link-chip {
             display: inline-flex;
             align-items: center;
@@ -197,18 +197,18 @@
             cursor: pointer;
             margin-bottom: 2px;
         }
-
+        
         .link-chip::before {
             content: "🔍";
             font-size: 11px;
         }
-
+        
         .link-chip:hover {
             background: #dbeafe;
             border-color: #bfdbfe;
         }
-
         /* 모달 디자인 */
+        
         .dialog {
             display: none;
             position: fixed;
@@ -219,7 +219,7 @@
             height: 100%;
             background: rgba(15, 23, 42, 0.55);
         }
-
+        
         .dialog>.tb {
             display: flex;
             justify-content: center;
@@ -228,7 +228,7 @@
             height: 100%;
             padding: 12px;
         }
-
+        
         .dialog>.tb .inner {
             width: fit-content;
             max-width: 92vw;
@@ -238,7 +238,7 @@
             border-radius: 10px;
             /* 둥글기만 유지 */
         }
-
+        
         .dialog .top {
             display: flex;
             align-items: center;
@@ -247,12 +247,12 @@
             background: linear-gradient(90deg, #1d4ed8, #2563eb);
             color: #ffffff;
         }
-
+        
         .dialog .title {
             font-weight: 600;
             font-size: 15px;
         }
-
+        
         .modal-close {
             cursor: pointer;
             font-size: 18px;
@@ -261,11 +261,11 @@
             border-radius: 999px;
             transition: background 0.15s;
         }
-
+        
         .modal-close:hover {
             background: rgba(15, 23, 42, 0.25);
         }
-
+        
         .dialog .ct {
             padding: 10px 14px 14px;
             max-height: 70vh;
@@ -274,8 +274,8 @@
             font-size: 13px;
             /* 기본 12px → 13px 정도로 업 */
         }
-
         /* 모달 내부 테이블: 전체 디자인과 통일 */
+        
         .dialog .ct table {
             border: 1px solid var(--border);
             font-size: 11px;
@@ -287,95 +287,88 @@
             background: #ffffff;
             margin-bottom: 10px;
         }
-
+        
         .dialog .ct th,
         .dialog .ct td {
             padding: 4px 6px;
             border-bottom: 1px solid #e5e7eb;
         }
-
         /* 테이블 헤더는 조금 더 크게 */
+        
         .dialog .ct thead th {
             font-size: 13.5px;
             font-weight: 600;
         }
-
         /* 본문 데이터 가독성 업 */
+        
         .dialog .ct tbody td {
             font-size: 13px;
         }
-
         /* 학년 행 같은 제목 셀도 조금 강조 */
+        
         .dialog .ct tbody th {
             font-size: 13px;
             font-weight: 600;
         }
-
+        
         .dialog .ct thead tr:first-child th {
             background: #111827 !important;
             color: #f9fafb !important;
         }
-
+        
         .dialog .ct thead tr:nth-child(2) th {
             background: #2563eb !important;
             color: #f9fafb !important;
         }
-
+        
         .dialog .ct thead tr:nth-child(3) th {
             background: #e5e7eb !important;
             color: #374151 !important;
         }
-
+        
         .dialog .ct tbody tr:nth-child(odd) td {
             background: #ffffff;
         }
-
+        
         .dialog .ct tbody tr:nth-child(even) td {
             background: #f9fafb;
         }
-
+        
         .dialog .ct tbody tr:hover td {
             background: #eef2ff;
         }
-
         /* copyOnClipboard 클릭 영역도 링크 느낌 */
+        
         .copy-link-header {
             cursor: pointer;
             text-decoration: underline;
         }
-
+        
         @media (max-width: 768px) {
             .app {
                 padding: 10px;
             }
-
             .card {
                 padding: 14px;
             }
-
             .header-title {
                 font-size: 17px;
             }
-
             .search-grid {
                 grid-template-columns: 70px minmax(0, 1fr);
                 grid-auto-rows: auto;
             }
-
             .search-grid> :nth-child(5) {
                 grid-column: 1 / -1;
                 justify-self: flex-end;
                 margin-top: 4px;
             }
-
             .table-scroll {
                 max-height: 60vh;
             }
-
             table.result-table {
                 font-size: 11px;
             }
-
             .dialog>.tb .inner {
                 border-radius: 16px;
             }
@@ -384,34 +377,34 @@
 
     <!-- 스크립트 -->
     <script>
-        $(function () {
+        $(function() {
             // 검색 버튼
-            $('#tb_btnSearch').on('click', function () {
+            $('#tb_btnSearch').on('click', function() {
                 onSearch();
             });
 
             // 모달 닫기
-            $('.modal-close').on('click', function (e) {
+            $('.modal-close').on('click', function(e) {
                 e.preventDefault();
                 $(this).closest('.dialog').fadeOut();
             });
 
             // 엔터키 검색
-            $("input").on("keyup", function (key) {
+            $("input").on("keyup", function(key) {
                 if (key.keyCode == 13) {
                     onSearch();
                 }
             });
 
             // 동적으로 만들어지는 chip에 이벤트 위임
-            $(document).on('click', '.js-apt-link', function (e) {
+            $(document).on('click', '.js-apt-link', function(e) {
                 e.preventDefault();
                 const jsonStr = decodeURIComponent($(this).data('item'));
                 const item = JSON.parse(jsonStr);
                 openAptDtl(item);
             });
 
-            $(document).on('click', '.js-school-link', function (e) {
+            $(document).on('click', '.js-school-link', function(e) {
                 e.preventDefault();
                 const jsonStr = decodeURIComponent($(this).data('item'));
                 const item = JSON.parse(jsonStr);
@@ -428,9 +421,9 @@
                 return;
             }
 
-            $.getJSON('https://roy-fild.github.io/assign-school.json', function (data) {
+            $.getJSON('https://roy-fild.github.io/assign-school.json', function(data) {
                 var html = [];
-                $.each(data, function (i, item) {
+                $.each(data, function(i, item) {
                     if (add !== '') {
                         var itemAddr = charTrim(item.주소);
                         add = charTrim(add);
@@ -446,7 +439,7 @@
                 $('#tbl_school tbody').append(html);
             });
 
-            setTimeout(function () {
+            setTimeout(function() {
                 if ($('#tbl_school tbody tr').length === 0) {
                     alert('검색된 내역이 없습니다');
                 }
@@ -471,10 +464,10 @@
             // 단지명 chip 리스트
             const aptList = (item.아파트명 || '').split('|').filter(v => v);
             let aptHtml = '';
-            aptList.forEach(function (name, idx) {
-                aptHtml += '<span class="link-chip js-apt-link" data-item="' + encoded + '">'
-                    + name.trim()
-                    + '</span>';
+            aptList.forEach(function(name, idx) {
+                aptHtml += '<span class="link-chip js-apt-link" data-item="' + encoded + '">' +
+                    name.trim() +
+                    '</span>';
                 if (idx < aptList.length - 1) {
                     aptHtml += '<br/>';
                 }
@@ -483,10 +476,10 @@
             // 초등학교 chip 리스트
             const schList = (item.초등학교 || '').split('|').filter(v => v);
             let schHtml = '';
-            schList.forEach(function (name, idx) {
-                schHtml += '<span class="link-chip js-school-link" data-item="' + encoded + '">'
-                    + name.trim()
-                    + '</span>';
+            schList.forEach(function(name, idx) {
+                schHtml += '<span class="link-chip js-school-link" data-item="' + encoded + '">' +
+                    name.trim() +
+                    '</span>';
                 if (idx < schList.length - 1) {
                     schHtml += '<br/>';
                 }
@@ -510,9 +503,9 @@
             $("#dialog").fadeIn();
             $('#dialog .ct').empty();
 
-            $.getJSON('https://roy-fild.github.io/json/aptBaseInfo.json', function (data) {
+            $.getJSON('https://roy-fild.github.io/json/aptBaseInfo.json', function(data) {
                 var html = [];
-                $.each(data, function (i, apt) {
+                $.each(data, function(i, apt) {
                     if (removeChar(charTrim(apt.lnno_adres)).match(addr) &&
                         removeChar(charTrim(apt.apt_nm)).match(nm)) {
 
@@ -615,13 +608,13 @@
             t = t.replaceAll('|', '');
 
             while (t.match('초')) {
-                tArr.push(t.substr(0, t.indexOf('초') + 1,));
+                tArr.push(t.substr(0, t.indexOf('초') + 1, ));
                 t = t.substr(t.indexOf('초') + 1);
             }
 
             $('#dialog .ct').empty();
 
-            var dupArr = [...new Set(tArr)];    // 중복제거
+            var dupArr = [...new Set(tArr)]; // 중복제거
 
             for (var j = 0; j < dupArr.length; j++) {
                 createSchoolInfo(a, dupArr[j]);
@@ -654,9 +647,9 @@
 
         function createSchoolInfo(a, t) {
             var html = [];
-            $.getJSON('https://roy-fild.github.io/junior-data.json', function (data) {
+            $.getJSON('https://roy-fild.github.io/junior-data.json', function(data) {
 
-                $.each(data, function (i, item) {
+                $.each(data, function(i, item) {
                     if (item.region.match(a) && item.name.match(t)) {
 
                         var rate = (Number(item.cnt1) / Number(item.cnt6)) * 100;
@@ -724,8 +717,8 @@
             // 스크롤 때문에 잘리는 걸 방지하려고 약간의 옵션 설정
             html2canvas(table, {
                 backgroundColor: '#ffffff',
-                scale: 2   // 해상도 살짝 업
-            }).then(function (canvas) {
+                scale: 2 // 해상도 살짝 업
+            }).then(function(canvas) {
 
                 if (!navigator.clipboard || !navigator.clipboard.write) {
                     // 브라우저가 이미지 클립보드 복사를 지원하지 않을 때: 새 창으로 이미지를 열기
@@ -736,18 +729,20 @@
                     return;
                 }
 
-                canvas.toBlob(function (blob) {
+                canvas.toBlob(function(blob) {
                     if (!blob) {
                         alert('이미지 생성에 실패했습니다.');
                         return;
                     }
-                    const item = new ClipboardItem({ 'image/png': blob });
+                    const item = new ClipboardItem({
+                        'image/png': blob
+                    });
 
                     navigator.clipboard.write([item])
-                        .then(function () {
+                        .then(function() {
                             alert('상세정보 테이블이 이미지로 클립보드에 복사되었습니다.');
                         })
-                        .catch(function (err) {
+                        .catch(function(err) {
                             console.error(err);
                             alert('이미지 복사에 실패했습니다. (브라우저 권한을 확인해 주세요)');
                         });
