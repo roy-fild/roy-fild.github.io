@@ -10,7 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
-        :root {
+         :root {
             --primary: #2563eb;
             --primary-soft: #eff6ff;
             --border: #e5e7eb;
@@ -21,11 +21,11 @@
             --radius-lg: 14px;
             --shadow-card: 0 10px 24px rgba(15, 23, 42, 0.12);
         }
-
+        
         * {
             box-sizing: border-box;
         }
-
+        
         body {
             margin: 0;
             padding: 16px;
@@ -33,19 +33,19 @@
             background: var(--bg);
             color: var(--text-main);
         }
-
+        
         .app {
             max-width: 1180px;
             margin: 0 auto;
         }
-
+        
         .card {
             background: #ffffff;
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-card);
             padding: 18px 20px 22px;
         }
-
+        
         .header-row {
             display: flex;
             flex-wrap: wrap;
@@ -54,18 +54,18 @@
             gap: 8px;
             margin-bottom: 12px;
         }
-
+        
         .header-title {
             font-size: 20px;
             font-weight: 700;
         }
-
+        
         .header-meta {
             font-size: 11px;
             color: var(--text-sub);
         }
-
         /* 검색 / 컨트롤 영역 */
+        
         .control-row {
             display: flex;
             flex-wrap: wrap;
@@ -73,14 +73,14 @@
             align-items: center;
             margin-bottom: 10px;
         }
-
+        
         .select-group {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
             flex: 1;
         }
-
+        
         select {
             padding: 6px 8px;
             font-size: 13px;
@@ -91,18 +91,18 @@
             outline: none;
             transition: border-color 0.15s, box-shadow 0.15s;
         }
-
+        
         select:focus {
             border-color: var(--primary);
             box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25);
         }
-
+        
         .excel-container {
             display: flex;
             gap: 6px;
             margin-left: auto;
         }
-
+        
         button {
             border-radius: 999px;
             padding: 7px 14px;
@@ -112,33 +112,33 @@
             cursor: pointer;
             white-space: nowrap;
         }
-
+        
         .btn-excel {
             background: #16a34a;
             color: #ffffff;
             box-shadow: 0 2px 6px rgba(22, 163, 74, 0.35);
         }
-
+        
         .btn-excel:hover {
             background: #15803d;
         }
-
+        
         .btn-reset {
             background: #6b7280;
             color: #f9fafb;
         }
-
+        
         .btn-reset:hover {
             background: #4b5563;
         }
-
+        
         .note {
             font-size: 11px;
             color: var(--text-sub);
             margin-top: 4px;
         }
-
         /* 결과 테이블 카드 */
+        
         .table-card {
             margin-top: 12px;
             border-radius: 12px;
@@ -146,23 +146,23 @@
             background: #ffffff;
             overflow: hidden;
         }
-
+        
         .table-scroll {
             max-height: 70vh;
             overflow: auto;
         }
-
+        
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 12px;
         }
-
+        
         thead tr {
             background: #111827;
             color: #f9fafb;
         }
-
+        
         th,
         td {
             padding: 6px 8px;
@@ -170,7 +170,7 @@
             white-space: nowrap;
             text-align: center;
         }
-
+        
         th {
             font-weight: 600;
             font-size: 12px;
@@ -180,23 +180,23 @@
             background: #111827;
             z-index: 1;
         }
-
+        
         tbody tr:nth-child(even) td {
             background: #f9fafb;
         }
-
+        
         tbody tr:hover td {
             background: #eef2ff;
         }
-
         /* 삭제 셀 */
+        
         td.delete-cell {
             color: var(--danger);
             font-weight: 600;
             cursor: pointer;
             text-align: center;
         }
-
+        
         td.delete-cell span {
             display: inline-block;
             padding: 2px 8px;
@@ -205,15 +205,14 @@
             background: rgba(254, 226, 226, 0.7);
             font-size: 11px;
         }
-
+        
         td.delete-cell span:hover {
             background: rgba(248, 113, 113, 0.9);
             color: #fff;
         }
-
         /* 등급 컬러는 JS에서 인라인 스타일로 유지 */
-
         /* 로딩 오버레이 */
+        
         #loadingOverlay {
             position: fixed;
             inset: 0;
@@ -221,7 +220,7 @@
             z-index: 9999;
             display: none;
         }
-
+        
         .loading-container {
             position: absolute;
             top: 50%;
@@ -235,7 +234,7 @@
             border-radius: 12px;
             box-shadow: 0 12px 30px rgba(15, 23, 42, 0.4);
         }
-
+        
         .spinner-gradient {
             width: 42px;
             height: 42px;
@@ -245,56 +244,48 @@
             mask: radial-gradient(farthest-side, transparent 65%, black 66%);
             animation: spin 0.9s linear infinite;
         }
-
+        
         @keyframes spin {
             0% {
                 transform: rotate(0deg);
             }
-
             100% {
                 transform: rotate(360deg);
             }
         }
-
+        
         .loading-text {
             margin-top: 8px;
             font-size: 13px;
             color: var(--text-main);
             font-weight: 600;
         }
-
         /* 반응형 */
+        
         @media (max-width: 768px) {
             .card {
                 padding: 14px;
             }
-
             .header-title {
                 font-size: 17px;
             }
-
             .control-row {
                 flex-direction: column;
                 align-items: stretch;
             }
-
             .select-group {
                 width: 100%;
             }
-
             select {
                 flex: 1;
                 min-width: 0;
             }
-
             .excel-container {
                 justify-content: flex-end;
             }
-
             .table-scroll {
                 max-height: 60vh;
             }
-
             table {
                 font-size: 11px;
             }
@@ -302,17 +293,17 @@
     </style>
 
     <script>
-        $(document).ready(function () {
+        $(document).ready(function() {
 
             // 컬럼 정렬
             $("th").css("cursor", "pointer");
 
-            $("th").click(function () {
+            $("th").click(function() {
                 var table = $(this).closest("table");
                 var columnIndex = $(this).index();
                 var rows = table.find("tbody tr").toArray();
 
-                rows.sort(function (a, b) {
+                rows.sort(function(a, b) {
                     var cellA = $(a).children("td").eq(columnIndex).text();
                     var cellB = $(b).children("td").eq(columnIndex).text();
 
@@ -326,28 +317,28 @@
                 table.find("tbody").empty().append(rows);
             });
 
-            $('#sel_si').change(function () {
+            $('#sel_si').change(function() {
                 $('#sel_gu').empty().append('<option value="">----------</option>');
                 $('#sel_dong').empty().append('<option value="">----------</option>');
                 $('#sel_nm').empty().append('<option value="">----------</option>');
                 onSearch();
             });
-            $('#sel_gu').change(function () {
+            $('#sel_gu').change(function() {
                 $('#sel_dong').empty().append('<option value="">----------</option>');
                 $('#sel_nm').empty().append('<option value="">----------</option>');
                 onSearch();
             });
-            $('#sel_dong').change(function () {
+            $('#sel_dong').change(function() {
                 $('#sel_nm').empty().append('<option value="">----------</option>');
                 onSearch();
             });
 
-            $('#sel_nm').change(function () {
+            $('#sel_nm').change(function() {
                 getTrafficData();
             });
 
             // 초기화
-            $('#btn_init').on('click', function () {
+            $('#btn_init').on('click', function() {
                 $('#sel_gu').empty().append('<option value="">----------</option>');
                 $('#sel_dong').empty().append('<option value="">----------</option>');
                 $('#sel_nm').empty().append('<option value="">----------</option>');
@@ -355,12 +346,12 @@
             });
 
             // 특정 td 클릭 시 해당 tr 삭제
-            $("table").on("click", "td.delete-cell", function () {
+            $("table").on("click", "td.delete-cell", function() {
                 $(this).closest("tr").remove();
             });
 
             // 엑셀 출력
-            $('#excelDownload').on('click', function () {
+            $('#excelDownload').on('click', function() {
 
                 let table = document.getElementById('tbl_aptInfo');
 
@@ -372,7 +363,9 @@
                 }
 
                 let wb = XLSX.utils.book_new();
-                let ws = XLSX.utils.table_to_sheet(table, { sheetStubs: true });
+                let ws = XLSX.utils.table_to_sheet(table, {
+                    sheetStubs: true
+                });
 
                 // 열 너비 자동 조정
                 let colWidths = [];
@@ -381,7 +374,10 @@
                 for (let C = range.s.c; C <= range.e.c; ++C) {
                     let maxWidth = 10;
                     for (let R = range.s.r; R <= range.e.r; ++R) {
-                        let cell_address = XLSX.utils.encode_cell({ r: R, c: C });
+                        let cell_address = XLSX.utils.encode_cell({
+                            r: R,
+                            c: C
+                        });
                         let cell = ws[cell_address];
 
                         if (cell && cell.v) {
@@ -389,7 +385,9 @@
                             maxWidth = Math.max(maxWidth, cellValue.length + 2);
                         }
                     }
-                    colWidths.push({ wch: maxWidth });
+                    colWidths.push({
+                        wch: maxWidth
+                    });
                 }
                 ws['!cols'] = colWidths;
 
@@ -397,7 +395,10 @@
                 Object.keys(ws).forEach(cell => {
                     if (ws[cell] && ws[cell].t) {
                         ws[cell].s = {
-                            font: { name: "Arial", sz: 10 }
+                            font: {
+                                name: "Arial",
+                                sz: 10
+                            }
                         };
                     }
                 });
@@ -431,12 +432,12 @@
             var id = $('#sel_nm').val();
             var nm = $('#sel_nm option:selected').text();
 
-            $.getJSON('https://roy-fild.github.io/json/traffic_id_data.json', function (data) {
+            $.getJSON('https://roy-fild.github.io/json/traffic_id_data.json', function(data) {
 
                 var html = "";
                 var cnt = 0;
 
-                $.each(data, function (i, item) {
+                $.each(data, function(i, item) {
                     if (item.ID == id) {
 
                         html += '<tr>';
@@ -469,64 +470,63 @@
 
             showLoadingBar();
 
-            var si = $('#sel_si').val();
-            var gu = $('#sel_gu').val();
-            var dong = $('#sel_dong').val();
-            var nm = $('#sel_nm').val();
+            const si = $('#sel_si').val();
+            const gu = $('#sel_gu').val();
+            const dong = $('#sel_dong').val();
+            const nm = $('#sel_nm').val();
 
-            $.getJSON('https://roy-fild.github.io/json/sudo_apt_data.json', function (data) {
+            // ✅ 핵심: 화면 선택값(서울/경기/인천) -> 데이터값(서울시/경기도/인천시)으로 맞춤
+            const siKey = (si === '서울') ? '서울시' :
+                (si === '경기') ? '경기도' :
+                (si === '인천') ? '인천시' :
+                si;
 
-                $.each(data, function (i, item) {
+            $.getJSON('https://roy-fild.github.io/json/si_gu_dong_distinct.json', function(distinctData) {
 
-                    var guSet = new Set();
-                    var dongSet = new Set();
+                // 1) 구 채우기
+                if (siKey && gu === "") {
+                    const guSet = new Set();
+                    distinctData.forEach(item => {
+                        if (item.si === siKey) guSet.add(item.gu);
+                    });
 
-                    if (item.si.includes(si)) {
-                        // si 값과 일치하는 gu만 추가
-                        $.each(data, function (i, item) {
-                            if (item.si.includes(si)) {
-                                guSet.add(item.gu);
+                    $('#sel_gu').empty().append('<option value="">선택하세요</option>');
+                    guSet.forEach(v => $('#sel_gu').append(`<option value="${v}">${v}</option>`));
+                }
+
+                // 2) 동 채우기
+                if (siKey && gu && dong === "") {
+                    const dongSet = new Set();
+                    distinctData.forEach(item => {
+                        if (item.si === siKey && item.gu === gu) dongSet.add(item.dong);
+                    });
+
+                    $('#sel_dong').empty().append('<option value="">선택하세요</option>');
+                    dongSet.forEach(v => $('#sel_dong').append(`<option value="${v}">${v}</option>`));
+                }
+
+                // 3) 아파트 채우기 (sudo_apt_data.json)
+                if (siKey && gu && dong && nm === "") {
+                    $('#sel_nm').empty().append('<option value="">선택하세요</option>');
+
+                    $.getJSON('https://roy-fild.github.io/json/sudo_apt_data.json', function(aptData) {
+                        aptData.forEach(item => {
+                            // sudo_apt_data의 si도 "서울시/경기도/인천시" 형태라면 동일하게 siKey로 비교
+                            if (item.si === siKey && item.gu === gu && item.dong === dong) {
+                                $('#sel_nm').append(`<option value="${item.id}">${item.nm}</option>`);
                             }
                         });
+                        hideLoadingBar();
+                    });
 
-                        // 구
-                        if (gu === "") {
-                            $('#sel_gu').empty().append('<option value="">선택하세요</option>');
-                            guSet.forEach(function (gu) {
-                                $('#sel_gu').append(`<option value="${gu}">${gu}</option>`);
-                            });
-                        }
-
-                        // 동
-                        if (gu !== "" && dong === "") {
-                            $.each(data, function (i, item) {
-                                if (item.si.includes(si) && item.gu.includes(gu)) {
-                                    dongSet.add(item.dong);
-                                }
-                            });
-
-                            $('#sel_dong').empty().append('<option value="">선택하세요</option>');
-                            dongSet.forEach(function (dong) {
-                                $('#sel_dong').append(`<option value="${dong}">${dong}</option>`);
-                            });
-                        }
-
-                        // 아파트
-                        if (gu !== "" && dong !== "" && nm === "") {
-                            $('#sel_nm').empty().append('<option value="">선택하세요</option>');
-                            $.each(data, function (i, item) {
-                                if (item.si.includes(si) && item.gu.includes(gu) && item.dong.includes(dong)) {
-                                    $('#sel_nm').append(`<option value="${item.id}">${item.nm}</option>`);
-                                }
-                            });
-                        }
-
-                    }
-                });
+                    return;
+                }
 
                 hideLoadingBar();
             });
         }
+
+
 
         function chkGrade(g) {
             var html = "";
