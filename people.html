@@ -257,6 +257,28 @@
         .top5Table tr:last-child td {
             border-bottom: none;
         }
+        /* ===== 평균 기준 표: 열 너비 고정 ===== */
+        
+        #ageHeatTable {
+            table-layout: fixed;
+            /* 열 너비 고정의 핵심 */
+            width: 100%;
+        }
+        /* 첫 번째 열(제목/지역명) */
+        
+        #ageHeatTable th:first-child,
+        #ageHeatTable td.name {
+            width: 160px;
+            /* 필요하면 140~200 조절 */
+        }
+        /* 제목 제외한 모든 비율 열 */
+        
+        #ageHeatTable th:not(:first-child),
+        #ageHeatTable td:not(.name) {
+            width: 90px;
+            /* 모든 비율 열 동일 너비 */
+            text-align: right;
+        }
     </style>
 </head>
 
@@ -313,7 +335,7 @@
                     <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
                         <div style="min-width:140px;">
                             <label>상위 N</label>
-                            <input id="topNInput" type="number" min="1" max="50" step="1" value="25" style="width:100%; padding:10px 10px; border:1px solid #ddd; border-radius:10px; background:#fff;">
+                            <input id="topNInput" type="number" min="1" max="50" step="1" value="25" style="width:50%; padding:10px 10px; border:1px solid #ddd; border-radius:10px; background:#fff;">
                         </div>
                         <div style="min-width:220px;">
                             <label>정렬 기준</label>
@@ -2121,6 +2143,8 @@
             });
 
             $("#topNInput").on("input change", function() {
+                var v = this.value;
+                if (v.length > 2) this.value = v.slice(0, 2);
                 if (window.__topn_t) clearTimeout(window.__topn_t);
                 window.__topn_t = setTimeout(function() {
                     renderAll();
