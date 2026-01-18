@@ -2166,12 +2166,15 @@
         $(function () {
             $("#sidoSelect").on("change", function () {
                 $("#sigunguSelect").val("");
+                $("#emdFilter").val("");            // 검색 초기화
+                $("#sigunguSelect").val("");        // 시군구 초기화(선택 해제)
                 refreshSigungu();
                 renderAll();
                 renderAgeChartAndTable();
             });
 
             $("#sigunguSelect").on("change", function () {
+                $("#emdFilter").val("");            // 검색 초기화
                 renderAll();
                 renderAgeChartAndTable();
             });
