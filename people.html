@@ -381,6 +381,11 @@
                             </select>
                         </div>
 
+                        <div style="padding-top:18px; display:flex; align-items:center; gap:8px;">
+                            <input id="ageAvgToggle" type="checkbox" style="width:auto; margin:0;">
+                            <span style="font-size:12px; font-weight:700; color:#444;">평균 표시</span>
+                        </div>
+
                         <div style="padding-top:18px;">
                             <button class="btnCopy" id="copyAgeStackBtn" type="button">복사</button>
                         </div>
@@ -1268,6 +1273,11 @@
 
         /* ========================= AGE ========================= */
 
+        function isAgeAvgOn() {
+            return $("#ageAvgToggle").is(":checked");
+        }
+
+
         function normalizeAgeRows(rows) {
             var cols = rows.length ? Object.keys(rows[0]) : [];
             var colSido = "행정구역";
@@ -1738,113 +1748,189 @@
             });
         }
 
+
         function renderAgeChartAndTable() {
             var rows0 = filteredAgeRows();
             var level = pickLevel();
             var agg = aggregateAge(rows0, level);
 
+            // 정렬
             var m = $("#ageSortMetric").val();
             agg.sort(function (a, b) {
                 if (m === "nameAsc") return String(a.name).localeCompare(String(b.name), "ko");
-                return b.total - a.total;
+                return (b.total || 0) - (a.total || 0);
             });
 
+            // Top N
             var maxN = getTopN();
             if (agg.length > maxN) agg = agg.slice(0, maxN);
 
             updateAgeKpis(agg);
             buildAgeHeatTable(agg);
 
+            // ===== 데이터 배열 =====
             var labels = [];
-            var dTeen = [],
-                d20 = [],
-                d30 = [],
-                d40 = [],
-                d50 = [],
-                d60p = [];
+            var dTeen = [], d20 = [], d30 = [], d40 = [], d50 = [], d60p = [];
+
+            // ✅ (수정) 경계선은 "막대 누적 경계"가 아니라
+            //          "각 연령대 비율(pTeen~p60p)" 자체를 선으로 그려야 위치가 맞음
+            //          (스크린샷처럼 각 색 구간의 '윗면'을 따라감)
+            var lineTeen = [], line20 = [], line30 = [], line40 = [], line50 = [];
+
             for (var i = 0; i < agg.length; i++) {
+                var pTeen = Math.round(agg[i].pTeen || 0);
+                var p20 = Math.round(agg[i].p20 || 0);
+                var p30 = Math.round(agg[i].p30 || 0);
+                var p40 = Math.round(agg[i].p40 || 0);
+                var p50 = Math.round(agg[i].p50 || 0);
+                var p60p = Math.round(agg[i].p60p || 0);
+
                 labels.push(agg[i].name);
-                dTeen.push(Number(agg[i].pTeen.toFixed(0)));
-                d20.push(Number(agg[i].p20.toFixed(0)));
-                d30.push(Number(agg[i].p30.toFixed(0)));
-                d40.push(Number(agg[i].p40.toFixed(0)));
-                d50.push(Number(agg[i].p50.toFixed(0)));
-                d60p.push(Number(agg[i].p60p.toFixed(0)));
+                dTeen.push(pTeen);
+                d20.push(p20);
+                d30.push(p30);
+                d40.push(p40);
+                d50.push(p50);
+                d60p.push(p60p);
+
+                // ✅ 각 구간의 "윗면"을 따라가려면 누적이 맞음(위치가 안맞는 원인은 y축 stacked+line order 문제였음)
+                //    -> 해결: line을 stacked가 아닌 별도 y축(동일 스케일)로 그리고,
+                //             line의 y값을 '누적 경계'로 유지하되, line y축은 stacked=false로 둠
+                //    -> 하지만 지금은 chart 전체 y축이 stacked라 line도 영향을 받을 수 있음.
+                //    -> 확실한 방법: 라인 전용 y2를 만들어 stacked:false 로 분리.
+                var c1 = pTeen;
+                var c2 = c1 + p20;
+                var c3 = c2 + p30;
+                var c4 = c3 + p40;
+                var c5 = c4 + p50;
+
+                lineTeen.push(c1);
+                line20.push(c2);
+                line30.push(c3);
+                line40.push(c4);
+                line50.push(c5);
             }
 
+            // ===== 평균 막대(옵션) =====
+            var showAvg = isAgeAvgOn();
+            if (showAvg && agg.length) {
+                var avgTeen = 0, avg20 = 0, avg30 = 0, avg40 = 0, avg50 = 0, avg60p = 0;
+
+                for (var j = 0; j < agg.length; j++) {
+                    avgTeen += agg[j].pTeen || 0;
+                    avg20 += agg[j].p20 || 0;
+                    avg30 += agg[j].p30 || 0;
+                    avg40 += agg[j].p40 || 0;
+                    avg50 += agg[j].p50 || 0;
+                    avg60p += agg[j].p60p || 0;
+                }
+
+                avgTeen /= agg.length;
+                avg20 /= agg.length;
+                avg30 /= agg.length;
+                avg40 /= agg.length;
+                avg50 /= agg.length;
+                avg60p /= agg.length;
+
+                var apTeen = Math.round(avgTeen);
+                var ap20 = Math.round(avg20);
+                var ap30 = Math.round(avg30);
+                var ap40 = Math.round(avg40);
+                var ap50 = Math.round(avg50);
+                var ap60p = Math.round(avg60p);
+
+                labels.unshift("평균");
+                dTeen.unshift(apTeen);
+                d20.unshift(ap20);
+                d30.unshift(ap30);
+                d40.unshift(ap40);
+                d50.unshift(ap50);
+                d60p.unshift(ap60p);
+
+                var ac1 = apTeen;
+                var ac2 = ac1 + ap20;
+                var ac3 = ac2 + ap30;
+                var ac4 = ac3 + ap40;
+                var ac5 = ac4 + ap50;
+
+                lineTeen.unshift(ac1);
+                line20.unshift(ac2);
+                line30.unshift(ac3);
+                line40.unshift(ac4);
+                line50.unshift(ac5);
+            }
+
+            // ===== 퍼센트 라벨 플러그인 =====
             var percentLabelPlugin = {
                 id: "percentLabelPlugin",
-                afterDatasetsDraw: function (c) {
-                    var ctx = c.ctx;
+                afterDatasetsDraw: function (chart) {
+                    var ctx = chart.ctx;
                     ctx.save();
                     ctx.font = "12px Arial";
                     ctx.textAlign = "center";
                     ctx.textBaseline = "middle";
 
-                    for (var di = 0; di < c.data.datasets.length; di++) {
-                        var meta = c.getDatasetMeta(di);
-                        if (!meta || !meta.data) continue;
+                    chart.data.datasets.forEach(function (ds, di) {
+                        if (ds.type === "line") return;
+                        var meta = chart.getDatasetMeta(di);
+                        meta.data.forEach(function (el, idx) {
+                            var v = ds.data[idx];
+                            if (!v || v < 3) return;
+                            var p = el.getProps(["x", "y", "base"], true);
+                            ctx.fillStyle = "#111";
+                            ctx.fillText(v + "%", p.x, (p.y + p.base) / 2);
+                        });
+                    });
 
-                        for (var j = 0; j < meta.data.length; j++) {
-                            var el = meta.data[j];
-                            if (!el) continue;
-
-                            var v = c.data.datasets[di].data[j];
-                            if (!v || v < 3) continue;
-
-                            var props = el.getProps(["x", "y", "base"], true);
-                            var midY = (props.y + props.base) / 2;
-                            ctx.fillText(String(v) + "%", props.x, midY);
-                        }
-                    }
                     ctx.restore();
                 }
             };
 
+            // ===== datasets (막대) =====
+            var datasets = [
+                { label: "~10대", data: dTeen, stack: "s", backgroundColor: "#4472C4" },
+                { label: "20대", data: d20, stack: "s", backgroundColor: "#ED7D31" },
+                { label: "30대", data: d30, stack: "s", backgroundColor: "#A5A5A5" },
+                { label: "40대", data: d40, stack: "s", backgroundColor: "#FFC000" },
+                { label: "50대", data: d50, stack: "s", backgroundColor: "#5B9BD5" },
+                { label: "60대~", data: d60p, stack: "s", backgroundColor: "#70AD47" }
+            ];
+
+            // ✅ (핵심 수정) 라인 전용 y2 축 사용 (stacked 영향 제거 → 위치 정확)
+            if (showAvg) {
+                function pushLine(lbl, dataArr, color, dash) {
+                    datasets.push({
+                        type: "line",
+                        label: lbl,
+                        data: dataArr,
+                        yAxisID: "y2",
+                        tension: 0,
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        borderColor: color,
+                        backgroundColor: "transparent",
+                        borderDash: dash || [],
+                        order: 1000
+                    });
+                }
+
+                pushLine("경계 ~10", lineTeen, "#111111", []);
+                pushLine("경계 ~20", line20, "#E53935", [8, 6]);
+                pushLine("경계 ~30", line30, "#1E88E5", [4, 4]);
+                pushLine("경계 ~40", line40, "#8E24AA", [10, 4]);
+                pushLine("경계 ~50", line50, "#00897B", [2, 5]);
+            }
+
+            // ===== 차트 생성 =====
             if (ageChart) ageChart.destroy();
             ageChart = new Chart(document.getElementById("ageStackChart"), {
                 type: "bar",
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: "~10대",
-                        data: dTeen,
-                        stack: "s",
-                        backgroundColor: "#4472C4"
-                    }, {
-                        label: "20대",
-                        data: d20,
-                        stack: "s",
-                        backgroundColor: "#ED7D31"
-                    }, {
-                        label: "30대",
-                        data: d30,
-                        stack: "s",
-                        backgroundColor: "#A5A5A5"
-                    }, {
-                        label: "40대",
-                        data: d40,
-                        stack: "s",
-                        backgroundColor: "#FFC000"
-                    }, {
-                        label: "50대",
-                        data: d50,
-                        stack: "s",
-                        backgroundColor: "#5B9BD5"
-                    }, {
-                        label: "60대~",
-                        data: d60p,
-                        stack: "s",
-                        backgroundColor: "#70AD47"
-                    }]
-                },
+                data: { labels: labels, datasets: datasets },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            display: true
-                        },
+                        legend: { display: true },
                         tooltip: {
                             callbacks: {
                                 label: function (ctx) {
@@ -1854,20 +1940,24 @@
                         }
                     },
                     scales: {
-                        x: {
-                            stacked: true
-                        },
+                        x: { stacked: true },
                         y: {
                             stacked: true,
                             min: 0,
                             max: 100,
-                            ticks: {
-                                callback: function (v) {
-                                    return v + "%";
-                                }
-                            }
+                            ticks: { callback: function (v) { return v + "%"; } }
+                        },
+                        // ✅ 라인 전용 축 (동일 스케일, stacked 영향 없음)
+                        y2: {
+                            position: "left",
+                            min: 0,
+                            max: 100,
+                            display: false,
+                            grid: { display: false },
+                            ticks: { display: false }
                         }
-                    }
+                    },
+                    animation: false
                 },
                 plugins: [percentLabelPlugin]
             });
@@ -1993,7 +2083,7 @@
         }
 
 
-        /* ✅ (추가) script 영역 아무데나(예: aggregateAge 아래) 그대로 추가 */
+        /*  (추가) script 영역 아무데나(예: aggregateAge 아래) 그대로 추가 */
         function topN(arr, n, getValue) {
             var a = arr.slice(0);
             a.sort(function (x, y) {
@@ -2236,6 +2326,9 @@
                 exportDataTableToCsv(ageDt, "ingu_age_detail.csv");
             });
 
+            $("#ageAvgToggle").on("change", function () {
+                renderAgeChartAndTable();
+            });
 
             loadData();
         });
