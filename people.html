@@ -19,7 +19,8 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
     <!-- DataTables -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/datatables.net-dt@2.0.8/css/dataTables.dataTables.min.css">
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/datatables.net-dt@2.0.8/css/dataTables.dataTables.min.css">
     <script src="https://cdn.jsdelivr.net/npm/datatables.net@2.0.8/js/dataTables.min.js"></script>
 
     <style>
@@ -28,18 +29,18 @@
             margin: 0;
             background: #fafafa;
         }
-        
+
         .wrap {
             max-width: 1200px;
             margin: 0 auto;
             padding: 18px;
         }
-        
+
         h1 {
             margin: 0 0 6px 0;
             font-size: 22px;
         }
-        
+
         .panel {
             background: #fff;
             border: 1px solid #e6e6e6;
@@ -47,25 +48,25 @@
             padding: 14px;
             margin: 12px 0;
         }
-        
+
         .row {
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
         }
-        
+
         .col {
             flex: 1;
             min-width: 280px;
         }
-        
+
         label {
             font-size: 12px;
             color: #555;
             display: block;
             margin-bottom: 6px;
         }
-        
+
         select,
         input {
             width: 100%;
@@ -74,13 +75,13 @@
             border-radius: 10px;
             background: #fff;
         }
-        
+
         .kpis {
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
         }
-        
+
         .kpi {
             flex: 1;
             min-width: 180px;
@@ -89,51 +90,52 @@
             border-radius: 12px;
             padding: 12px;
         }
-        
+
         .kpi .t {
             font-size: 12px;
             color: #666;
         }
-        
+
         .kpi .v {
             font-size: 20px;
             font-weight: 700;
             margin-top: 6px;
         }
-        
+
         .kpi .s {
             font-size: 12px;
             color: #888;
             margin-top: 4px;
         }
-        
+
         .chartBox {
             height: 360px;
         }
-        
+
         .muted {
             color: #888;
             font-size: 12px;
         }
-        
+
         .status {
             margin-top: 8px;
             font-size: 12px;
         }
-        
+
         .ok {
             color: #0a7a2f;
         }
-        
+
         .err {
             color: #b00020;
         }
-        
+
         table.dataTable {
             width: 100% !important;
         }
+
         /* ===== Copy Buttons ===== */
-        
+
         .btnCopy {
             display: inline-flex;
             align-items: center;
@@ -148,31 +150,32 @@
             font-weight: 700;
             user-select: none;
         }
-        
+
         .btnCopy:active {
             transform: translateY(1px);
         }
-        
+
         .btnCopy[disabled] {
             opacity: 0.5;
             cursor: not-allowed;
         }
+
         /* ===== Heat Table (white background for <=avg) ===== */
-        
+
         .heatWrap {
             overflow: auto;
             border-radius: 10px;
             border: 1px solid #ddd;
             background: #fff;
         }
-        
+
         table.heat {
             border-collapse: collapse;
             min-width: 820px;
             width: 100%;
             background: #fff;
         }
-        
+
         table.heat th,
         table.heat td {
             border: 1px solid #cfcfcf;
@@ -180,45 +183,45 @@
             font-size: 14px;
             white-space: nowrap;
         }
-        
+
         table.heat th {
             background: #f2f2f2;
             color: #000;
             font-weight: 700;
             text-align: center;
         }
-        
+
         table.heat td.name {
             background: #f2f2f2;
             color: #000;
             font-weight: 700;
         }
-        
+
         table.heat td.hit {
             background: #ffd0d8;
             color: #c00000;
             text-align: right;
             font-weight: 800;
         }
-        
+
         table.heat td.miss {
             background: #ffffff;
             color: #444;
             text-align: right;
             font-weight: 600;
         }
-        
+
         table.heat tr.avg td {
             background: #e9edf2;
             color: #000;
             font-weight: 800;
             text-align: right;
         }
-        
+
         table.heat tr.avg td.name {
             text-align: left;
         }
-        
+
         .top5Table {
             width: 100%;
             border-collapse: collapse;
@@ -227,7 +230,7 @@
             border-radius: 10px;
             overflow: hidden;
         }
-        
+
         .top5Table th,
         .top5Table td {
             border-bottom: 1px solid #eee;
@@ -235,44 +238,47 @@
             font-size: 13px;
             white-space: nowrap;
         }
-        
+
         .top5Table th {
             background: #f7f7f7;
             text-align: left;
             font-weight: 800;
         }
-        
+
         .top5Table td.rank {
             width: 46px;
             text-align: right;
             font-weight: 800;
             color: #666;
         }
-        
+
         .top5Table td.val {
             text-align: right;
             font-weight: 800;
         }
-        
+
         .top5Table tr:last-child td {
             border-bottom: none;
         }
+
         /* ===== 평균 기준 표: 열 너비 고정 ===== */
-        
+
         #ageHeatTable {
             table-layout: fixed;
             /* 열 너비 고정의 핵심 */
             width: 100%;
         }
+
         /* 첫 번째 열(제목/지역명) */
-        
+
         #ageHeatTable th:first-child,
         #ageHeatTable td.name {
             width: 160px;
             /* 필요하면 140~200 조절 */
         }
+
         /* 제목 제외한 모든 비율 열 */
-        
+
         #ageHeatTable th:not(:first-child),
         #ageHeatTable td:not(.name) {
             width: 90px;
@@ -335,7 +341,8 @@
                     <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
                         <div style="min-width:140px;">
                             <label>상위 N</label>
-                            <input id="topNInput" type="number" min="1" max="50" step="1" value="25" style="width:50%; padding:10px 10px; border:1px solid #ddd; border-radius:10px; background:#fff;">
+                            <input id="topNInput" type="number" min="1" max="50" step="1" value="25"
+                                style="width:50%; padding:10px 10px; border:1px solid #ddd; border-radius:10px; background:#fff;">
                         </div>
                         <div style="min-width:220px;">
                             <label>정렬 기준</label>
@@ -396,7 +403,8 @@
 
             <div class="chartBox" style="height:520px; margin-top:10px;"><canvas id="ageStackChart"></canvas></div>
 
-            <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-top:14px;">
+            <div
+                style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-top:14px;">
                 <div>
                     <div style="font-weight:700; margin:0 0 6px 0;">평균 기준 표 (평균 이상: 핑크 / 평균 이하: 흰색)</div>
                     <div class="muted">완성형 = 10 +30 + 40 + 50</div>
@@ -410,7 +418,8 @@
                 <table class="heat" id="ageHeatTable"></table>
             </div>
 
-            <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-top:14px;">
+            <div
+                style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-top:14px;">
                 <div>
                     <div style="font-weight:700;">청소년(0~9 / 10~19) 인구</div>
                     <div class="muted">상단 그래프 집계 단위와 동일 단위로 표시</div>
@@ -680,25 +689,25 @@
 
         function fetchTextWithEncoding(url, encoding) {
             return fetch(url, {
-                    cache: "no-store"
-                })
-                .then(function(resp) {
+                cache: "no-store"
+            })
+                .then(function (resp) {
                     if (!resp.ok) throw new Error("HTTP " + resp.status + " (" + url + ")");
                     return resp.arrayBuffer();
                 })
-                .then(function(buf) {
+                .then(function (buf) {
                     if (typeof TextDecoder === "undefined") throw new Error("TextDecoder not supported");
                     return new TextDecoder(encoding).decode(buf);
                 });
         }
 
         function papaDownload(url) {
-            return new Promise(function(resolve, reject) {
+            return new Promise(function (resolve, reject) {
                 Papa.parse(url, {
                     download: true,
                     header: true,
                     skipEmptyLines: true,
-                    complete: function(res) {
+                    complete: function (res) {
                         if (res && res.data && res.data.length) resolve({
                             url: url,
                             encoding: "server/default",
@@ -706,7 +715,7 @@
                         });
                         else reject(new Error("Empty CSV (" + url + ")"));
                     },
-                    error: function(err) {
+                    error: function (err) {
                         reject(err || new Error("Papa download failed (" + url + ")"));
                     }
                 });
@@ -714,7 +723,7 @@
         }
 
         function tryFetchCsvFixedByUrls(urls) {
-            return new Promise(function(resolve, reject) {
+            return new Promise(function (resolve, reject) {
                 var i = 0;
 
                 function nextUrl() {
@@ -725,13 +734,13 @@
 
                     function nextEnc() {
                         if (j >= encs.length) {
-                            papaDownload(u).then(resolve).catch(function() {
+                            papaDownload(u).then(resolve).catch(function () {
                                 nextUrl();
                             });
                             return;
                         }
                         var enc = encs[j++];
-                        fetchTextWithEncoding(u, enc).then(function(text) {
+                        fetchTextWithEncoding(u, enc).then(function (text) {
                             var parsed = Papa.parse(text, {
                                 header: true,
                                 skipEmptyLines: true
@@ -742,7 +751,7 @@
                                 data: parsed.data
                             });
                             else nextEnc();
-                        }).catch(function() {
+                        }).catch(function () {
                             nextEnc();
                         });
                     }
@@ -833,7 +842,7 @@
         }
 
         function rebuildSelectors() {
-            var sidos = uniq($.map(rawRows, function(r) {
+            var sidos = uniq($.map(rawRows, function (r) {
                 return r.sido;
             }));
             var $s = $("#sidoSelect");
@@ -873,19 +882,56 @@
                 }
         }
 
+        function parseGuRest(emd) {
+            var s = String(emd || "").trim();
+            var m = s.match(/^(.+?구)\s+(.+)$/);   // 예: "흥덕구 오송읍"
+            if (!m) return null;
+            return { gu: m[1].trim(), rest: m[2].trim() };
+        }
+
+        function getDrillGu() {
+            // ✅ "시/군/구(=sigungu)"에서 '시'를 선택한 상태(값이 있음)일 때만 드릴다운 허용
+            var sigungu = $("#sigunguSelect").val();
+            if (!sigungu) return "";
+            var q = $.trim($("#emdFilter").val());
+            return (q && /구$/.test(q)) ? q : "";
+        }
+
+        function emdKeyForUI(r) {
+            // ✅ 시 선택(=sigungu 선택) 시: "흥덕구 오송읍" → 기본은 "흥덕구"로 집계
+            // ✅ 검색에 "흥덕구" 입력 시: 그 구의 하위(오송읍/사직1동...)로 집계
+            var emd = String((r && r.emd) || "").trim();
+            var sigungu = $("#sigunguSelect").val();
+            if (!sigungu) return emd;
+
+            var pr = parseGuRest(emd);
+            if (!pr) return emd;
+
+            var drill = getDrillGu();
+            if (drill && pr.gu === drill) return pr.rest; // 드릴다운: 하위 동/읍/면
+            return pr.gu;                                 // 기본: 구 단위
+        }
+
         function passTopScope(row, level) {
             if (!TOP_SCOPE || !TOP_SCOPE.level || !TOP_SCOPE.keys || !TOP_SCOPE.keys.length) return true;
             if (TOP_SCOPE.level !== level) return true;
-            var key = (level === "sido") ? row.sido : (level === "sigungu") ? row.sigungu : row.emd;
+
+            var key = "";
+            if (level === "sido") key = row.sido;
+            else if (level === "sigungu") key = row.sigungu;
+            else key = emdKeyForUI(row);   // 
+
             key = String(key || "").trim();
             if (!key) return false;
             return TOP_SCOPE.keys.indexOf(key) >= 0;
         }
 
+
         function filteredRows() {
             var sido = $("#sidoSelect").val();
             var sigungu = $("#sigunguSelect").val();
             var mode = getSidoGroupMode();
+            var drillGu = getDrillGu();
 
             var q = $.trim($("#emdFilter").val());
             var qLower = q ? q.toLowerCase() : "";
@@ -911,8 +957,16 @@
 
                 if ((isGuSelected || hasQuery) && /구$/.test(String(r.emd || "").trim())) continue;
 
+                if (drillGu) {
+                    var pr = parseGuRest(r.emd);
+                    if (!pr || pr.gu !== drillGu) continue;
+                    if (!pr.rest) continue;            // "흥덕구" 단독행 방지
+                    out.push(r);
+                    continue;
+                }
                 out.push(r);
             }
+
             return out;
         }
 
@@ -941,6 +995,8 @@
             return !isBlank(emd);
         }
 
+        /* ✅ (5) aggregate() 함수에서 level==='emd'일 때 key 계산만 교체 */
+
         function aggregate(rows, level) {
             var map = {};
             for (var i = 0; i < rows.length; i++) {
@@ -948,34 +1004,25 @@
                 if (!isSourceRowForLevel(r, level)) continue;
 
                 var key = "";
-                if (level === "emd") key = String(r.emd || "").trim();
+                if (level === "emd") key = emdKeyForUI(r);          // ✅ 변경
                 else if (level === "sigungu") key = String(r.sigungu || "").trim();
                 else key = String(r.sido || "").trim();
+
                 if (!key) continue;
 
-                if (!map[key]) map[key] = {
-                    name: key,
-                    pop: 0,
-                    house: 0,
-                    pphSum: 0,
-                    pphCnt: 0
-                };
+                if (!map[key]) map[key] = { name: key, pop: 0, house: 0, pphSum: 0, pphCnt: 0 };
                 map[key].pop += (r.pop || 0);
                 map[key].house += (r.house || 0);
-                if (r.pph) {
-                    map[key].pphSum += r.pph;
-                    map[key].pphCnt += 1;
-                }
+                if (r.pph) { map[key].pphSum += r.pph; map[key].pphCnt += 1; }
             }
 
             var out = [];
-            for (var k in map)
-                if (map.hasOwnProperty(k)) out.push({
-                    name: map[k].name,
-                    pop: map[k].pop,
-                    house: map[k].house,
-                    pph: map[k].pphCnt ? (map[k].pphSum / map[k].pphCnt) : 0
-                });
+            for (var k in map) if (map.hasOwnProperty(k)) out.push({
+                name: map[k].name,
+                pop: map[k].pop,
+                house: map[k].house,
+                pph: map[k].pphCnt ? (map[k].pphSum / map[k].pphCnt) : 0
+            });
             return out;
         }
 
@@ -985,7 +1032,7 @@
             var agg = aggregate(rows, level);
 
             var metric = $("#sortMetric").val();
-            agg.sort(function(a, b) {
+            agg.sort(function (a, b) {
                 if (metric === "house") return b.house - a.house;
                 if (metric === "pph") return b.pph - a.pph;
                 return b.pop - a.pop;
@@ -995,7 +1042,7 @@
             var top = agg.slice(0, topN);
 
             TOP_SCOPE.level = level;
-            TOP_SCOPE.keys = $.map(top, function(x) {
+            TOP_SCOPE.keys = $.map(top, function (x) {
                 return x.name;
             });
 
@@ -1046,7 +1093,7 @@
 
             var lineValuePlugin = {
                 id: "lineValuePlugin",
-                afterDatasetsDraw: function(chart) {
+                afterDatasetsDraw: function (chart) {
                     var ctx = chart.ctx;
                     ctx.save();
                     ctx.font = "12px Arial";
@@ -1102,7 +1149,7 @@
                         },
                         tooltip: {
                             callbacks: {
-                                label: function(ctx) {
+                                label: function (ctx) {
                                     var label = ctx.dataset.label || "";
                                     var v = ctx.raw;
                                     if (ctx.dataset.yAxisID === "y1") return label + ": " + v;
@@ -1115,7 +1162,7 @@
                         y: {
                             position: "left",
                             ticks: {
-                                callback: function(v) {
+                                callback: function (v) {
                                     return fmt(v);
                                 }
                             }
@@ -1126,7 +1173,7 @@
                                 drawOnChartArea: false
                             },
                             ticks: {
-                                callback: function(v) {
+                                callback: function (v) {
                                     return v;
                                 }
                             }
@@ -1169,19 +1216,19 @@
             }, {
                 title: "총인구수",
                 data: "총인구수",
-                render: function(d) {
+                render: function (d) {
                     return fmt(d);
                 }
             }, {
                 title: "세대수",
                 data: "세대수",
-                render: function(d) {
+                render: function (d) {
                     return fmt(d);
                 }
             }, {
                 title: "세대당 인구",
                 data: "세대당 인구",
-                render: function(d) {
+                render: function (d) {
                     return d ? Number(d).toFixed(2) : "-";
                 }
             }];
@@ -1291,6 +1338,7 @@
             var sido = $("#sidoSelect").val();
             var sigungu = $("#sigunguSelect").val();
             var mode = getSidoGroupMode();
+            var drillGu = getDrillGu();
 
             var q = $.trim($("#emdFilter").val());
             var qLower = q ? q.toLowerCase() : "";
@@ -1316,6 +1364,13 @@
 
                 if ((isGuSelected || hasQuery) && /구$/.test(String(r.emd || "").trim())) continue;
 
+                if (drillGu) {
+                    var pr = parseGuRest(r.emd);
+                    if (!pr || pr.gu !== drillGu) continue;
+                    if (!pr.rest) continue;
+                    out.push(r);
+                    continue;
+                }
                 out.push(r);
             }
             return out;
@@ -1330,7 +1385,7 @@
                 var key = "";
                 if (level === "sido") key = String(r.sido || "").trim();
                 else if (level === "sigungu") key = String(r.sigungu || "").trim();
-                else key = String(r.emd || "").trim();
+                else key = emdKeyForUI(r);
                 if (!key) continue;
 
                 if (!map[key]) map[key] = {
@@ -1473,7 +1528,7 @@
                 var key = "";
                 if (level === "sido") key = String(r.sido || "").trim();
                 else if (level === "sigungu") key = String(r.sigungu || "").trim();
-                else key = String(r.emd || "").trim();
+                else key = emdKeyForUI(r);
                 if (!key) continue;
 
                 if (!map[key]) map[key] = {
@@ -1507,7 +1562,7 @@
             var agg = aggregateYouth(rows0, level);
 
             var m = $("#youthSortMetric").val();
-            agg.sort(function(a, b) {
+            agg.sort(function (a, b) {
                 if (m === "a0_9Desc") return (b.a0_9 - a.a0_9);
                 if (m === "a10_19Desc") return (b.a10_19 - a.a10_19);
                 return (b.sum - a.sum);
@@ -1547,7 +1602,7 @@
                         },
                         tooltip: {
                             callbacks: {
-                                label: function(ctx) {
+                                label: function (ctx) {
                                     return ctx.dataset.label + ": " + fmt(ctx.raw);
                                 }
                             }
@@ -1556,7 +1611,7 @@
                     scales: {
                         y: {
                             ticks: {
-                                callback: function(v) {
+                                callback: function (v) {
                                     return fmt(v);
                                 }
                             }
@@ -1689,7 +1744,7 @@
             var agg = aggregateAge(rows0, level);
 
             var m = $("#ageSortMetric").val();
-            agg.sort(function(a, b) {
+            agg.sort(function (a, b) {
                 if (m === "nameAsc") return String(a.name).localeCompare(String(b.name), "ko");
                 return b.total - a.total;
             });
@@ -1719,7 +1774,7 @@
 
             var percentLabelPlugin = {
                 id: "percentLabelPlugin",
-                afterDatasetsDraw: function(c) {
+                afterDatasetsDraw: function (c) {
                     var ctx = c.ctx;
                     ctx.save();
                     ctx.font = "12px Arial";
@@ -1792,7 +1847,7 @@
                         },
                         tooltip: {
                             callbacks: {
-                                label: function(ctx) {
+                                label: function (ctx) {
                                     return ctx.dataset.label + ": " + ctx.raw + "%";
                                 }
                             }
@@ -1807,7 +1862,7 @@
                             min: 0,
                             max: 100,
                             ticks: {
-                                callback: function(v) {
+                                callback: function (v) {
                                     return v + "%";
                                 }
                             }
@@ -1830,9 +1885,9 @@
         }
 
         function canvasToBlob(canvas, mime, quality) {
-            return new Promise(function(resolve) {
+            return new Promise(function (resolve) {
                 if (canvas.toBlob) {
-                    canvas.toBlob(function(blob) {
+                    canvas.toBlob(function (blob) {
                         resolve(blob);
                     }, mime || "image/png", quality || 0.92);
                 } else {
@@ -1883,14 +1938,14 @@
                 var hi = upscaleCanvas(canvas, 2);
                 return canvasToBlob(hi, "image/png", 0.98)
                     .then(copyBlobToClipboard)
-                    .then(function() {
+                    .then(function () {
                         setStatus("복사 완료: PPT에서 Ctrl+V", true);
                     })
-                    .catch(function(e) {
+                    .catch(function (e) {
                         console.log(e);
                         setStatus("복사 실패(브라우저 권한/보안 설정 확인): " + (e && e.message ? e.message : e), false);
                     })
-                    .finally(function() {
+                    .finally(function () {
                         setCopyBusy($btn, false);
                     });
             } catch (e) {
@@ -1907,31 +1962,31 @@
                 backgroundColor: "#ffffff",
                 scale: 2,
                 useCORS: true
-            }).then(function(canvas) {
+            }).then(function (canvas) {
                 return canvasToBlob(canvas, "image/png", 0.98);
-            }).then(copyBlobToClipboard).then(function() {
+            }).then(copyBlobToClipboard).then(function () {
                 setStatus("복사 완료: PPT에서 Ctrl+V", true);
-            }).catch(function(e) {
+            }).catch(function (e) {
                 console.log(e);
                 setStatus("복사 실패(브라우저 권한/보안 설정 확인): " + (e && e.message ? e.message : e), false);
-            }).finally(function() {
+            }).finally(function () {
                 setCopyBusy($btn, false);
             });
         }
 
         function loadData() {
-            tryFetchCsvFixedByUrls(DATA_URLS).then(function(res1) {
+            tryFetchCsvFixedByUrls(DATA_URLS).then(function (res1) {
                 rawRows = normalizeRows(res1.data);
                 rebuildSelectors();
                 refreshSigungu();
 
-                return tryFetchCsvFixedByUrls(AGE_URLS).then(function(res2) {
+                return tryFetchCsvFixedByUrls(AGE_URLS).then(function (res2) {
                     rawAgeRows = normalizeAgeRows(res2.data);
                     renderAll();
                     renderAgeChartAndTable();
                     setStatus("로드 완료", true);
                 });
-            }).catch(function(e) {
+            }).catch(function (e) {
                 console.log(e);
                 setStatus("오류: " + (e && e.message ? e.message : e), false);
             });
@@ -1941,7 +1996,7 @@
         /* ✅ (추가) script 영역 아무데나(예: aggregateAge 아래) 그대로 추가 */
         function topN(arr, n, getValue) {
             var a = arr.slice(0);
-            a.sort(function(x, y) {
+            a.sort(function (x, y) {
                 return (getValue(y) - getValue(x));
             });
             return a.slice(0, n);
@@ -1983,23 +2038,23 @@
             }
 
             // 인구/세대/pph TOP5
-            var popTop = topN(agg, 5, function(o) {
+            var popTop = topN(agg, 5, function (o) {
                 return o.pop || 0;
             });
-            var houseTop = topN(agg, 5, function(o) {
+            var houseTop = topN(agg, 5, function (o) {
                 return o.house || 0;
             });
-            var pphTop = topN(agg, 5, function(o) {
+            var pphTop = topN(agg, 5, function (o) {
                 return o.pph || 0;
             });
 
-            renderTop5Table("top5_pop", "총인구수", popTop, function(o) {
+            renderTop5Table("top5_pop", "총인구수", popTop, function (o) {
                 return fmt(o.pop || 0);
             });
-            renderTop5Table("top5_house", "세대수", houseTop, function(o) {
+            renderTop5Table("top5_house", "세대수", houseTop, function (o) {
                 return fmt(o.house || 0);
             });
-            renderTop5Table("top5_pph", "세대당", pphTop, function(o) {
+            renderTop5Table("top5_pph", "세대당", pphTop, function (o) {
                 return (o.pph ? Number(o.pph).toFixed(2) : "0.00");
             });
 
@@ -2017,10 +2072,10 @@
             }
 
             // 완성가족(비율), 0-9(명), 10-19(명), 청소년합(명)
-            var famTop = topN(ageAgg, 5, function(o) {
+            var famTop = topN(ageAgg, 5, function (o) {
                 return o.pFamily || 0;
             });
-            var a0Top = topN(ageAgg, 5, function(o) {
+            var a0Top = topN(ageAgg, 5, function (o) {
                 return (o.teen - (o.a10 || 0));
             }); // ❌ 잘못계산 방지 위해 아래에서 다시 정의
             // 위 줄은 쓰지 않고 아래에서 정확히 계산용 배열 생성
@@ -2047,7 +2102,7 @@
 
                 var key = (level === "sido") ? String(rr.sido || "").trim() :
                     (level === "sigungu") ? String(rr.sigungu || "").trim() :
-                    String(rr.emd || "").trim();
+                        String(rr.emd || "").trim();
                 if (!key) continue;
                 if (TOP_SCOPE && TOP_SCOPE.level === level && TOP_SCOPE.keys && TOP_SCOPE.keys.length) {
                     if (TOP_SCOPE.keys.indexOf(key) < 0) continue;
@@ -2080,101 +2135,101 @@
                     });
                 }
 
-            var a0Top2 = topN(ageList, 5, function(o) {
+            var a0Top2 = topN(ageList, 5, function (o) {
                 return o.a0_9 || 0;
             });
-            var a10Top2 = topN(ageList, 5, function(o) {
+            var a10Top2 = topN(ageList, 5, function (o) {
                 return o.a10_19 || 0;
             });
-            var teenTop2 = topN(ageList, 5, function(o) {
+            var teenTop2 = topN(ageList, 5, function (o) {
                 return o.teenSum || 0;
             });
-            var famTop2 = topN(ageList, 5, function(o) {
+            var famTop2 = topN(ageList, 5, function (o) {
                 return o.pFamily || 0;
             });
 
-            renderTop5Table("top5_family", "비율", famTop2, function(o) {
+            renderTop5Table("top5_family", "비율", famTop2, function (o) {
                 return Math.round(o.pFamily || 0) + "%";
             });
-            renderTop5Table("top5_0_9", "인구", a0Top2, function(o) {
+            renderTop5Table("top5_0_9", "인구", a0Top2, function (o) {
                 return fmt(o.a0_9 || 0);
             });
-            renderTop5Table("top5_10_19", "인구", a10Top2, function(o) {
+            renderTop5Table("top5_10_19", "인구", a10Top2, function (o) {
                 return fmt(o.a10_19 || 0);
             });
-            renderTop5Table("top5_teen_sum", "인구", teenTop2, function(o) {
+            renderTop5Table("top5_teen_sum", "인구", teenTop2, function (o) {
                 return fmt(o.teenSum || 0);
             });
         }
 
 
-        $(function() {
-            $("#sidoSelect").on("change", function() {
+        $(function () {
+            $("#sidoSelect").on("change", function () {
                 $("#sigunguSelect").val("");
                 refreshSigungu();
                 renderAll();
                 renderAgeChartAndTable();
             });
 
-            $("#sigunguSelect").on("change", function() {
+            $("#sigunguSelect").on("change", function () {
                 renderAll();
                 renderAgeChartAndTable();
             });
 
-            $("#sortMetric").on("change", function() {
+            $("#sortMetric").on("change", function () {
                 renderAll();
                 renderAgeChartAndTable();
             });
 
-            $("#ageSortMetric").on("change", function() {
+            $("#ageSortMetric").on("change", function () {
                 renderAgeChartAndTable();
             });
 
-            $("#youthSortMetric").on("change", function() {
+            $("#youthSortMetric").on("change", function () {
                 renderYouthChart();
             });
 
-            $("#emdFilter").on("input", function() {
+            $("#emdFilter").on("input", function () {
                 if (window.__t) clearTimeout(window.__t);
-                window.__t = setTimeout(function() {
+                window.__t = setTimeout(function () {
                     renderAll();
                     renderAgeChartAndTable();
                 }, 200);
             });
 
-            $("#topNInput").on("input change", function() {
+            $("#topNInput").on("input change", function () {
                 var v = this.value;
                 if (v.length > 2) this.value = v.slice(0, 2);
                 if (window.__topn_t) clearTimeout(window.__topn_t);
-                window.__topn_t = setTimeout(function() {
+                window.__topn_t = setTimeout(function () {
                     renderAll();
                     renderAgeChartAndTable();
                 }, 120);
             });
 
             // ✅ 복사 버튼들 (원천데이터 제외)
-            $("#copyBarBtn").on("click", function() {
+            $("#copyBarBtn").on("click", function () {
                 copyChartCanvasById("barChart", $("#copyBarBtn"));
             });
 
-            $("#copyAgeStackBtn").on("click", function() {
+            $("#copyAgeStackBtn").on("click", function () {
                 copyChartCanvasById("ageStackChart", $("#copyAgeStackBtn"));
             });
 
-            $("#copyYouthBtn").on("click", function() {
+            $("#copyYouthBtn").on("click", function () {
                 copyChartCanvasById("youthChart", $("#copyYouthBtn"));
             });
 
-            $("#copyHeatBtn").on("click", function() {
+            $("#copyHeatBtn").on("click", function () {
                 var el = document.getElementById("heatWrap");
                 copyElementAsImage(el, $("#copyHeatBtn"));
             });
 
-            $("#excelDetailBtn").on("click", function() {
+            $("#excelDetailBtn").on("click", function () {
                 exportDataTableToCsv(dt, "ingu_detail.csv");
             });
 
-            $("#excelAgeDetailBtn").on("click", function() {
+            $("#excelAgeDetailBtn").on("click", function () {
                 exportDataTableToCsv(ageDt, "ingu_age_detail.csv");
             });
 
