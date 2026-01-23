@@ -110,9 +110,13 @@ public class NaverLikeBrowser {
 //				"tracking-list",		// 수도권
 //				"tracking-jibang",		// 지방
 				
-				// 서울시
+				// 미임장지역
+//				"daegu-suseong-gu",		// 대구_수성구
 //				"gangnam-gu",			// 강남구
-//				"seocho-gu",			// 서초구
+//				"seocho-gu",			// 서초구				
+//				
+//				// 서울시
+//
 //				"songpa-gu",			// 송파구
 //				"seongdong-gu",			// 성동구
 //				"yeongdeungpo-gu",		// 영등포구
@@ -134,11 +138,14 @@ public class NaverLikeBrowser {
 //				"suwon-si-yeongtong-gu",// 수원시_영통구
 //				"dongtan",				// 화성시_동탄
 //				"sujeong-jungwon-gu",	// 성남시_수정/증원구
+//				"bu-cheon",				// 부천시 
+//				"gunpo-si",				// 군포시			
 //				
 //				// 광역시
 //				"daejeon-seo-gu",		// 대전_서구
 //				"daejeon-yuseong-gu", 	// 대전_유성구
 //				"gwangju-buk-gu",		// 광주_북구
+//				"busanjin-gu",			// 부산진구
 //				
 //				// 중소도시
 //				"cheonan",				// 천안시
@@ -269,46 +276,39 @@ public class NaverLikeBrowser {
 			} else {
 				// Jsoup 등으로 파싱
 				Document doc = Jsoup.parse(res.body());
+				String body = res.body();
+				
+//				System.out.println(body);
+
+		        // HTML 내 script 태그 안의 JSON 텍스트에서 데이터 추출
+				String aptNm = extractKoreanValue(body, "name");
+		        // 만약 name으로 못찾으면 complexName으로 재시도
+		        if (aptNm.isEmpty()) {
+		            aptNm = extractKoreanValue(body, "complexName");
+		        }
+		        String aptYear = extractTargetValue(body, "useApprovalDate").substring(0,4);
+		        String aptSedae = extractTargetValue(body, "totalHouseholdNumber");
+		        String gu = extractTargetValue(body, "division");
+		        String dong = extractTargetValue(body, "sector");
+		        String mCnt = extractTargetValue(body, "dealCount");
+		        String jCnt = extractTargetValue(body, "leaseDepositCount");
+		        
+		        // '구'로 끝나면 마지막 글자 제거
+		        if (gu != null && gu.endsWith("구") && gu.length() > 1) {
+		            gu = gu.substring(0, gu.length() - 1);
+		        }
+
+		        // '동'으로 끝나면 마지막 글자 제거
+		        if (dong != null && dong.endsWith("동") && dong.length() > 1) {
+		            dong = dong.substring(0, dong.length() - 1);
+		        }
+				
+				//추출 확인용
+				//System.out.println(doc);
 
 				// 1) 주소
 				// jQuery: $('.HeaderBrandDepth-module_sub-name__t-5rA').text()
-				String addr = selText(doc, ".HeaderBrandDepth-module_sub-name__t-5rA");
-				String gu = "", dong = "";
-				if (!addr.isEmpty()) {
-					String[] addrSplit = addr.split("\\s+");
-					if (addrSplit.length > 2) {
-						gu = addrSubstr(addrSplit[1]);
-						dong = addrSubstr(addrSplit[2]);
-					} else {
-						gu = addrSplit.length > 0 ? addrSubstr(addrSplit[0]) : "";
-						dong = addrSplit.length > 1 ? addrSubstr(addrSplit[1]) : "";
-					}
-				}
-
-				// 2) 아파트명
-				// jQuery: $('.ComplexSummary_name__z0aZ7').text()
-				String aptNm = selText(doc, ".ComplexSummary_name__z0aZ7");
-				if (aptNm.isEmpty()) {
-					// 클래스가 종종 바뀌니 대비(다른 빌드 변형 클래스)
-					aptNm = selText(doc, ".ComplexSummary_name__vX3IN, .ComplexSummary_name__z0aZ7");
-				}
-				aptNm = clearAptNm(aptNm);
-
-				// 3) 연식/세대수
-				// jQuery:
-				// $('.ComplexSummary_information__R5OGG').find('ul').eq(0).find('li').eq(2)
-				// $('.ComplexSummary_information__R5OGG').find('ul').eq(0).find('li').eq(1)
-				String aptYearInfo = selText(doc, ".ComplexSummary_information__R5OGG ul:eq(0) li:eq(2)");
-				String aptSedaeRaw = selText(doc, ".ComplexSummary_information__R5OGG ul:eq(0) li:eq(1)");
-				String aptYear = cvrtAptYear(aptYearInfo);
-				String aptSedae = cvrtAptSaedae(aptSedaeRaw);
-
-				// 4) 매물/전세 개수
-				Elements counts = doc.select(".ComplexSummary_area-list-button__3Eglr .ComplexSummary_count__GFHb9");
-
-				String mCnt = counts.size() > 0 ? counts.get(0).text() : "0"; // 매매
-				String jCnt = counts.size() > 1 ? counts.get(1).text() : "0"; // 전세
-				// 월세/단기가 필요하면 2, 3 인덱스
+				
 
 				JSONObject baseObj = new JSONObject();
 
@@ -326,6 +326,40 @@ public class NaverLikeBrowser {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	private static String extractKoreanValue(String content, String key) {
+	    try {
+	        String patternString = "\\\\?\"" + key + "\\\\?\":\\s*\\\\?\"?([^\\\\\",}]+)\\\\?\"?";
+	        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(patternString);
+	        java.util.regex.Matcher matcher = pattern.matcher(content);
+	        
+	        while (matcher.find()) {
+	            String val = matcher.group(1).trim();
+	            val = val.replace("\\\"", "").replace("\"", "");
+	            
+	            // 한글이 한 글자라도 포함되어 있는지 확인 (시스템 예약어 필터링)
+	            if (val.matches(".*[ㄱ-ㅎㅏ-ㅣ가-힣].*")) {
+	                return val;
+	            }
+	        }
+	    } catch (Exception e) {}
+	    return "";
+	}
+
+	/**
+	 * 일반 숫자/영문 데이터 추출 메서드
+	 */
+	private static String extractTargetValue(String content, String key) {
+	    try {
+	        String patternString = "\\\\?\"" + key + "\\\\?\":\\s*\\\\?\"?([^\\\\\",}]+)\\\\?\"?";
+	        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(patternString);
+	        java.util.regex.Matcher matcher = pattern.matcher(content);
+	        if (matcher.find()) {
+	            return matcher.group(1).replace("\\\"", "").replace("\"", "").trim();
+	        }
+	    } catch (Exception e) {}
+	    return "";
 	}
 
 	// 3.방 리스트 정보
