@@ -155,9 +155,9 @@
         <table id="tbl">
             <thead>
                 <tr>
+                    <th class="num">지역</th>
                     <th>시/구</th>
                     <th class="num">인구수</th>
-                    <!-- <th class="num">수요</th> -->
                     <th class="num">매매</th>
                     <th class="num">전세</th>
                     <th class="num">전세가율</th>
@@ -353,6 +353,14 @@
                     const js = fmt(r._c.js);
 
                     const tr = $("<tr/>");
+                    tr.append(
+                        $("<td/>")
+                        .text(getRegion(r))
+                        .css({
+                            color: "#666",
+                            fontSize: "12px"
+                        })
+                    );
                     tr.append($("<td class='key'/>").text(r._area));
                     tr.append($("<td class='num'/>").text(pop));
                     // tr.append($("<td class='num'/>").text(dem));
