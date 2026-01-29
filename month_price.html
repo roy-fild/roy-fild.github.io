@@ -96,6 +96,23 @@
             font-size: 12px;
             color: #333
         }
+        /* 투자금 셀 공통 */
+        
+        .inv-cell {
+            font-weight: 600;
+            border-radius: 6px;
+        }
+        /* 배경만 강조, 글자는 기본색 유지 */
+        
+        .inv59-bg {
+            background-color: rgba(13, 110, 253, 0.12);
+            /* 기본 연파랑 */
+        }
+        
+        .inv84-bg {
+            background-color: rgba(111, 66, 193, 0.12);
+            /* 기본 연보라 */
+        }
     </style>
 </head>
 
@@ -140,7 +157,7 @@
                 <tr>
                     <th>시/구</th>
                     <th class="num">인구수</th>
-                    <th class="num">수요</th>
+                    <!-- <th class="num">수요</th> -->
                     <th class="num">매매</th>
                     <th class="num">전세</th>
                     <th class="num">전세가율</th>
@@ -164,6 +181,24 @@
             const GH_API = "https://api.github.com/repos/roy-fild/roy-fild.github.io/contents/file/price";
 
             let rows = [];
+
+            function invBgColor(val, type) {
+                if (!Number.isFinite(val) || val <= 0) {
+                    return "#f5f5f5"; // 투자금 없으면 연회색
+                }
+
+                const MAX = 100000; // 데이터 기준 최대 투자금 (조정 가능)
+                const ratio = Math.min(val / MAX, 1);
+
+                if (type === "59") {
+                    // 파랑 계열
+                    return `rgba(13,110,253,${0.15 + ratio * 0.55})`;
+                } else {
+                    // 보라 계열
+                    return `rgba(111,66,193,${0.15 + ratio * 0.55})`;
+                }
+            }
+
 
             function stripParenNum(s) {
                 return ((s !== undefined && s !== null) ? s : "")
@@ -300,6 +335,12 @@
                     })
                     .filter(function(r) {
                         return passesInvRange(r._c.inv59, r._c.inv84, minInv, maxInv);
+                    })
+                    .sort(function(a, b) {
+                        if (b._c.inv59 !== a._c.inv59) {
+                            return b._c.inv59 - a._c.inv59; // 59투자금 내림차순
+                        }
+                        return b._c.inv84 - a._c.inv84; // 84투자금 내림차순
                     });
 
                 const $tb = $("#tbl tbody").empty();
@@ -307,14 +348,14 @@
                     const r = filtered[i];
 
                     const pop = fmt(toNum(getField(r, ["people", "인구수", "인구"])));
-                    const dem = fmt(toNum(getField(r, ["수요", "demand"])));
+                    // const dem = fmt(toNum(getField(r, ["수요", "demand"])));
                     const mm = fmt(r._c.mm);
                     const js = fmt(r._c.js);
 
                     const tr = $("<tr/>");
                     tr.append($("<td class='key'/>").text(r._area));
                     tr.append($("<td class='num'/>").text(pop));
-                    tr.append($("<td class='num'/>").text(dem));
+                    // tr.append($("<td class='num'/>").text(dem));
                     tr.append($("<td class='num'/>").text(mm));
                     tr.append($("<td class='num'/>").text(js));
                     tr.append($("<td class='num'/>").text(fmtPct(getField(r, ["전세가율", "전세가율(%)", "rate"]))));
@@ -323,9 +364,17 @@
                     tr.append($("<td class='num'/>").text(fmt(r._c.j59)));
                     tr.append($("<td class='num'/>").text(fmt(r._c.m84)));
                     tr.append($("<td class='num'/>").text(fmt(r._c.j84)));
-                    tr.append($("<td class='num'/>").text(fmt(r._c.inv59)));
-                    tr.append($("<td class='num'/>").text(fmt(r._c.inv84)));
+                    tr.append(
+                        $("<td class='num inv-cell inv59-bg'/>")
+                        .text(fmt(r._c.inv59))
+                        .css("background-color", invBgColor(r._c.inv59, "59"))
+                    );
 
+                    tr.append(
+                        $("<td class='num inv-cell inv84-bg'/>")
+                        .text(fmt(r._c.inv84))
+                        .css("background-color", invBgColor(r._c.inv84, "84"))
+                    );
                     $tb.append(tr);
                 }
 
