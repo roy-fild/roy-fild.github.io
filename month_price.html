@@ -1,219 +1,468 @@
 <!doctype html>
 <html lang="ko">
+
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>지역별 59/84 투자금 테이블</title>
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; }
-    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin-bottom: 12px; }
-    .field { display: flex; flex-direction: column; gap: 6px; }
-    label { font-size: 12px; color: #444; }
-    select, input { padding: 8px 10px; border: 1px solid #ccc; border-radius: 8px; }
-    button { padding: 9px 12px; border: 0; border-radius: 10px; background: #111; color: #fff; cursor: pointer; }
-    button:disabled { opacity: .5; cursor: not-allowed; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #e5e5e5; padding: 8px 10px; font-size: 13px; }
-    th { position: sticky; top: 0; background: #fafafa; z-index: 1; }
-    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-    td.key { font-weight: 600; }
-    .hint { color: #666; font-size: 12px; margin: 6px 0 14px; }
-    .chip { display:inline-block; padding:2px 8px; border-radius:999px; background:#f2f2f2; font-size:12px; color:#333; }
-  </style>
-</head>
-<body>
-  <h2 style="margin:0 0 6px;">지역별 59/84 투자금 (CSV 기반)</h2>
-  <div class="hint">
-    조회 조건: <span class="chip">A열 지역</span> + <span class="chip">투자금 범위(59/84 투자금 기준)</span> &nbsp;|&nbsp;
-    계산: 59매매=매매×24, 59전세=전세×24, 84매매=매매×34, 84전세=전세×34, 투자금=매매-전세
-  </div>
-
-  <div class="toolbar">
-    <div class="field">
-      <label for="regionSel">지역(A열) 선택</label>
-      <select id="regionSel"></select>
-    </div>
-
-    <div class="field">
-      <label for="minInv">투자금 최소 (원 단위는 CSV 기준)</label>
-      <input id="minInv" type="number" inputmode="numeric" placeholder="예) 30000" />
-    </div>
-
-    <div class="field">
-      <label for="maxInv">투자금 최대</label>
-      <input id="maxInv" type="number" inputmode="numeric" placeholder="예) 80000" />
-    </div>
-
-    <div class="field" style="min-width:160px;">
-      <label>&nbsp;</label>
-      <button id="applyBtn" disabled>적용</button>
-    </div>
-  </div>
-
-  <div id="status" class="hint">CSV 로딩 중…</div>
-
-  <div style="overflow:auto; border:1px solid #eee; border-radius:12px;">
-    <table id="tbl">
-      <thead>
-        <tr>
-          <th>시/구</th>
-          <th class="num">인구수</th>
-          <th class="num">수요</th>
-          <th class="num">매매</th>
-          <th class="num">전세</th>
-          <th class="num">전세가율</th>
-          <th class="num">59매매가</th>
-          <th class="num">59전세가</th>
-          <th class="num">84매매가</th>
-          <th class="num">84전세가</th>
-          <th class="num">59투자금</th>
-          <th class="num">84투자금</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-
-<script>
-(() => {
-  const CSV_PATH = "https://roy-fild.github.io/file/price/month_price_20260128.csv"; // 같은 폴더에 두세요.
-  let rows = [];
-
-  const stripParenNum = (s) => (s ?? "").toString().replace(/\s*\(\d+\)\s*/g, "").trim();
-
-  const toNum = (v) => {
-    if (v === null || v === undefined) return NaN;
-    const s = (""+v).trim();
-    if (!s) return NaN;
-    // "274,550" / "39%" 등 처리
-    const cleaned = s.replace(/,/g, "").replace(/%/g, "");
-    const n = Number(cleaned);
-    return Number.isFinite(n) ? n : NaN;
-  };
-
-  const fmt = (n) => {
-    if (n === null || n === undefined || Number.isNaN(n)) return "";
-    // 소수점 없이 콤마
-    return Math.round(n).toLocaleString("en-US");
-  };
-
-  const fmtPct = (v) => {
-    // 원본이 "39%" 같은 형태면 그대로, 아니면 숫자면 % 붙이기
-    const s = (v ?? "").toString().trim();
-    if (!s) return "";
-    if (s.includes("%")) return s;
-    const n = toNum(s);
-    return Number.isFinite(n) ? (n + "%") : s;
-  };
-
-  function compute(r){
-    const mm = toNum(r["매매"]);
-    const js = toNum(r["전세"]);
-    const m59 = mm * 24;
-    const j59 = js * 24;
-    const m84 = mm * 34;
-    const j84 = js * 34;
-    const inv59 = m59 - j59;
-    const inv84 = m84 - j84;
-    return { mm, js, m59, j59, m84, j84, inv59, inv84 };
-  }
-
-  function passesInvRange(inv59, inv84, minV, maxV){
-    const hasMin = Number.isFinite(minV);
-    const hasMax = Number.isFinite(maxV);
-    const inRange = (x) => {
-      if (!Number.isFinite(x)) return false;
-      if (hasMin && x < minV) return false;
-      if (hasMax && x > maxV) return false;
-      return true;
-    };
-    // 범위 기준: 59투자금 또는 84투자금 중 하나라도 범위에 들어오면 노출
-    if (!hasMin && !hasMax) return true;
-    return inRange(inv59) || inRange(inv84);
-  }
-
-  function render(){
-    const region = $("#regionSel").val();
-    const minInv = toNum($("#minInv").val());
-    const maxInv = toNum($("#maxInv").val());
-
-    const filtered = rows
-      .filter(r => (r["지역"] ?? "").toString().trim() === region)
-      .map(r => ({...r, _c: compute(r)}))
-      .filter(r => passesInvRange(r._c.inv59, r._c.inv84, minInv, maxInv));
-
-    const $tb = $("#tbl tbody").empty();
-    for (const r of filtered){
-      const name = stripParenNum(r["지역.1"] ?? r["시/구"] ?? "");
-      const pop = fmt(toNum(r["인구수"]));
-      const dem = fmt(toNum(r["수요"]));
-      const mm = fmt(r._c.mm);
-      const js = fmt(r._c.js);
-
-      const tr = $("<tr/>");
-      tr.append($("<td class='key'/>").text(name));
-      tr.append($("<td class='num'/>").text(pop));
-      tr.append($("<td class='num'/>").text(dem));
-      tr.append($("<td class='num'/>").text(mm));
-      tr.append($("<td class='num'/>").text(js));
-      tr.append($("<td class='num'/>").text(fmtPct(r["전세가율"])));
-
-      tr.append($("<td class='num'/>").text(fmt(r._c.m59)));
-      tr.append($("<td class='num'/>").text(fmt(r._c.j59)));
-      tr.append($("<td class='num'/>").text(fmt(r._c.m84)));
-      tr.append($("<td class='num'/>").text(fmt(r._c.j84)));
-      tr.append($("<td class='num'/>").text(fmt(r._c.inv59)));
-      tr.append($("<td class='num'/>").text(fmt(r._c.inv84)));
-
-      $tb.append(tr);
-    }
-
-    $("#status").text(`총 ${filtered.length.toLocaleString("en-US")}건 표시 중 (지역: ${region})`);
-  }
-
-  function initUI(){
-    const regions = [...new Set(rows.map(r => (r["지역"] ?? "").toString().trim()).filter(Boolean))].sort();
-    const $sel = $("#regionSel").empty();
-    regions.forEach(x => $sel.append($("<option/>").val(x).text(x)));
-
-    // 기본 "서울" 자동 선택 (없으면 첫번째)
-    const defaultVal = regions.includes("서울") ? "서울" : (regions[0] ?? "");
-    $sel.val(defaultVal);
-
-    $("#applyBtn").prop("disabled", false);
-    $("#applyBtn").on("click", render);
-    $("#regionSel").on("change", render);
-    $("#minInv,#maxInv").on("keydown", (e) => { if (e.key === "Enter") render(); });
-
-    render();
-  }
-
-  function loadCSV(){
-    Papa.parse(CSV_PATH, {
-      download: true,
-      encoding: "UTF-8",
-      header: true,
-      skipEmptyLines: true,
-      complete: (res) => {
-        rows = res.data || [];
-        if (!rows.length){
-          $("#status").text("CSV를 읽었지만 데이터가 비어있어요. 파일 경로/인코딩을 확인해 주세요.");
-          return;
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>지역별 59/84 투자금 테이블</title>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            margin: 16px
         }
-        $("#status").text(`CSV 로딩 완료: ${rows.length.toLocaleString("en-US")}행`);
-        initUI();
-      },
-      error: (err) => {
-        console.error(err);
-        $("#status").text("CSV 로딩 실패. 동일 폴더에 month_price_20260128.csv가 있는지 확인해 주세요.");
-      }
-    });
-  }
+        
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: end;
+            margin-bottom: 12px
+        }
+        
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px
+        }
+        
+        label {
+            font-size: 12px;
+            color: #444
+        }
+        
+        select,
+        input {
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px
+        }
+        
+        button {
+            padding: 9px 12px;
+            border: 0;
+            border-radius: 10px;
+            background: #111;
+            color: #fff;
+            cursor: pointer
+        }
+        
+        button:disabled {
+            opacity: .5;
+            cursor: not-allowed
+        }
+        
+        table {
+            border-collapse: collapse;
+            width: 100%
+        }
+        
+        th,
+        td {
+            border: 1px solid #e5e5e5;
+            padding: 8px 10px;
+            font-size: 13px
+        }
+        
+        th {
+            position: sticky;
+            top: 0;
+            background: #fafafa;
+            z-index: 1
+        }
+        
+        td.num,
+        th.num {
+            text-align: right;
+            font-variant-numeric: tabular-nums
+        }
+        
+        td.key {
+            font-weight: 600
+        }
+        
+        .hint {
+            color: #666;
+            font-size: 12px;
+            margin: 6px 0 14px
+        }
+        
+        .chip {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #f2f2f2;
+            font-size: 12px;
+            color: #333
+        }
+    </style>
+</head>
 
-  $(loadCSV);
-})();
-</script>
+<body>
+    <h2 style="margin:0 0 6px;">지역별 59/84 투자금 (CSV 기반)
+        <span style="font-size:14px; font-weight:500; color:#444;">
+      (업데이트: <span id="updateDate">-</span>)
+        </span>
+    </h2>
+
+    <div class="hint">
+        조회 조건: <span class="chip">region(시/도)</span> + <span class="chip">투자금 범위(59/84 투자금 기준)</span> &nbsp;|&nbsp; 계산: 59매매=매매×24, 59전세=전세×24, 84매매=매매×34, 84전세=전세×34, 투자금=매매-전세
+    </div>
+
+    <div class="toolbar">
+        <div class="field">
+            <label for="regionSel">region(시/도) 선택</label>
+            <select id="regionSel"></select>
+        </div>
+
+        <div class="field">
+            <label for="minInv">투자금 최소</label>
+            <input id="minInv" type="number" inputmode="numeric" placeholder="예) 30000" />
+        </div>
+
+        <div class="field">
+            <label for="maxInv">투자금 최대</label>
+            <input id="maxInv" type="number" inputmode="numeric" placeholder="예) 80000" />
+        </div>
+
+        <div class="field" style="min-width:160px;">
+            <label>&nbsp;</label>
+            <button id="applyBtn" disabled>적용</button>
+        </div>
+    </div>
+
+    <div id="status" class="hint">CSV 로딩 중…</div>
+
+    <div style="overflow:auto; border:1px solid #eee; border-radius:12px;">
+        <table id="tbl">
+            <thead>
+                <tr>
+                    <th>시/구</th>
+                    <th class="num">인구수</th>
+                    <th class="num">수요</th>
+                    <th class="num">매매</th>
+                    <th class="num">전세</th>
+                    <th class="num">전세가율</th>
+                    <th class="num">59매매가</th>
+                    <th class="num">59전세가</th>
+                    <th class="num">84매매가</th>
+                    <th class="num">84전세가</th>
+                    <th class="num">59투자금</th>
+                    <th class="num">84투자금</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        (() => {
+            // GitHub Pages에 올린 CSV 파일 이름 규칙: month_price_yyyymmdd.csv
+            const PAGES_BASE = "https://roy-fild.github.io/file/price/";
+            // 폴더에서 최신 파일을 찾기 위한 GitHub Contents API (공개 레포 기준)
+            const GH_API = "https://api.github.com/repos/roy-fild/roy-fild.github.io/contents/file/price";
+
+            let rows = [];
+
+            function stripParenNum(s) {
+                return ((s !== undefined && s !== null) ? s : "")
+                    .toString()
+                    .replace(/\s*\(\d+\)\s*/g, "")
+                    .trim();
+            }
+
+            function normKey(k) {
+                // BOM/공백 제거 + 소문자
+                return (k || "").toString().replace(/^\uFEFF/, "").replace(/\s/g, "").toLowerCase();
+            }
+
+            function getField(row, aliases) {
+                // aliases: ["area","시/구", ...] 같은 후보 리스트
+                if (!row) return "";
+                const keys = Object.keys(row);
+                for (let i = 0; i < aliases.length; i++) {
+                    const a = normKey(aliases[i]);
+                    for (let j = 0; j < keys.length; j++) {
+                        const kk = normKey(keys[j]);
+                        if (kk === a) {
+                            const v = row[keys[j]];
+                            return (v !== undefined && v !== null) ? v : "";
+                        }
+                    }
+                }
+                // 느슨한 매칭(포함)까지 한 번 더
+                for (let i = 0; i < aliases.length; i++) {
+                    const a = normKey(aliases[i]);
+                    for (let j = 0; j < keys.length; j++) {
+                        const kk = normKey(keys[j]);
+                        if (kk.indexOf(a) >= 0) {
+                            const v = row[keys[j]];
+                            return (v !== undefined && v !== null) ? v : "";
+                        }
+                    }
+                }
+                return "";
+            }
+
+            function getRegion(row) {
+                // CSV: region (시/도)
+                return getField(row, ["region", "지역", "시도", "시/도"]).toString().trim();
+            }
+
+            function getArea(row) {
+                // CSV: area (시/구)
+                return stripParenNum(getField(row, ["area", "지역.1", "시/구", "시구"]).toString());
+            }
+
+            function toNum(v) {
+                if (v === null || v === undefined) return NaN;
+                const s = ("" + v).trim();
+                if (!s) return NaN;
+                const cleaned = s.replace(/,/g, "").replace(/%/g, "");
+                const n = Number(cleaned);
+                return Number.isFinite(n) ? n : NaN;
+            }
+
+            function fmt(n) {
+                if (n === null || n === undefined || Number.isNaN(n)) return "";
+                return Math.round(n).toLocaleString("en-US");
+            }
+
+            function fmtPct(v) {
+                const s = ((v !== undefined && v !== null) ? v : "").toString().trim();
+                if (!s) return "";
+                if (s.indexOf("%") >= 0) return s;
+                const n = toNum(s);
+                return Number.isFinite(n) ? (n + "%") : s;
+            }
+
+            function yyyymmddToDot(yyyymmdd) {
+                if (!yyyymmdd || yyyymmdd.length !== 8) return "";
+                const y = yyyymmdd.slice(0, 4);
+                const m = yyyymmdd.slice(4, 6);
+                const d = yyyymmdd.slice(6, 8);
+                return y + "." + m + "." + d;
+            }
+
+            function compute(r) {
+                // CSV 컬럼: 매매, 전세 (한글 그대로)
+                const mm = toNum(getField(r, ["매매", "sale", "price"]));
+                const js = toNum(getField(r, ["전세", "rent", "lease"]));
+                const m59 = mm * 24;
+                const j59 = js * 24;
+                const m84 = mm * 34;
+                const j84 = js * 34;
+                const inv59 = m59 - j59;
+                const inv84 = m84 - j84;
+                return {
+                    mm,
+                    js,
+                    m59,
+                    j59,
+                    m84,
+                    j84,
+                    inv59,
+                    inv84
+                };
+            }
+
+            function passesInvRange(inv59, inv84, minV, maxV) {
+                const hasMin = Number.isFinite(minV);
+                const hasMax = Number.isFinite(maxV);
+
+                function inRange(x) {
+                    if (!Number.isFinite(x)) return false;
+                    if (hasMin && x < minV) return false;
+                    if (hasMax && x > maxV) return false;
+                    return true;
+                }
+                if (!hasMin && !hasMax) return true;
+                return inRange(inv59) || inRange(inv84);
+            }
+
+            function render() {
+                const region = $("#regionSel").val();
+                const minInv = toNum($("#minInv").val());
+                const maxInv = toNum($("#maxInv").val());
+
+                const filtered = rows
+                    .filter(function(r) {
+                        return getRegion(r) === region;
+                    })
+                    .map(function(r) {
+                        const c = compute(r);
+                        const out = {};
+                        for (const k in r) out[k] = r[k];
+                        out._c = c;
+                        out._area = getArea(r);
+                        return out;
+                    })
+                    .filter(function(r) {
+                        return passesInvRange(r._c.inv59, r._c.inv84, minInv, maxInv);
+                    });
+
+                const $tb = $("#tbl tbody").empty();
+                for (let i = 0; i < filtered.length; i++) {
+                    const r = filtered[i];
+
+                    const pop = fmt(toNum(getField(r, ["people", "인구수", "인구"])));
+                    const dem = fmt(toNum(getField(r, ["수요", "demand"])));
+                    const mm = fmt(r._c.mm);
+                    const js = fmt(r._c.js);
+
+                    const tr = $("<tr/>");
+                    tr.append($("<td class='key'/>").text(r._area));
+                    tr.append($("<td class='num'/>").text(pop));
+                    tr.append($("<td class='num'/>").text(dem));
+                    tr.append($("<td class='num'/>").text(mm));
+                    tr.append($("<td class='num'/>").text(js));
+                    tr.append($("<td class='num'/>").text(fmtPct(getField(r, ["전세가율", "전세가율(%)", "rate"]))));
+
+                    tr.append($("<td class='num'/>").text(fmt(r._c.m59)));
+                    tr.append($("<td class='num'/>").text(fmt(r._c.j59)));
+                    tr.append($("<td class='num'/>").text(fmt(r._c.m84)));
+                    tr.append($("<td class='num'/>").text(fmt(r._c.j84)));
+                    tr.append($("<td class='num'/>").text(fmt(r._c.inv59)));
+                    tr.append($("<td class='num'/>").text(fmt(r._c.inv84)));
+
+                    $tb.append(tr);
+                }
+
+                $("#status").text("총 " + filtered.length.toLocaleString("en-US") + "건 표시 중 (region: " + region + ")");
+            }
+
+            function initUI() {
+                const regions = [];
+                const seen = {};
+                for (let i = 0; i < rows.length; i++) {
+                    const v = getRegion(rows[i]);
+                    if (v && !seen[v]) {
+                        seen[v] = true;
+                        regions.push(v);
+                    }
+                }
+                regions.sort();
+
+                const $sel = $("#regionSel").empty();
+                for (let i = 0; i < regions.length; i++) {
+                    $sel.append($("<option/>").val(regions[i]).text(regions[i]));
+                }
+
+                const defaultVal = (regions.indexOf("서울") >= 0) ? "서울" : ((regions.length > 0) ? regions[0] : "");
+                $sel.val(defaultVal);
+
+                $("#applyBtn").prop("disabled", false);
+                $("#applyBtn").on("click", render);
+                $("#regionSel").on("change", render);
+                $("#minInv,#maxInv").on("keydown", function(e) {
+                    if (e.key === "Enter") render();
+                });
+
+                render();
+            }
+
+            async function resolveLatestCsv() {
+                try {
+                    const res = await fetch(GH_API, {
+                        cache: "no-store"
+                    });
+                    if (!res.ok) throw new Error("GitHub API 응답 오류");
+                    const list = await res.json();
+
+                    const candidates = (Array.isArray(list) ? list : [])
+                        .map(x => (x && x.name) ? x.name : "")
+                        .filter(name => /^month_price_\d{8}\.csv$/i.test(name))
+                        .map(name => ({
+                            name: name,
+                            yyyymmdd: name.match(/month_price_(\d{8})\.csv/i)[1]
+                        }))
+                        .sort((a, b) => a.yyyymmdd.localeCompare(b.yyyymmdd));
+
+                    if (!candidates.length) throw new Error("CSV 후보 없음");
+
+                    const latest = candidates[candidates.length - 1];
+                    return {
+                        url: PAGES_BASE + latest.name,
+                        yyyymmdd: latest.yyyymmdd
+                    };
+                } catch (e) {
+                    const fallback = "20260128";
+                    return {
+                        url: PAGES_BASE + "month_price_" + fallback + ".csv",
+                        yyyymmdd: fallback
+                    };
+                }
+            }
+
+            async function fetchTextWithKorean(url) {
+                const buf = await fetch(url, {
+                    cache: "no-store"
+                }).then(r => {
+                    if (!r.ok) throw new Error("CSV fetch 실패");
+                    return r.arrayBuffer();
+                });
+
+                function tryDecode(enc) {
+                    return new TextDecoder(enc).decode(buf);
+                }
+
+                let text = tryDecode("utf-8");
+
+                function looksOk(t) {
+                    return (t.indexOf("region") >= 0 || t.indexOf("지역") >= 0 || t.indexOf("area") >= 0) && t.indexOf("\uFFFD") < 0;
+                }
+
+                if (!looksOk(text)) {
+                    try {
+                        const t2 = tryDecode("euc-kr");
+                        if (looksOk(t2)) text = t2;
+                    } catch (_) {}
+                    try {
+                        const t3 = tryDecode("windows-949");
+                        if (looksOk(t3)) text = t3;
+                    } catch (_) {}
+                }
+                return text;
+            }
+
+            async function loadLatestCSV() {
+                $("#status").text("CSV 로딩 중… (최신 파일 탐색)");
+                const latest = await resolveLatestCsv();
+
+                const dot = yyyymmddToDot(latest.yyyymmdd);
+                if (dot) {
+                    $("#updateDate").text(dot);
+                    document.title = "지역별 59/84 투자금 테이블 (" + dot + ")";
+                }
+
+                try {
+                    const csvText = await fetchTextWithKorean(latest.url);
+                    const parsed = Papa.parse(csvText, {
+                        header: true,
+                        skipEmptyLines: true
+                    });
+                    rows = parsed.data || [];
+
+                    if (!rows.length) {
+                        $("#status").text("CSV를 읽었지만 데이터가 비어있어요. 파일 내용/구분자/인코딩을 확인해 주세요.");
+                        return;
+                    }
+
+                    // 디버그(필요하면 콘솔에서 헤더 확인)
+                    // console.log(Object.keys(rows[0] || {}));
+
+                    $("#status").text("CSV 로딩 완료: " + rows.length.toLocaleString("en-US") + "행 (최신: " + (dot || latest.yyyymmdd) + ")");
+                    initUI();
+                } catch (err) {
+                    console.error(err);
+                    $("#status").text("CSV 로딩 실패. 최신 파일 URL/권한/인코딩을 확인해 주세요.");
+                }
+            }
+
+            $(loadLatestCSV);
+        })();
+    </script>
 </body>
+
 </html>
