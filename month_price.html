@@ -117,14 +117,14 @@
 </head>
 
 <body>
-    <h2 style="margin:0 0 6px;">지역별 59/84 투자금 (CSV 기반)
+    <h2 style="margin:0 0 6px;">지역별 59/84 투자금
         <span style="font-size:14px; font-weight:500; color:#444;">
-      (업데이트: <span id="updateDate">-</span>)
+      (업데이트: <span id="updateDate">-</span>) by 필디
         </span>
     </h2>
 
     <div class="hint">
-        조회 조건: <span class="chip">region(시/도)</span> + <span class="chip">투자금 범위(59/84 투자금 기준)</span> &nbsp;|&nbsp; 계산: 59매매=매매×24, 59전세=전세×24, 84매매=매매×34, 84전세=전세×34, 투자금=매매-전세
+        조회 조건: <span class="chip">region(시/도)</span> + <span class="chip">투자금 범위(59/84 투자금 기준)</span>
     </div>
 
     <div class="toolbar">
@@ -323,7 +323,7 @@
 
                 const filtered = rows
                     .filter(function(r) {
-                        return getRegion(r) === region;
+                        return (region === "전체") ? true : (getRegion(r) === region);
                     })
                     .map(function(r) {
                         const c = compute(r);
@@ -378,7 +378,7 @@
                     $tb.append(tr);
                 }
 
-                $("#status").text("총 " + filtered.length.toLocaleString("en-US") + "건 표시 중 (region: " + region + ")");
+                $("#status").text("총 " + filtered.length.toLocaleString("en-US") + "건 표시 중 (" + (region === "전체" ? "전체" : ("region: " + region)) + ")");
             }
 
             function initUI() {
@@ -394,11 +394,12 @@
                 regions.sort();
 
                 const $sel = $("#regionSel").empty();
+                $sel.append($("<option/>").val("전체").text("전체"));
                 for (let i = 0; i < regions.length; i++) {
                     $sel.append($("<option/>").val(regions[i]).text(regions[i]));
                 }
 
-                const defaultVal = (regions.indexOf("서울") >= 0) ? "서울" : ((regions.length > 0) ? regions[0] : "");
+                const defaultVal = "전체";
                 $sel.val(defaultVal);
 
                 $("#applyBtn").prop("disabled", false);
