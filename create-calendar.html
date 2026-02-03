@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>달력(날짜줄/스케줄줄) + 엑셀 다운로드</title>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+
+  <style>
+    :root {
+      --border: #cfcfcf;
+      --title-bg: #f3cfcf;
+      /* 연핑크 */
+      --dow-bg: #d9d9d9;
+      /* 요일 헤더 회색 */
+      --date-bg: #dfeaf7;
+      /* 날짜 줄 연파랑 */
+      --sun: #d60000;
+      --sat: #0047ff;
+      --out-text: #9a9a9a;
+      /* 다른달 날짜 글자 */
+      --out-fill: #9e9e9e;
+      /* 다른달 스케줄칸 회색 */
+    }
+
+    body {
+      font-family: Arial, "Malgun Gothic", "맑은 고딕", sans-serif;
+      background: #fafafa;
+      margin: 24px;
+      color: #111;
+    }
+
+    .bar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .bar label {
+      font-weight: 700;
+    }
+
+    .bar input {
+      width: 90px;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: white;
+    }
+
+    .bar button {
+      padding: 9px 12px;
+      border: 1px solid #ddd;
+      background: white;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .bar button:hover {
+      background: #f5f5f5;
+    }
+
+    .wrap {
+      width: 980px;
+      max-width: 100%;
+      background: #fff;
+      border: 1px solid var(--border);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, .06);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    table.calendar {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    table.calendar th,
+    table.calendar td {
+      border: 1px solid var(--border);
+    }
+
+    tr.title-row th {
+      background: var(--title-bg);
+      font-size: 44px;
+      padding: 18px 0;
+      text-align: center;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+
+    tr.dow-row th {
+      background: var(--dow-bg);
+      font-size: 22px;
+      padding: 10px 0;
+      text-align: center;
+      font-weight: 900;
+    }
+
+    .sun {
+      color: var(--sun);
+    }
+
+    .sat {
+      color: var(--sat);
+    }
+
+    /* 날짜 줄(작은 높이, 연파랑) */
+    tr.date-row td {
+      height: 36px;
+      background: var(--date-bg);
+      vertical-align: top;
+      position: relative;
+    }
+
+    .date-num {
+      position: absolute;
+      top: 6px;
+      right: 10px;
+      font-size: 16px;
+      font-weight: 900;
+      line-height: 1;
+      user-select: none;
+    }
+
+    .out-month {
+      color: var(--out-text);
+      font-weight: 800;
+    }
+
+    /* 스케줄 줄(큰 높이) */
+    tr.sched-row td {
+      height: 85px;
+      background: #fff;
+      vertical-align: middle;
+      text-align: center;
+      padding: 6px 8px;
+      font-size: 14px;
+      font-weight: 700;
+      white-space: pre-wrap;
+      /* 줄바꿈 유지 */
+      cursor: pointer;
+    }
+
+    tr.sched-row td:hover {
+      background: #fafafa;
+    }
+
+    /* 다른달(leading/trailing) 스케줄칸 회색 */
+    tr.sched-row td.out-cell {
+      background: var(--out-fill);
+      cursor: default;
+    }
+
+    tr.sched-row td.out-cell:hover {
+      background: var(--out-fill);
+    }
+
+    .hint {
+      margin-top: 10px;
+      color: #666;
+      font-size: 13px;
+    }
+
+    .title-main {
+      font-size: 21px;
+      font-weight: 900;
+    }
+
+    .title-sub {
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 6px;
+      color: #444;
+    }
+  </style>
+</head>
+
+<body>
+  <div>
+    <div class="title-main">Schedule Calendar</div>
+    <div class="title-sub">by 필디</div>
+  </div>
+  <div class="bar">
+    <label>년도</label>
+    <input type="number" id="year" min="1900" max="2100" />
+
+    <label>월</label>
+    <input type="number" id="month" min="1" max="12" />
+
+    <button id="btnRender">달력 만들기</button>
+    <button id="btnDownload">엑셀 다운로드(.xlsx)</button>
+  </div>
+
+  <div class="wrap">
+    <table class="calendar" id="calTable">
+      <thead>
+        <tr class="title-row">
+          <th colspan="7" id="titleCell">25년 11월</th>
+        </tr>
+        <tr class="dow-row">
+          <th class="sun">일</th>
+          <th>월</th>
+          <th>화</th>
+          <th>수</th>
+          <th>목</th>
+          <th>금</th>
+          <th class="sat">토</th>
+        </tr>
+      </thead>
+      <tbody id="calBody"></tbody>
+    </table>
+  </div>
+
+  <div class="hint">
+    • 스케줄 칸(큰 칸) 클릭 → 텍스트 입력 가능 → 엑셀에도 그대로 들어갑니다.
+  </div>
+
+  <script>
+    // 스케줄 저장소: key = "YYYY-MM-DD" / value = "스케줄 텍스트"
+    const schedules = {};
+
+    function pad2(n) { return String(n).padStart(2, "0"); }
+    function ymdKey(dt) {
+      return `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())}`;
+    }
+
+    function setTitle(y, m) {
+      const yy = String(y).slice(-2);
+      $("#titleCell").text(`${yy}년 ${pad2(m)}월`);
+    }
+
+    // 6주 고정, 각 주마다 date-row + sched-row
+    function buildBody() {
+      const $body = $("#calBody");
+      $body.empty();
+
+      for (let w = 0; w < 6; w++) {
+        const $dateTr = $("<tr>").addClass("date-row").attr("data-week", w);
+        const $schdTr = $("<tr>").addClass("sched-row").attr("data-week", w);
+
+        for (let d = 0; d < 7; d++) {
+          $dateTr.append($("<td>").attr({ "data-w": w, "data-d": d, "data-kind": "date" }));
+          $schdTr.append($("<td>").attr({ "data-w": w, "data-d": d, "data-kind": "sched" }));
+        }
+        $body.append($dateTr, $schdTr);
+      }
+    }
+
+    // 달력 렌더링: 달력 grid는 "해당 달의 1일이 포함된 주의 일요일"부터 42일
+    function renderCalendar(y, m) {
+      if (!y || !m) return;
+
+      setTitle(y, m);
+      buildBody();
+
+      const firstOfMonth = new Date(y, m - 1, 1);
+      const start = new Date(firstOfMonth);
+      start.setDate(1 - start.getDay()); // 그 주의 일요일로 이동
+
+      for (let i = 0; i < 42; i++) {
+        const dt = new Date(start);
+        dt.setDate(start.getDate() + i);
+
+        const w = Math.floor(i / 7);
+        const d = i % 7;
+
+        const inMonth = (dt.getMonth() === (m - 1));
+        const $dateTd = $(`#calBody td[data-kind="date"][data-w="${w}"][data-d="${d}"]`);
+        const $schdTd = $(`#calBody td[data-kind="sched"][data-w="${w}"][data-d="${d}"]`);
+
+        // 날짜 숫자
+        const $num = $("<div>").addClass("date-num").text(dt.getDate());
+
+        if (d === 0) $num.addClass("sun");
+        if (d === 6) $num.addClass("sat");
+        if (!inMonth) $num.addClass("out-month");
+
+        $dateTd.empty().append($num);
+
+        // 스케줄 텍스트
+        const key = ymdKey(dt);
+        const txt = schedules[key] || "";
+        $schdTd.text(txt);
+
+        // 다른달 칸 처리(회색)
+        $schdTd.toggleClass("out-cell", !inMonth);
+
+        // 셀에 날짜 메타 저장
+        $schdTd.data("dateKey", key);
+        $schdTd.data("inMonth", inMonth);
+      }
+    }
+
+    // 스케줄 입력(간단 prompt)
+    $(document).on("click", 'td[data-kind="sched"]', function () {
+      const inMonth = $(this).data("inMonth");
+      if (!inMonth) return;
+
+      const key = $(this).data("dateKey");
+      const prev = schedules[key] || "";
+      const next = prompt("스케줄 입력(줄바꿈 가능):", prev);
+      if (next === null) return;
+
+      schedules[key] = next.trim();
+      $(this).text(schedules[key]);
+    });
+
+    // ---------- Excel Export (날짜줄 + 스케줄줄) ----------
+    function downloadExcel(y, m) {
+      const title = `${String(y).slice(-2)}년 ${pad2(m)}월`;
+      const dow = ["일", "월", "화", "수", "목", "금", "토"];
+
+      const firstOfMonth = new Date(y, m - 1, 1);
+      const start = new Date(firstOfMonth);
+      start.setDate(1 - start.getDay()); // grid 시작(일요일)
+
+      // AOA 만들기:
+      // row0: title (A1:G1 merge)
+      // row1: dow
+      // 이후 6주 * 2행: date-row, sched-row
+      const aoa = [];
+      aoa.push([title, "", "", "", "", "", ""]);
+      aoa.push(dow);
+
+      // 날짜/스케줄 그리드 만들기
+      for (let w = 0; w < 6; w++) {
+        const dateRow = Array(7).fill("");
+        const schedRow = Array(7).fill("");
+
+        for (let d = 0; d < 7; d++) {
+          const idx = w * 7 + d;
+          const dt = new Date(start);
+          dt.setDate(start.getDate() + idx);
+          const key = ymdKey(dt);
+          dateRow[d] = dt.getDate();
+          schedRow[d] = schedules[key] || "";
+        }
+
+        aoa.push(dateRow);
+        aoa.push(schedRow);
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+      // 병합 A1:G1
+      ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }];
+
+      // 열 너비 / 행 높이
+      ws["!cols"] = Array.from({ length: 7 }, () => ({ wch: 16 }));
+      // 행 높이: title, dow, (date 20 / sched 55) * 6주
+      const rows = [];
+      rows.push({ hpt: 48 }); // title
+      rows.push({ hpt: 26 }); // dow
+      for (let w = 0; w < 6; w++) {
+        rows.push({ hpt: 20 }); // date row
+        rows.push({ hpt: 55 }); // schedule row
+      }
+      ws["!rows"] = rows;
+
+      const borderAll = {
+        top: { style: "thin", color: { rgb: "CFCFCF" } },
+        bottom: { style: "thin", color: { rgb: "CFCFCF" } },
+        left: { style: "thin", color: { rgb: "CFCFCF" } },
+        right: { style: "thin", color: { rgb: "CFCFCF" } },
+      };
+      const colLetters = ["A", "B", "C", "D", "E", "F", "G"];
+
+      function ensureCell(addr) {
+        if (!ws[addr]) ws[addr] = { t: "s", v: "" };
+        return ws[addr];
+      }
+
+      // Title 스타일
+      ensureCell("A1").s = {
+        font: { name: "맑은 고딕", sz: 24, bold: true, color: { rgb: "000000" } },
+        alignment: { horizontal: "center", vertical: "center" },
+        fill: { patternType: "solid", fgColor: { rgb: "F3CFCF" } },
+        border: borderAll
+      };
+      ["B", "C", "D", "E", "F", "G"].forEach(c => {
+        ensureCell(c + "1").s = { fill: { patternType: "solid", fgColor: { rgb: "F3CFCF" } }, border: borderAll };
+      });
+
+      // DOW 스타일
+      for (let c = 0; c < 7; c++) {
+        const addr = colLetters[c] + "2";
+        const isSun = (c === 0), isSat = (c === 6);
+        ensureCell(addr).s = {
+          font: { name: "맑은 고딕", sz: 12, bold: true, color: { rgb: isSun ? "D60000" : (isSat ? "0047FF" : "000000") } },
+          alignment: { horizontal: "center", vertical: "center" },
+          fill: { patternType: "solid", fgColor: { rgb: "D9D9D9" } },
+          border: borderAll
+        };
+      }
+
+      // 날짜/스케줄 스타일
+      // aoa 기준:
+      // r=0 title, r=1 dow
+      // r=2 date(week1), r=3 sched(week1) ... r=13 sched(week6)
+      for (let r = 2; r < 2 + 12; r++) {
+        const isDateRow = ((r - 2) % 2 === 0);
+        const weekIndex = Math.floor((r - 2) / 2);
+
+        for (let c = 0; c < 7; c++) {
+          const addr = colLetters[c] + (r + 1); // excel row = r+1
+          const cell = ensureCell(addr);
+
+          // 이 셀의 실제 날짜 계산 (grid 기준)
+          const idx = weekIndex * 7 + c;
+          const dt = new Date(start);
+          dt.setDate(start.getDate() + idx);
+          const inMonth = (dt.getMonth() === (m - 1));
+
+          if (isDateRow) {
+            // 날짜 줄: 연파랑 + 오른쪽 위
+            const isSun = (c === 0), isSat = (c === 6);
+            cell.s = {
+              font: {
+                name: "맑은 고딕", sz: 11, bold: true,
+                color: { rgb: !inMonth ? "9A9A9A" : (isSun ? "D60000" : (isSat ? "0047FF" : "000000")) }
+              },
+              alignment: { horizontal: "right", vertical: "top" },
+              fill: { patternType: "solid", fgColor: { rgb: "DFEAF7" } },
+              border: borderAll
+            };
+          } else {
+            // 스케줄 줄: 흰 배경(해당월), 다른달은 회색
+            cell.s = {
+              font: { name: "맑은 고딕", sz: 11, bold: true, color: { rgb: "000000" } },
+              alignment: { horizontal: "center", vertical: "center", wrapText: true },
+              fill: { patternType: "solid", fgColor: { rgb: inMonth ? "FFFFFF" : "9E9E9E" } },
+              border: borderAll
+            };
+          }
+        }
+      }
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Calendar");
+      XLSX.writeFile(wb, `calendar_${y}_${pad2(m)}.xlsx`);
+    }
+
+    // ---------- Init ----------
+    $(function () {
+      const now = new Date();
+      $("#year").val(now.getFullYear());
+      $("#month").val(now.getMonth() + 1);
+
+      renderCalendar(Number($("#year").val()), Number($("#month").val()));
+
+      $("#btnRender").on("click", function () {
+        const y = Number($("#year").val());
+        const m = Number($("#month").val());
+        if (!y || !m || m < 1 || m > 12) return alert("년도/월을 올바르게 입력해줘!");
+        renderCalendar(y, m);
+      });
+
+      $("#btnDownload").on("click", function () {
+        const y = Number($("#year").val());
+        const m = Number($("#month").val());
+        if (!y || !m || m < 1 || m > 12) return alert("년도/월을 올바르게 입력해줘!");
+        renderCalendar(y, m);
+        downloadExcel(y, m);
+      });
+    });
+  </script>
+</body>
+
+</html>
