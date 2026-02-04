@@ -134,7 +134,23 @@
             user-select: none;
         }
         
-        .out-month {
+        
+
+        .holiday-name {
+            position: absolute;
+            top: 6px;
+            left: 10px;
+            font-size: 11px;
+            font-weight: 800;
+            line-height: 1.1;
+            color: var(--sun);
+            user-select: none;
+            max-width: calc(100% - 44px);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+.out-month {
             color: var(--out-text);
             font-weight: 800;
         }
@@ -199,7 +215,6 @@
         <label>월</label>
         <input type="number" id="month" min="1" max="12" />
 
-        <button id="btnRender">달력 만들기</button>
         <button id="btnDownload">엑셀 다운로드(.xlsx)</button>
     </div>
 
@@ -271,11 +286,24 @@
             return m[dateKey] ? m[dateKey].join(", ") : "";
         }
 
+        function debounce(fn, wait) {
+            let t;
+            return function(...args) {
+                clearTimeout(t);
+                t = setTimeout(() => fn.apply(this, args), wait);
+            };
+        }
+
         function pad2(n) {
             return String(n).padStart(2, "0");
         }
 
-        function ymdKey(dt) {
+        
+
+        // 요일 상수 (엑셀/화면 공통)
+        const WEEKS = ["일", "월", "화", "수", "목", "금", "토"];
+
+function ymdKey(dt) {
             return `${dt.getFullYear()}-${pad2(dt.getMonth() + 1)}-${pad2(dt.getDate())}`;
         }
 
@@ -346,9 +374,16 @@
                 if (hLabel) {
                     $num.addClass("holiday").attr("title", `공휴일: ${hLabel}`);
                 }
-                $dateTd.empty().append($num);
+                $dateTd.empty();
 
-                // 스케줄 텍스트                
+                // 공휴일 이름(날짜 옆에 표시)
+                if (hLabel) {
+                    const $h = $("<div>").addClass("holiday-name").text(hLabel);
+                    $dateTd.append($h);
+                }
+                $dateTd.append($num);
+
+// 스케줄 텍스트                
                 const txt = schedules[key] || "";
                 $schdTd.text(txt);
 
@@ -377,33 +412,50 @@
 
         // ---------- Excel Export (날짜줄 + 스케줄줄) ----------
         function downloadExcel(y, m) {
+            // ✅ 화면 디자인에 최대한 맞춘 엑셀 출력 (7열 유지)
+            // 1) 제목(병합) + 핑크 배경
+            // 2) 요일 헤더(회색 배경)
+            // 3) 주 단위로 (날짜줄/스케줄줄) 반복
+            // 4) 날짜줄은 교차로 연한 파란 배경(밴드)
+            // 5) 일요일/공휴일 빨강, 토요일 파랑, 다른달 날짜는 회색
+
             const title = `${String(y).slice(-2)}년 ${pad2(m)}월`;
-            const dow = ["일", "월", "화", "수", "목", "금", "토"];
 
+            // 화면 렌더링과 동일한 42일 그리드 시작점
             const firstOfMonth = new Date(y, m - 1, 1);
-            const start = new Date(firstOfMonth);
-            start.setDate(1 - start.getDay()); // grid 시작(일요일)
+            const gridStart = new Date(firstOfMonth);
+            gridStart.setDate(1 - gridStart.getDay());
 
-            // AOA 만들기:
-            // row0: title (A1:G1 merge)
-            // row1: dow
-            // 이후 6주 * 2행: date-row, sched-row
             const aoa = [];
-            aoa.push([title, "", "", "", "", "", ""]);
-            aoa.push(dow);
+            aoa.push([title, "", "", "", "", "", ""]);    // row 0: title (A1:G1 merge)
+            aoa.push(WEEKS.slice());                     // row 1: weekday header
 
-            // 날짜/스케줄 그리드 만들기
             for (let w = 0; w < 6; w++) {
-                const dateRow = Array(7).fill("");
-                const schedRow = Array(7).fill("");
+                const dateRow = new Array(7).fill("");
+                const schedRow = new Array(7).fill("");
 
                 for (let d = 0; d < 7; d++) {
-                    const idx = w * 7 + d;
-                    const dt = new Date(start);
-                    dt.setDate(start.getDate() + idx);
+                    const dt = new Date(gridStart);
+                    dt.setDate(gridStart.getDate() + (w * 7 + d));
+
+                    const inMonth = (dt.getMonth() === (m - 1));
                     const key = ymdKey(dt);
-                    dateRow[d] = dt.getDate();
-                    schedRow[d] = schedules[key] || "";
+                    const hLabel = getHolidayLabel(key);
+
+                    // 날짜칸: "일자\n명절명" (엑셀 한 셀에서 가시성 확보)
+                    if (inMonth) {
+                        dateRow[d] = (hLabel ? (String(hLabel) + " " + String(dt.getDate())) : String(dt.getDate()));
+                    } else {
+                        // 다른 달: 날짜는 회색으로 표시 (필요시 1일은 '3-1월'처럼 표기)
+                        if (dt.getDate() === 1) {
+                            dateRow[d] = `${dt.getMonth() + 1}-1월`;
+                        } else {
+                            dateRow[d] = String(dt.getDate());
+                        }
+                    }
+
+                    // 스케줄칸: 현재 달만 유지 (다른달은 빈칸)
+                    schedRow[d] = inMonth ? (schedules[key] || "") : "";
                 }
 
                 aoa.push(dateRow);
@@ -412,216 +464,113 @@
 
             const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-            // 병합 A1:G1
-            ws["!merges"] = [{
-                s: {
-                    r: 0,
-                    c: 0
-                },
-                e: {
-                    r: 0,
-                    c: 6
-                }
-            }];
+            // 병합: 제목(A1:G1)
+            ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }];
 
-            // 열 너비 / 행 높이
-            ws["!cols"] = Array.from({
-                length: 7
-            }, () => ({
-                wch: 16
-            }));
-            // 행 높이: title, dow, (date 20 / sched 55) * 6주
+            // 컬럼 폭(화면 느낌)
+            ws["!cols"] = [
+                { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 14 }
+            ];
+
+            // 행 높이: 제목, 요일, 날짜줄/스케줄줄
             const rows = [];
-            rows.push({
-                hpt: 48
-            }); // title
-            rows.push({
-                hpt: 26
-            }); // dow
+            rows.push({ hpt: 46 }); // title
+            rows.push({ hpt: 26 }); // weekday
             for (let w = 0; w < 6; w++) {
-                rows.push({
-                    hpt: 20
-                }); // date row
-                rows.push({
-                    hpt: 55
-                }); // schedule row
+                rows.push({ hpt: 28 }); // date row (holiday newline)
+                rows.push({ hpt: 84 }); // schedule row
             }
             ws["!rows"] = rows;
 
-            const borderAll = {
-                top: {
-                    style: "thin",
-                    color: {
-                        rgb: "CFCFCF"
-                    }
-                },
-                bottom: {
-                    style: "thin",
-                    color: {
-                        rgb: "CFCFCF"
-                    }
-                },
-                left: {
-                    style: "thin",
-                    color: {
-                        rgb: "CFCFCF"
-                    }
-                },
-                right: {
-                    style: "thin",
-                    color: {
-                        rgb: "CFCFCF"
-                    }
-                },
+            // 스타일
+            const BORDER = {
+                top: { style: "thin" },
+                bottom: { style: "thin" },
+                left: { style: "thin" },
+                right: { style: "thin" }
             };
-            const colLetters = ["A", "B", "C", "D", "E", "F", "G"];
+
+            const FILL_PINK = { patternType: "solid", fgColor: { rgb: "F3D0D0" } };  // title bg
+            const FILL_GRAY = { patternType: "solid", fgColor: { rgb: "D9D9D9" } };  // weekday bg
+            const FILL_BAND = { patternType: "solid", fgColor: { rgb: "DCEAF8" } };  // date band
+
+            const RED = { rgb: "E53935" };
+            const BLUE = { rgb: "1E88E5" };
+            const MUTED = { rgb: "9AA0A6" };
 
             function ensureCell(addr) {
-                if (!ws[addr]) ws[addr] = {
-                    t: "s",
-                    v: ""
-                };
+                if (!ws[addr]) ws[addr] = { t: "s", v: "" };
                 return ws[addr];
             }
 
-            // Title 스타일
-            ensureCell("A1").s = {
-                font: {
-                    name: "맑은 고딕",
-                    sz: 24,
-                    bold: true,
-                    color: {
-                        rgb: "000000"
-                    }
-                },
-                alignment: {
-                    horizontal: "center",
-                    vertical: "center"
-                },
-                fill: {
-                    patternType: "solid",
-                    fgColor: {
-                        rgb: "F3CFCF"
-                    }
-                },
-                border: borderAll
+            // Title (row 0)
+            const aTitle = XLSX.utils.encode_cell({ r: 0, c: 0 });
+            ensureCell(aTitle).s = {
+                font: { bold: true, sz: 26 },
+                alignment: { horizontal: "center", vertical: "center" },
+                fill: FILL_PINK,
+                border: BORDER
             };
-            ["B", "C", "D", "E", "F", "G"].forEach(c => {
-                ensureCell(c + "1").s = {
-                    fill: {
-                        patternType: "solid",
-                        fgColor: {
-                            rgb: "F3CFCF"
-                        }
-                    },
-                    border: borderAll
-                };
-            });
-
-            // DOW 스타일
-            for (let c = 0; c < 7; c++) {
-                const addr = colLetters[c] + "2";
-                const isSun = (c === 0),
-                    isSat = (c === 6);
-                ensureCell(addr).s = {
-                    font: {
-                        name: "맑은 고딕",
-                        sz: 12,
-                        bold: true,
-                        color: {
-                            rgb: isSun ? "D60000" : (isSat ? "0047FF" : "000000")
-                        }
-                    },
-                    alignment: {
-                        horizontal: "center",
-                        vertical: "center"
-                    },
-                    fill: {
-                        patternType: "solid",
-                        fgColor: {
-                            rgb: "D9D9D9"
-                        }
-                    },
-                    border: borderAll
-                };
+            // merged partner cells need fill/border too
+            for (let c = 1; c <= 6; c++) {
+                const addr = XLSX.utils.encode_cell({ r: 0, c });
+                ensureCell(addr).s = { fill: FILL_PINK, border: BORDER };
             }
 
-            // 날짜/스케줄 스타일
-            // aoa 기준:
-            // r=0 title, r=1 dow
-            // r=2 date(week1), r=3 sched(week1) ... r=13 sched(week6)
-            for (let r = 2; r < 2 + 12; r++) {
-                const isDateRow = ((r - 2) % 2 === 0);
-                const weekIndex = Math.floor((r - 2) / 2);
+            // Weekday header (row 1)
+            for (let d = 0; d < 7; d++) {
+                const addr = XLSX.utils.encode_cell({ r: 1, c: d });
+                const cell = ensureCell(addr);
+                cell.s = {
+                    font: { bold: true, sz: 14, color: (d === 0 ? RED : (d === 6 ? BLUE : undefined)) },
+                    alignment: { horizontal: "center", vertical: "center" },
+                    fill: FILL_GRAY,
+                    border: BORDER
+                };
+                if (d !== 0 && d !== 6) delete cell.s.font.color;
+            }
 
-                for (let c = 0; c < 7; c++) {
-                    const addr = colLetters[c] + (r + 1); // excel row = r+1
-                    const cell = ensureCell(addr);
+            // Body rows start at r=2
+            for (let w = 0; w < 6; w++) {
+                const rDate = 2 + (w * 2);
+                const rSched = rDate + 1;
+                const band = true; // 화면처럼 날짜줄은 항상 연한 파란 음영
 
-                    // 이 셀의 실제 날짜 계산 (grid 기준)
-                    const idx = weekIndex * 7 + c;
-                    const dt = new Date(start);
-                    dt.setDate(start.getDate() + idx);
+
+                for (let d = 0; d < 7; d++) {
+                    const dt = new Date(gridStart);
+                    dt.setDate(gridStart.getDate() + (w * 7 + d));
                     const inMonth = (dt.getMonth() === (m - 1));
+                    const key = ymdKey(dt);
+                    const hLabel = getHolidayLabel(key);
 
-                    if (isDateRow) {
-                        // 날짜 줄: 연파랑 + 오른쪽 위
-                        const isSun = (c === 0),
-                            isSat = (c === 6);
-                        cell.s = {
-                            font: {
-                                name: "맑은 고딕",
-                                sz: 11,
-                                bold: true,
-                                color: {
-                                    rgb: (() => {
-                                        const key = ymdKey(dt);
-                                        const hLabel = getHolidayLabel(key);
-                                        if (hLabel) return "D60000";
-                                        if (!inMonth) return "9A9A9A";
-                                        if (isSun) return "D60000";
-                                        if (isSat) return "0047FF";
-                                        return "000000";
-                                    })()
-                                }
-                            },
-                            alignment: {
-                                horizontal: "right",
-                                vertical: "top"
-                            },
-                            fill: {
-                                patternType: "solid",
-                                fgColor: {
-                                    rgb: "DFEAF7"
-                                }
-                            },
-                            border: borderAll
-                        };
-                    } else {
-                        // 스케줄 줄: 흰 배경(해당월), 다른달은 회색
-                        cell.s = {
-                            font: {
-                                name: "맑은 고딕",
-                                sz: 11,
-                                bold: true,
-                                color: {
-                                    rgb: "000000"
-                                }
-                            },
-                            alignment: {
-                                horizontal: "center",
-                                vertical: "center",
-                                wrapText: true
-                            },
-                            fill: {
-                                patternType: "solid",
-                                fgColor: {
-                                    rgb: inMonth ? "FFFFFF" : "9E9E9E"
-                                }
-                            },
-                            border: borderAll
-                        };
-                    }
+                    const isSun = (d === 0);
+                    const isSat = (d === 6);
+                    const isHoliday = !!(hLabel && inMonth);
+
+                    // Date cell
+                    const aD = XLSX.utils.encode_cell({ r: rDate, c: d });
+                    const cD = ensureCell(aD);
+                    cD.s = {
+                        font: {
+                            bold: true,
+                            sz: 12,
+                            color: inMonth ? ((isSun || isHoliday) ? RED : (isSat ? BLUE : undefined)) : MUTED
+                        },
+                        alignment: { horizontal: "left", vertical: "top", wrapText: true },
+                        fill: FILL_BAND,
+                        border: BORDER
+                    };
+if (inMonth && !(isSun || isHoliday) && !isSat) delete cD.s.font.color;
+
+                    // Schedule cell
+                    const aS = XLSX.utils.encode_cell({ r: rSched, c: d });
+                    const cS = ensureCell(aS);
+                    cS.s = {
+                        font: { sz: 11 },
+                        alignment: { horizontal: "left", vertical: "top", wrapText: true },
+                        border: BORDER
+                    };
                 }
             }
 
@@ -640,14 +589,19 @@
                 renderCalendar(Number($("#year").val()), Number($("#month").val()));
             });
 
-            $("#btnRender").on("click", function() {
+            
+
+            const autoRender = debounce(function() {
                 const y = Number($("#year").val());
                 const m = Number($("#month").val());
-                if (!y || !m || m < 1 || m > 12) return alert("년도/월을 올바르게 입력해줘!");
+                if (!y || !m || m < 1 || m > 12) return;
                 ensureHolidays(y).then(() => {
                     renderCalendar(y, m);
                 });
-            });
+            }, 150);
+
+            $("#year, #month").on("input change", autoRender);
+            
 
             $("#btnDownload").on("click", function() {
                 const y = Number($("#year").val());
