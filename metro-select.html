@@ -444,9 +444,16 @@
                 .then(res => res.arrayBuffer())
                 .then(buffer => {
                     if (city === 'seoul') {
-                        // ===== 서울: CSV (euc-kr) =====
-                        const decoder = new TextDecoder('euc-kr');
-                        const text = decoder.decode(buffer);
+                        // ===== 서울: CSV (UTF-8 / EUC-KR 자동 감지) =====
+                        // - 최근 CSV가 UTF-8(BOM 포함)로 바뀌면 euc-kr로 디코딩 시 한글이 깨지고,
+                        //   헤더 매칭이 실패해서 표가 비어 보일 수 있어요.
+                        // - 우선 UTF-8로 디코딩해보고, 정상 헤더("사용월")가 안 보이면 EUC-KR로 재시도합니다.
+                        let textUtf8 = new TextDecoder('utf-8').decode(buffer);
+                        const text =
+                            (textUtf8.includes('사용월') || textUtf8.includes('호선명') || textUtf8.includes('지하철역'))
+                            ? textUtf8.replace(/^\uFEFF/, '')   // BOM 제거
+                            : new TextDecoder('euc-kr').decode(buffer);
+
                         parseSeoulCsv(text);
                     } else {
                         // ===== 비서울(부산/대전/대구): CSV/XLSX 모두 XLSX 라이브러리로 처리 =====
