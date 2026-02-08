@@ -435,6 +435,45 @@
                 </div>
             </div>
             <div class="chartBox" style="height:420px; margin-top:10px;"><canvas id="youthChart"></canvas></div>
+            <!-- ✅ (추가) 성인 연령대 별 인구 그래프 -->
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-top:18px;">
+                <div>
+                    <div style="font-weight:700;">성인 연령대 별 인구 그래프</div>
+                    <div class="muted">선택 연령대(20/30/40/50/60대~) 인구를 상단 그래프 집계 단위와 동일 단위로 표시</div>
+                </div>
+
+                <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+                    <div style="min-width:220px;">
+                        <label>연령대 선택</label>
+                        <select id="adultAgeSelect">
+                            <option value="a20">20대</option>
+                            <option value="a30">30대</option>
+                            <option value="a40">40대</option>
+                            <option value="a50">50대</option>
+                            <option value="a60p">60대~</option>
+                        </select>
+                    </div>
+                    <div style="padding-top:18px;">
+                        <button class="btnCopy" id="copyAdultAgeBtn" type="button">복사</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="kpis" style="margin-top:12px;">
+                <div class="kpi">
+                    <div class="t">선택 연령대 합산</div>
+                    <div class="v" id="kpiAdultSum">-</div>
+                    <div class="s">표시 항목 합계(Top N)</div>
+                </div>
+                <div class="kpi">
+                    <div class="t">표시된 항목 개수</div>
+                    <div class="v" id="kpiAdultCnt">-</div>
+                    <div class="s">상단과 동일 단위</div>
+                </div>
+            </div>
+
+            <div class="chartBox" style="height:420px; margin-top:10px;"><canvas id="adultAgeChart"></canvas></div>
+
         </div>
 
         <!-- ✅ (추가) 아래 "상세 데이터(원천)" 나오기 직전에 그대로 삽입 -->
@@ -532,6 +571,7 @@
         var barChart = null;
         var ageChart = null;
         var youthChart = null;
+        var adultAgeChart = null;
         var dt = null;
         var ageDt = null;
 
@@ -1658,6 +1698,119 @@
             });
         }
 
+        
+function getAdultAgeLabel(key) {
+    if (key === "a20") return "20대";
+    if (key === "a30") return "30대";
+    if (key === "a40") return "40대";
+    if (key === "a50") return "50대";
+    return "60대~";
+}
+
+function aggregateAdultAge(rows, level, ageKey) {
+    var map = {};
+    var useSummary = shouldUseSummaryRows(rows, level);
+
+    for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        if (!isAgeSourceRowForLevel(r, level, useSummary)) continue;
+
+        var key = "";
+        if (level === "sido") key = String(r.sido || "").trim();
+        else if (level === "sigungu") key = String(r.sigungu || "").trim();
+        else key = emdKeyForUI(r);
+        if (!key) continue;
+
+        if (!map[key]) map[key] = { name: key, v: 0 };
+
+        var v = 0;
+        if (ageKey === "a20") v = (r.a20_29 || 0);
+        else if (ageKey === "a30") v = (r.a30_39 || 0);
+        else if (ageKey === "a40") v = (r.a40_49 || 0);
+        else if (ageKey === "a50") v = (r.a50_59 || 0);
+        else v = (r.a60_69 || 0) + (r.a70_79 || 0) + (r.a80_89 || 0) + (r.a90_99 || 0) + (r.a100p || 0);
+
+        map[key].v += v;
+    }
+
+    var out = [];
+    for (var k in map) if (map.hasOwnProperty(k)) out.push(map[k]);
+
+    // ✅ 상단 TopN 범위와 동일 항목으로 제한
+    var scoped = [];
+    for (var i2 = 0; i2 < out.length; i2++) {
+        if (TOP_SCOPE && TOP_SCOPE.level === level && TOP_SCOPE.keys && TOP_SCOPE.keys.length) {
+            if (TOP_SCOPE.keys.indexOf(out[i2].name) < 0) continue;
+        }
+        scoped.push(out[i2]);
+    }
+    return scoped;
+}
+
+function renderAdultAgeChart() {
+    var rows0 = filteredAgeRows();
+    var level = pickLevel();
+    var ageKey = $("#adultAgeSelect").val() || "a20";
+
+    var agg = aggregateAdultAge(rows0, level, ageKey);
+
+    // 내림차순
+    agg.sort(function(a, b) { return (b.v || 0) - (a.v || 0); });
+
+    // Top N (상단과 동일)
+    var maxN = getTopN();
+    if (agg.length > maxN) agg = agg.slice(0, maxN);
+
+    // KPI
+    var sum = 0;
+    for (var i = 0; i < agg.length; i++) sum += (agg[i].v || 0);
+    $("#kpiAdultSum").text(fmt(sum));
+    $("#kpiAdultCnt").text(fmt(agg.length));
+
+    var labels = [];
+    var data = [];
+    for (var j = 0; j < agg.length; j++) {
+        labels.push(agg[j].name);
+        data.push(agg[j].v);
+    }
+
+    var label = getAdultAgeLabel(ageKey) + " 인구";
+
+    if (adultAgeChart) adultAgeChart.destroy();
+    adultAgeChart = new Chart(document.getElementById("adultAgeChart"), {
+        type: "bar",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: label,
+                data: data
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: true },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            return ctx.dataset.label + ": " + fmt(ctx.raw);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    ticks: {
+                        callback: function(v) { return fmt(v); }
+                    }
+                }
+            }
+        }
+    });
+}
+
+
         function renderAgeDetailTable() {
             var base = filteredAgeRows();
             var level = pickLevel();
@@ -2042,6 +2195,7 @@
             });
 
             renderYouthChart();
+            renderAdultAgeChart();
             renderAgeDetailTable();
         }
 
@@ -2409,6 +2563,10 @@
                 renderYouthChart();
             });
 
+            $("#adultAgeSelect").on("change", function() {
+                renderAdultAgeChart();
+            });
+
             $("#emdFilter").on("input", function() {
                 if (window.__t) clearTimeout(window.__t);
                 window.__t = setTimeout(function() {
@@ -2438,6 +2596,10 @@
 
             $("#copyYouthBtn").on("click", function() {
                 copyChartCanvasById("youthChart", $("#copyYouthBtn"));
+            });
+
+            $("#copyAdultAgeBtn").on("click", function() {
+                copyChartCanvasById("adultAgeChart", $("#copyAdultAgeBtn"));
             });
 
             $("#copyHeatBtn").on("click", function() {
