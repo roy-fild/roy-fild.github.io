@@ -9,81 +9,249 @@
     <!-- html2canvas 추가 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        #apt_tables {
-            display: flex;
-            flex-wrap: wrap;
-            /* 줄바꿈 가능 */
-            gap: 0;
-            align-items: flex-start;
-            /* 각 테이블의 위쪽을 맞추고 높이 강제 안 맞춤 */
-        }
-        
-        #apt_tables table {
-            border: 1px solid #ccc;
-            border-collapse: collapse;
-            /* 테두리 간격 제거 */
-            margin: 0;
-            table-layout: auto;
-            /* 셀 내용에 맞춰 자동 폭 */
-            width: auto;
-            /* 강제 폭 제거 */
-            min-width: unset;
-            /* 최소 폭 제한 해제 */
-            cursor: pointer;
-        }
-        
-        #apt_tables th,
-        #apt_tables td {
-            border: 1px solid #ccc;
-            padding: 5px;
-            text-align: center;
-            box-sizing: border-box;
-            white-space: nowrap;
-            /* 줄바꿈 방지, 가로폭 최소화 */
-        }
-        
-        #toast-container {
-            position: fixed;
-            bottom: 20px;
-            /* 하단에 표시 (top:20px 으로 바꾸면 상단) */
-            right: 20px;
-            z-index: 9999;
-        }
-        /* 개별 toast 메시지 */
-        
-        .toast {
-            min-width: 200px;
-            margin-top: 10px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            color: #fff;
-            background-color: rgba(0, 0, 0, 0.7);
-            font-size: 14px;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.3s ease-in-out;
-        }
-        
-        .toast.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        /* 클릭 표시(얇은 한 줄) */
-        
-        .clicked-outline {
-            outline: 3px solid #ff6b00;
-            /* 굵기/색상 조절 가능 */
-            outline-offset: 4px;
-            /* 테이블 밖으로 띄워 보이게 */
-            border-radius: 6px;
-            /* 모서리 조금 둥글게(선택) */
-        }
-        /* 표시가 여러 개 쌓이지 않도록 부드러운 전환(선택) */
-        
-        #apt_tables table {
-            transition: outline 0.15s ease, outline-offset 0.15s ease;
-        }
-    </style>
+    :root{
+        --bg: #f4f6fb;
+        --panel: #ffffff;
+        --text: #0f172a;
+        --muted:#64748b;
+        --border: rgba(15, 23, 42, 0.10);
+        --shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+        --shadow-sm: 0 6px 18px rgba(15, 23, 42, 0.10);
+        --radius: 14px;
+    }
+
+    *{ box-sizing: border-box; }
+    body{
+        margin:0;
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Apple SD Gothic Neo", "Noto Sans KR", Arial, "Helvetica Neue", sans-serif;
+        background: radial-gradient(1200px 500px at 10% 0%, rgba(99, 102, 241, 0.10), transparent 55%),
+                    radial-gradient(900px 500px at 90% 10%, rgba(16, 185, 129, 0.10), transparent 55%),
+                    var(--bg);
+        color: var(--text);
+    }
+
+    .app{
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 18px 18px 40px;
+    }
+
+    .topbar{
+        display:flex;
+        flex-wrap: wrap;
+        gap: 12px 16px;
+        align-items: flex-end;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+
+    .title h2{
+        margin: 0;
+        font-size: 22px;
+        line-height: 1.2;
+        letter-spacing: -0.3px;
+    }
+
+    .subtitle{
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 6px;
+    }
+
+    .controls{
+        display:flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    .filebox{
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 8px 12px;
+        box-shadow: 0 1px 0 rgba(15,23,42,0.04);
+        display:flex;
+        align-items:center;
+        gap: 10px;
+    }
+
+    .filebox label{
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 600;
+        letter-spacing: .1px;
+    }
+
+    .filebox input[type="file"]{
+        font-size: 12px;
+        color: var(--text);
+    }
+
+    .hint{
+        background: rgba(255,255,255,0.65);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 10px 12px;
+        box-shadow: 0 1px 0 rgba(15,23,42,0.04);
+        color: var(--muted);
+        font-size: 13px;
+        margin: 10px 0 12px;
+    }
+
+    .legend{
+        display:flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items:center;
+        margin: 6px 0 10px;
+    }
+
+    .legend .legend-item{
+        display:inline-flex;
+        align-items:center;
+        gap: 8px;
+        border-radius: 999px;
+        padding: 6px 10px;
+        border: 1px solid rgba(15,23,42,0.08);
+        background: rgba(255,255,255,0.70);
+        box-shadow: 0 1px 0 rgba(15,23,42,0.04);
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 700;
+    }
+
+    .legend .dot{
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        border: 1px solid rgba(0,0,0,0.10);
+        flex: 0 0 auto;
+    }
+
+    #apt_cnt{
+        margin: 8px 0 10px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    /* 라벨 테이블 영역 */
+    #apt_tables{
+        display:flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    #apt_tables table{
+        border: 1px solid var(--border);
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 0;
+        width: auto;
+        cursor: pointer;
+        background: #fff;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        transform: translateZ(0);
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+
+    #apt_tables table:hover{
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-sm);
+        border-color: rgba(15,23,42,0.18);
+    }
+
+    #apt_tables th{
+        border: none;
+        padding: 10px 12px;
+        text-align: left;
+        background: linear-gradient(180deg, #111827, #0b1220);
+        color: #fff;
+        white-space: nowrap;
+        font-weight: 800;
+        letter-spacing: -0.2px;
+        line-height: 1.15;
+        font-size: 13px;
+    }
+
+    #apt_tables th span{
+        padding: 2px 6px;
+        border-radius: 8px;
+        display: inline-block;
+        margin-right: 4px;
+        line-height: 1.2;
+    }
+
+    #apt_tables td{
+        border: none;
+        padding: 8px 12px;
+        text-align: center;
+        white-space: nowrap;
+        font-weight: 800;
+        letter-spacing: -0.15px;
+        font-size: 13px;
+    }
+
+    /* 행 사이 구분선(배경색은 그대로 살리고, 위에 얇은 라인만) */
+    #apt_tables tbody tr + tr td{
+        box-shadow: inset 0 1px 0 rgba(15,23,42,0.10);
+    }
+
+    /* 클릭 표시: 빨간 테두리(캡처에는 안 찍힘) */
+    .clicked-outline{
+        outline: 3px solid #ff2a2a;
+        outline-offset: -3px;
+        border-radius: 8px;
+        box-shadow: 0 0 0 2px rgba(255,42,42,0.18), 0 10px 30px rgba(0,0,0,0.18);
+    }
+
+    #apt_tables table{
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+    /* Toast */
+    #toast-container{
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+
+    .toast{
+        min-width: 220px;
+        margin-top: 10px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        color: #fff;
+        background: rgba(15, 23, 42, 0.88);
+        border: 1px solid rgba(255,255,255,0.12);
+        box-shadow: 0 14px 35px rgba(15,23,42,0.25);
+        font-size: 13px;
+        font-weight: 700;
+        opacity: 0;
+        transform: translateY(14px);
+        transition: all 0.25s ease-in-out;
+        backdrop-filter: blur(8px);
+    }
+
+    .toast.show{
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* 모바일에서 간격 살짝 */
+    @media (max-width: 768px){
+        .app{ padding: 14px 12px 30px; }
+        #apt_tables{ gap: 10px; }
+        #apt_tables th{ font-size: 12px; }
+        #apt_tables td{ font-size: 12px; }
+    }
+</style>
     <script>
         $(function() {});
         // 동적으로 생성된 table 클릭 시 이미지로 변환 후 클립보드 복사
@@ -315,48 +483,43 @@
 </head>
 
 <body>
-    <div class="title">
-        <h2>시세라벨생성기<small><i><font size=1>by 필디</font></i></small></h2>
+  <div class="app">
+    <div class="topbar">
+      <div class="title">
+        <h2>시세라벨생성기 <small><i><span style="font-size:11px;color:rgba(255,255,255,0.0)">.</span><font size=1>by 필디</font></i></small></h2>
+        <div class="subtitle">아파트명 / 연식 / 세대수 / 타입 / 매매가 / 전세가</div>
+      </div>
+
+      <div class="controls">
+        <div class="filebox">
+          <label>엑셀 파일</label>
+          <input type="file" id="excelFile" onchange="excelExport(event)" />
+        </div>
+      </div>
     </div>
-    <div>
-        아파트명/연식/세대수/타입/매매가/전세가
+
+    <div class="legend" aria-label="가격 구간 색상 안내">
+      <span class="legend-item"><span class="dot" style="background:#ff0000"></span>15억 이상</span>
+      <span class="legend-item"><span class="dot" style="background:#ffa500"></span>10억대</span>
+      <span class="legend-item"><span class="dot" style="background:#ffff00"></span>9억대</span>
+      <span class="legend-item"><span class="dot" style="background:#00ff00"></span>8억대</span>
+      <span class="legend-item"><span class="dot" style="background:#008000"></span>7억대</span>
+      <span class="legend-item"><span class="dot" style="background:#00ffff"></span>6억대</span>
+      <span class="legend-item"><span class="dot" style="background:#0000ff"></span>5억대</span>
+      <span class="legend-item"><span class="dot" style="background:#000080"></span>4억대</span>
+      <span class="legend-item"><span class="dot" style="background:#ff00ff"></span>3억대</span>
+      <span class="legend-item"><span class="dot" style="background:#d3d3d3"></span>2억대</span>
+      <span class="legend-item"><span class="dot" style="background:#ffffff"></span>기타</span>
     </div>
-    <div>
-        엑셀 파일선택 <input type="file" id="excelFile" onchange="excelExport(event)" />
-    </div>
-    <div>
-        <span style="background-color: #ff0000;">
-            <font color="#ffffff">15억이상</font>
-        </span>
-        <span style="background-color: #ffa500;">
-            <font color="#ffffff">10억대</font>
-        </span>
-        <span style="background-color: #ffff00;">9억대</span>
-        <span style="background-color: #00ff00;">8억대</span>
-        <span style="background-color: #008000;">
-            <font color="#ffffff">7억대</font>
-        </span>
-        <span style="background-color: #00ffff;">6억대</span>
-        <span style="background-color: #0000ff;">
-            <font color="#ffffff">5억대</font>
-        </span>
-        <span style="background-color: #000080;">
-            <font color="#ffffff">4억대</font>
-        </span>
-        <span style="background-color: #ff00ff;">
-            <font color="#ffffff">3억대</font>
-        </span>
-        <span style="background-color: #d3d3d3;">2억대</span>
-        <span style="background-color: #ffffff;">기타</span>
-    </div>
-    <div>생성된 라벨을 마우스로 클릭하면 클립보드에 복사가 되며 [ctrl + v] 로 이미지 처럼 바로 ppt에 붙여 넣을 수 있습니다.</div>
+
+    <div class="hint">생성된 라벨을 클릭하면 클립보드에 복사됩니다. <b>[Ctrl + V]</b>로 PPT에 이미지처럼 붙여넣을 수 있어요.</div>
+
     <div id="apt_cnt"></div>
 
-    <!-- 테이블 출력 영역 -->
     <div id="apt_tables"></div>
+  </div>
 
-    <!-- toast 메시지 영역 -->
-    <div id="toast-container"></div>
+  <div id="toast-container"></div>
 </body>
 
 </html>
