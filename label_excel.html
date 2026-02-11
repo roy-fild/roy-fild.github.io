@@ -251,6 +251,46 @@
         #apt_tables th{ font-size: 12px; }
         #apt_tables td{ font-size: 12px; }
     }
+
+/* === Korean font sharpening / crisp rendering === */
+:root{
+  --ui-font: "Pretendard", "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+html, body {
+  font-family: var(--ui-font);
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-synthesis: none;
+}
+/* Make label text crisp */
+.label, .apt-label, .item, .card,
+.label * , .apt-label * , .item * , .card * {
+  font-family: var(--ui-font);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+}
+
+/* Slightly tighter, sharper label typography */
+.label-title, .apt-title, .title {
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+.label-subtitle, .apt-subtitle, .subtitle, .meta {
+  font-weight: 600;
+  letter-spacing: -0.15px;
+}
+.label-value, .value {
+  font-weight: 700;
+  letter-spacing: -0.1px;
+}
+
+/* Avoid fractional scaling that can blur text */
+.label, .apt-label, .item, .card {
+  transform: none !important;
+}
+
 </style>
     <script>
         $(function() {});
