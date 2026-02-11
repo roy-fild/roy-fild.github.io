@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>행정구역 지도 뷰어</title>
+
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0b0f19;
+      --panel:#111827;
+      --panel2:#0f172a;
+      --line:#233047;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --accent:#60a5fa;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
+      background:linear-gradient(180deg, #060814, #0b1020);
+      color:var(--text);
+      height:100vh;
+      overflow:hidden;
+    }
+
+    .app{
+      display:grid;
+      grid-template-columns: 280px 1fr;
+      height:100vh;
+    }
+
+    /* LEFT */
+    .sidebar{
+      background:rgba(17,24,39,.9);
+      border-right:1px solid var(--line);
+      display:flex;
+      flex-direction:column;
+      min-width:240px;
+    }
+    .sidebar header{
+      padding:16px 14px;
+      border-bottom:1px solid var(--line);
+    }
+    .title{
+      font-size:15px;
+      font-weight:700;
+      margin:0 0 6px 0;
+    }
+    .subtitle{
+      font-size:12px;
+      color:var(--muted);
+      margin:0;
+      line-height:1.4;
+    }
+    .search{
+      padding:12px 14px;
+      border-bottom:1px solid var(--line);
+    }
+    .search input{
+      width:100%;
+      padding:10px 10px;
+      border-radius:10px;
+      border:1px solid #263450;
+      background:#0b1224;
+      color:var(--text);
+      outline:none;
+    }
+
+    .district-list{
+      padding:10px;
+      overflow:auto;
+    }
+    .district{
+      padding:10px 12px;
+      border:1px solid transparent;
+      border-radius:12px;
+      cursor:pointer;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      user-select:none;
+    }
+    .district:hover{
+      background:rgba(96,165,250,.08);
+      border-color:rgba(96,165,250,.25);
+    }
+    .district.active{
+      background:rgba(96,165,250,.14);
+      border-color:rgba(96,165,250,.35);
+    }
+    .pill{
+      font-size:11px;
+      color:#c7d2fe;
+      background:rgba(99,102,241,.18);
+      border:1px solid rgba(99,102,241,.35);
+      padding:3px 8px;
+      border-radius:999px;
+      margin-left:auto;
+      white-space:nowrap;
+    }
+
+    /* MAIN */
+    .main{
+      display:flex;
+      flex-direction:column;
+      height:100%;
+    }
+
+    .topbar{
+      padding:12px 14px;
+      border-bottom:1px solid var(--line);
+      background:rgba(15,23,42,.85);
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .topbar .now{
+      font-weight:700;
+      margin-right:auto;
+    }
+    .btn{
+      padding:9px 10px;
+      border-radius:10px;
+      border:1px solid #2a3a55;
+      background:#0b1224;
+      color:var(--text);
+      cursor:pointer;
+      user-select:none;
+      font-size:12px;
+    }
+    .btn:hover{ border-color:rgba(96,165,250,.55); }
+    .hint{
+      font-size:12px;
+      color:var(--muted);
+      margin-left:6px;
+    }
+
+    .viewer-wrap{
+      flex:1;
+      position:relative;
+      background:radial-gradient(900px 500px at 40% 30%, rgba(96,165,250,.10), transparent 55%),
+                 radial-gradient(900px 500px at 70% 70%, rgba(34,197,94,.08), transparent 55%),
+                 rgba(2,6,23,.4);
+    }
+
+    /* canvas(드래그/줌 영역) */
+    .viewer{
+      position:absolute;
+      inset:14px;
+      border:1px solid var(--line);
+      border-radius:16px;
+      overflow:hidden;
+      background:rgba(2,6,23,.35);
+    }
+
+    .stage{
+      position:absolute;
+      left:0; top:0;
+      width:100%;
+      height:100%;
+      overflow:hidden;
+      cursor:grab;
+    }
+    .stage.dragging{ cursor:grabbing; }
+
+    /* 실제 이미지 */
+    #mapImg{
+      position:absolute;
+      left:0; top:0;
+      transform-origin: 0 0;
+      will-change: transform;
+      user-select:none;
+      -webkit-user-drag:none;
+      image-rendering:auto;
+    }
+
+    .empty{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex-direction:column;
+      gap:8px;
+      color:var(--muted);
+      text-align:center;
+      padding:18px;
+    }
+    .empty b{ color:var(--text); }
+
+    /* 작은 상태표시 */
+    .status{
+      position:absolute;
+      right:26px;
+      bottom:26px;
+      background:rgba(15,23,42,.85);
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:10px 12px;
+      font-size:12px;
+      color:var(--muted);
+      display:flex;
+      gap:10px;
+      align-items:center;
+      backdrop-filter: blur(6px);
+    }
+    .status span{ color:var(--text); }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <!-- LEFT -->
+    <aside class="sidebar">
+      <header>
+        <p class="title">행정구역 선택</p>
+        <p class="subtitle">왼쪽에서 구역을 클릭하면 오른쪽에 지도를 띄워요.</p>
+      </header>
+
+      <div class="search">
+        <input id="q" type="text" placeholder="검색 (예: 인창동, 수택동…)" />
+      </div>
+
+      <div id="districtList" class="district-list"></div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <div class="topbar">
+        <div class="now">선택됨: <span id="nowName" style="color:var(--accent)">-</span></div>
+
+        <button class="btn" id="zoomOut">- 축소</button>
+        <button class="btn" id="zoomIn">+ 확대</button>
+        <button class="btn" id="reset">리셋</button>
+        <span class="hint">마우스휠=줌, 드래그=이동, 더블클릭=리셋</span>
+      </div>
+
+      <div class="viewer-wrap">
+        <div class="viewer">
+          <div id="stage" class="stage">
+            <!-- 실제 이미지 -->
+            <img id="mapImg" alt="map" style="display:none;" />
+            <div id="empty" class="empty">
+              <b>왼쪽에서 행정구역을 선택해줘</b>
+              <div>이미지는 Git raw 주소로 연결하면 바로 표시돼요.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="status">
+          스케일 <span id="scaleText">1.00</span>
+          · X <span id="xText">0</span>
+          · Y <span id="yText">0</span>
+        </div>
+      </div>
+    </main>
+  </div>
+
+<script>
+$(function(){
+
+  // ✅ 여기에 "행정구역명: 이미지URL" 매핑만 채우면 됨
+  // GitHub 예시(반드시 raw URL로):
+  // https://raw.githubusercontent.com/<user>/<repo>/main/images/xxx.png
+  const districts = {
+    "구리시": "http://roy-fild.github.io/map/contents/guri-si.png",
+  };
+
+  // ---- UI: 리스트 렌더 ----
+  const $list = $("#districtList");
+
+  function renderList(filterText=""){
+    $list.empty();
+    const keys = Object.keys(districts);
+
+    const filtered = keys.filter(name => name.includes(filterText));
+    if(filtered.length === 0){
+      $list.append(`<div style="padding:14px;color:var(--muted);font-size:12px;">검색 결과가 없어요</div>`);
+      return;
+    }
+
+    filtered.forEach((name, idx) => {
+      const html = `
+        <div class="district" data-name="${escapeHtml(name)}">
+          <div>${escapeHtml(name)}</div>
+          <div class="pill">MAP</div>
+        </div>`;
+      $list.append(html);
+    });
+  }
+
+  $("#q").on("input", function(){
+    renderList($(this).val().trim());
+  });
+
+  renderList();
+
+  // ---- 뷰어(줌/드래그) ----
+  const $stage = $("#stage");
+  const $img   = $("#mapImg");
+  const $empty = $("#empty");
+
+  let state = {
+    scale: 1,
+    x: 0,
+    y: 0,
+    dragging: false,
+    lastX: 0,
+    lastY: 0,
+    imgNaturalW: 0,
+    imgNaturalH: 0,
+  };
+
+  function applyTransform(){
+    $img.css("transform", `translate(${state.x}px, ${state.y}px) scale(${state.scale})`);
+    $("#scaleText").text(state.scale.toFixed(2));
+    $("#xText").text(Math.round(state.x));
+    $("#yText").text(Math.round(state.y));
+  }
+
+  function clampScale(s){
+    return Math.max(0.2, Math.min(6, s));
+  }
+
+  function resetView(fitToStage=true){
+    state.scale = 1;
+    state.x = 0;
+    state.y = 0;
+
+    if(fitToStage && state.imgNaturalW && state.imgNaturalH){
+      const sw = $stage.width();
+      const sh = $stage.height();
+      const scaleFit = Math.min(sw / state.imgNaturalW, sh / state.imgNaturalH);
+      state.scale = clampScale(scaleFit);
+      // 중앙 정렬
+      state.x = (sw - state.imgNaturalW * state.scale) / 2;
+      state.y = (sh - state.imgNaturalH * state.scale) / 2;
+    }
+
+    applyTransform();
+  }
+
+  function zoomAt(stageX, stageY, deltaScale){
+    const oldScale = state.scale;
+    const newScale = clampScale(oldScale * deltaScale);
+    if(newScale === oldScale) return;
+
+    // 줌 포인트 기준으로 이동 보정
+    const wx = (stageX - state.x) / oldScale;
+    const wy = (stageY - state.y) / oldScale;
+
+    state.scale = newScale;
+    state.x = stageX - wx * newScale;
+    state.y = stageY - wy * newScale;
+
+    applyTransform();
+  }
+
+  // 드래그
+  $stage.on("mousedown", function(e){
+    if($img.is(":hidden")) return;
+    state.dragging = true;
+    state.lastX = e.clientX;
+    state.lastY = e.clientY;
+    $stage.addClass("dragging");
+  });
+
+  $(window).on("mousemove", function(e){
+    if(!state.dragging) return;
+    const dx = e.clientX - state.lastX;
+    const dy = e.clientY - state.lastY;
+    state.lastX = e.clientX;
+    state.lastY = e.clientY;
+    state.x += dx;
+    state.y += dy;
+    applyTransform();
+  });
+
+  $(window).on("mouseup", function(){
+    state.dragging = false;
+    $stage.removeClass("dragging");
+  });
+
+  // 휠 줌
+  $stage.on("wheel", function(e){
+    if($img.is(":hidden")) return;
+    e.preventDefault();
+    const rect = $stage[0].getBoundingClientRect();
+    const stageX = e.originalEvent.clientX - rect.left;
+    const stageY = e.originalEvent.clientY - rect.top;
+
+    const direction = e.originalEvent.deltaY > 0 ? 0.9 : 1.1;
+    zoomAt(stageX, stageY, direction);
+  });
+
+  // 더블클릭 리셋
+  $stage.on("dblclick", function(){
+    if($img.is(":hidden")) return;
+    resetView(true);
+  });
+
+  // 버튼 줌/리셋
+  $("#zoomIn").on("click", function(){
+    if($img.is(":hidden")) return;
+    zoomAt($stage.width()/2, $stage.height()/2, 1.15);
+  });
+  $("#zoomOut").on("click", function(){
+    if($img.is(":hidden")) return;
+    zoomAt($stage.width()/2, $stage.height()/2, 0.87);
+  });
+  $("#reset").on("click", function(){
+    if($img.is(":hidden")) return;
+    resetView(true);
+  });
+
+  // ---- 구역 클릭 시 이미지 로드 ----
+  $list.on("click", ".district", function(){
+    const name = $(this).data("name");
+    const url = districts[name];
+
+    $(".district").removeClass("active");
+    $(this).addClass("active");
+
+    $("#nowName").text(name);
+
+    $empty.hide();
+    $img.hide().attr("src", url);
+
+    // 로딩 후 자연크기 기반 fit
+    $img.off("load").on("load", function(){
+      state.imgNaturalW = this.naturalWidth;
+      state.imgNaturalH = this.naturalHeight;
+      $img.show();
+      resetView(true);
+    });
+
+    $img.off("error").on("error", function(){
+      $img.hide();
+      $empty.show().html(`
+        <b>이미지 로드 실패</b>
+        <div style="margin-top:6px;">
+          URL이 raw 주소인지 확인해줘요.<br/>
+          <span style="color:#cbd5e1;word-break:break-all;">${escapeHtml(url)}</span>
+        </div>
+      `);
+    });
+  });
+
+  // 창 리사이즈 시 현재 뷰 fit 재적용(원하면 주석처리)
+  $(window).on("resize", function(){
+    if($img.is(":hidden")) return;
+    resetView(true);
+  });
+
+  // 유틸
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, s => ({
+      "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+    }[s]));
+  }
+
+});
+</script>
+</body>
+</html>
