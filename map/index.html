@@ -575,6 +575,60 @@ $stage.on("pointerup pointercancel", function(e){
 
 });
 </script>
+
+<script>
+/* ===== Pinch Zoom 추가 (모바일 두손가락 확대/축소) ===== */
+(function(){
+  const viewer = document.querySelector('.viewer-inner');
+  if(!viewer) return;
+
+  let pointers = new Map();
+  let startDist = 0;
+  let startScale = 1;
+  let currentScale = 1;
+
+  function getDistance(a,b){
+    const dx = a.clientX - b.clientX;
+    const dy = a.clientY - b.clientY;
+    return Math.sqrt(dx*dx + dy*dy);
+  }
+
+  viewer.addEventListener("pointerdown", e=>{
+    pointers.set(e.pointerId, e);
+  });
+
+  viewer.addEventListener("pointermove", e=>{
+    if(!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId, e);
+
+    if(pointers.size === 2){
+      const pts = Array.from(pointers.values());
+      const dist = getDistance(pts[0], pts[1]);
+
+      if(!startDist){
+        startDist = dist;
+        startScale = currentScale;
+      }else{
+        const scale = (dist / startDist) * startScale;
+        currentScale = Math.min(Math.max(scale, 0.5), 4); // 최소/최대 확대 제한
+        viewer.style.transform = `scale(${currentScale})`;
+      }
+    }
+  });
+
+  function resetPointer(e){
+    pointers.delete(e.pointerId);
+    if(pointers.size < 2){
+      startDist = 0;
+    }
+  }
+
+  viewer.addEventListener("pointerup", resetPointer);
+  viewer.addEventListener("pointercancel", resetPointer);
+  viewer.addEventListener("pointerleave", resetPointer);
+})();
+</script>
+
 </body>
 </html>
 
