@@ -267,7 +267,41 @@
   .btn, .menu-btn{ padding:9px 9px; }
   .status{ right:14px; bottom:14px; }
 }
-  </style>
+  
+/* ===== Added wheel-scroll fix ===== */
+.sidebar { overflow: hidden !important; }
+.district-list {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+}
+
+
+/* ===== Slim modern scrollbar ===== */
+.district-list {
+  scrollbar-width: thin;                 /* Firefox */
+  scrollbar-color: rgba(0,0,0,0.25) transparent;
+}
+
+/* Chrome, Edge, Safari */
+.district-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.district-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.district-list::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.25);
+  border-radius: 10px;
+}
+
+.district-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.4);
+}
+
+</style>
 </head>
 
 <body>
@@ -630,6 +664,23 @@ $stage.on("pointerup pointercancel", function(e){
   viewer.addEventListener("pointercancel", resetPointer);
   viewer.addEventListener("pointerleave", resetPointer);
 })();
+</script>
+
+
+<script>
+// ===== Added wheel-scroll forwarding =====
+document.addEventListener("DOMContentLoaded", function(){
+    const sidebar = document.querySelector(".sidebar");
+    const list = document.querySelector(".district-list");
+    if(!sidebar || !list) return;
+
+    sidebar.addEventListener("wheel", function(e){
+        // if wheel happens over sidebar but not directly scrollable element,
+        // forward scroll to the list
+        list.scrollTop += e.deltaY;
+        e.preventDefault();
+    }, { passive:false });
+});
 </script>
 
 </body>
