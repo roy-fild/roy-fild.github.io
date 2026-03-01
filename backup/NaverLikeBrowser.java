@@ -43,7 +43,6 @@ import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -105,7 +104,7 @@ public class NaverLikeBrowser {
 		String prefix = "https://roy-fild.github.io/file/";
 		
 		String[] fileUrls = {
-				"case-test",			// TEST용
+//				"case-test",			// TEST용
 				// 정찰기
 //				"tracking-list",		// 수도권
 //				"tracking-jibang",		// 지방
@@ -140,8 +139,10 @@ public class NaverLikeBrowser {
 //				"sujeong-jungwon-gu",	// 성남시_수정/증원구
 //				"bu-cheon",				// 부천시 
 //				"gunpo-si",				// 군포시			
-//				
-//				// 광역시
+				"guri-si",				// 구리시
+				"bupyeong-gu",			// 인천시_부평구
+				
+				// 광역시
 //				"daejeon-seo-gu",		// 대전_서구
 //				"daejeon-yuseong-gu", 	// 대전_유성구
 //				"gwangju-buk-gu",		// 광주_북구
