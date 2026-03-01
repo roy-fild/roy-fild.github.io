@@ -310,7 +310,7 @@
     <!-- LEFT -->
     <aside class="sidebar">
       <header>
-        <p class="title">행정구역 선택</p>
+        <p class="title">행정구역 선택 (총 <span id="districtTotalCount">00</span> 개)</p>
         <p class="subtitle">왼쪽에서 구역을 클릭하면 오른쪽에 지도를 띄워요.</p>
       </header>
 
@@ -389,6 +389,8 @@ $(function(){
     "포항-북구": "http://roy-fild.github.io/map/contents/pohang-si-buk-gu.png",
     
   };
+
+  $('#districtTotalCount').text(Object.keys(districts).length);
 
   // ---- UI: 리스트 렌더 ----
   const $list = $("#districtList");
