@@ -7,6 +7,7 @@
     <title>지역별 59/84 투자금 테이블</title>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -147,6 +148,10 @@
             <label>&nbsp;</label>
             <button id="applyBtn" disabled>적용</button>
         </div>
+        <div class="field" style="min-width:160px;">
+            <label>&nbsp;</label>
+            <button id="excelBtn" disabled style="margin-left:8px;">Excel 다운로드</button>
+        </div>
     </div>
 
     <div id="status" class="hint">CSV 로딩 중…</div>
@@ -181,13 +186,14 @@
             const GH_API = "https://api.github.com/repos/roy-fild/roy-fild.github.io/contents/file/price";
 
             let rows = [];
+            let lastFiltered = [];
 
             function invBgColor(val, type) {
                 if (!Number.isFinite(val) || val <= 0) {
                     return "#f5f5f5"; // 투자금 없으면 연회색
                 }
 
-                const MAX = 100000; // 데이터 기준 최대 투자금 (조정 가능)
+                const MAX = 50000; // 데이터 기준 최대 투자금 (조정 가능)
                 const ratio = Math.min(val / MAX, 1);
 
                 if (type === "59") {
@@ -272,6 +278,47 @@
                 return Number.isFinite(n) ? (n + "%") : s;
             }
 
+            function downloadExcel() {
+                if (!lastFiltered || !lastFiltered.length) {
+                    alert("다운로드할 데이터가 없어요. 먼저 조건을 적용해 주세요.");
+                    return;
+                }
+
+                const region = $("#regionSel").val();
+                const minInv = toNum($("#minInv").val());
+                const maxInv = toNum($("#maxInv").val());
+
+                const data = lastFiltered.map(r => ({
+                    "지역": getRegion(r),
+                    "시/구": r._area,
+                    "인구수": toNum(getField(r, ["people", "인구수", "인구"])),
+                    "매매(평당)": r._c.mm,
+                    "전세(평당)": r._c.js,
+                    "전세가율": fmtPct(getField(r, ["전세가율", "전세가율(%)", "rate"])),
+                    "59매매가": r._c.m59,
+                    "59전세가": r._c.j59,
+                    "84매매가": r._c.m84,
+                    "84전세가": r._c.j84,
+                    "59투자금": r._c.inv59,
+                    "84투자금": r._c.inv84
+                }));
+
+                const ws = XLSX.utils.json_to_sheet(data, { cellDates: false });
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "filtered");
+
+                const dot = ($("#updateDate").text() || "").replace(/\./g, "");
+                const minTxt = Number.isFinite(minInv) ? minInv : "";
+                const maxTxt = Number.isFinite(maxInv) ? maxInv : "";
+                const safeRegion = (region || "전체").replace(/[\\/:*?"<>|]/g, "_");
+
+                const filename =
+                    `month_price_${dot || "latest"}_${safeRegion}_min${minTxt}_max${maxTxt}.xlsx`;
+
+                XLSX.writeFile(wb, filename);
+            }
+
+
             function yyyymmddToDot(yyyymmdd) {
                 if (!yyyymmdd || yyyymmdd.length !== 8) return "";
                 const y = yyyymmdd.slice(0, 4);
@@ -343,6 +390,8 @@
                         return b._c.inv84 - a._c.inv84; // 84투자금 내림차순
                     });
 
+                lastFiltered = filtered;
+
                 const $tb = $("#tbl tbody").empty();
                 for (let i = 0; i < filtered.length; i++) {
                     const r = filtered[i];
@@ -412,6 +461,9 @@
 
                 $("#applyBtn").prop("disabled", false);
                 $("#applyBtn").on("click", render);
+
+                $("#excelBtn").prop("disabled", false);
+                $("#excelBtn").on("click", downloadExcel);
                 $("#regionSel").on("change", render);
                 $("#minInv,#maxInv").on("keydown", function(e) {
                     if (e.key === "Enter") render();
