@@ -5,6 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>행정구역 지도 뷰어</title>
 
+  <script>
+    (function () {
+      const isMobile = window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
+      const meta = document.querySelector('meta[name="viewport"]');
+      if (isMobile && meta) {
+        meta.setAttribute(
+          "content",
+          "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes"
+        );
+      }
+    })();
+  </script>
+
   <!-- jQuery -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
@@ -41,6 +54,7 @@
       display:flex;
       flex-direction:column;
       min-width:240px;
+      overflow:hidden !important;
     }
     .sidebar header{
       padding:16px 14px;
@@ -73,8 +87,26 @@
 
     .district-list{
       padding:10px;
-      overflow:auto;
+      flex:1 1 auto !important;
+      min-height:0 !important;
+      overflow-y:auto !important;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0,0,0,0.25) transparent;
     }
+    .district-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    .district-list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .district-list::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.25);
+      border-radius: 10px;
+    }
+    .district-list::-webkit-scrollbar-thumb:hover {
+      background: rgba(0,0,0,0.4);
+    }
+
     .district{
       padding:10px 12px;
       border:1px solid transparent;
@@ -149,7 +181,6 @@
                  rgba(2,6,23,.4);
     }
 
-    /* canvas(드래그/줌 영역) */
     .viewer{
       position:absolute;
       inset:14px;
@@ -170,7 +201,6 @@
     }
     .stage.dragging{ cursor:grabbing; }
 
-    /* 실제 이미지 */
     #mapImg{
       position:absolute;
       left:0; top:0;
@@ -195,7 +225,6 @@
     }
     .empty b{ color:var(--text); }
 
-    /* 작은 상태표시 */
     .status{
       position:absolute;
       right:26px;
@@ -212,96 +241,73 @@
       backdrop-filter: blur(6px);
     }
     .status span{ color:var(--text); }
-  /* ===== Mobile / Responsive ===== */
-.menu-btn{
-  display:none;
-  align-items:center;
-  justify-content:center;
-  gap:6px;
-  padding:9px 10px;
-  border-radius:10px;
-  border:1px solid #2a3a55;
-  background:#0b1224;
-  color:var(--text);
-  cursor:pointer;
-  user-select:none;
-  font-size:12px;
-}
-.menu-btn:hover{ border-color:rgba(96,165,250,.55); }
 
-.backdrop{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.45);
-  backdrop-filter: blur(2px);
-  display:none;
-  z-index:40;
-}
+    .menu-btn{
+      display:none;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      padding:9px 10px;
+      border-radius:10px;
+      border:1px solid #2a3a55;
+      background:#0b1224;
+      color:var(--text);
+      cursor:pointer;
+      user-select:none;
+      font-size:12px;
+    }
+    .menu-btn:hover{ border-color:rgba(96,165,250,.55); }
 
-@media (max-width: 900px){
-  body{ height:100dvh; }
-  .app{
-    grid-template-columns: 1fr;
-  }
-  .sidebar{
-    position:fixed;
-    top:0;
-    left:0;
-    height:100dvh;
-    width:min(86vw, 320px);
-    transform: translateX(-110%);
-    transition: transform .22s ease;
-    z-index:50;
-    box-shadow: 12px 0 30px rgba(0,0,0,.35);
-  }
-  .sidebar.open{ transform: translateX(0); }
-  .backdrop.show{ display:block; }
-  .menu-btn{ display:inline-flex; }
-  .viewer{ inset:10px; border-radius:14px; }
-  .topbar{ position:sticky; top:0; z-index:10; }
-  .hint{ display:none; }
-}
+    .backdrop{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.45);
+      backdrop-filter: blur(2px);
+      display:none;
+      z-index:40;
+    }
 
-@media (max-width: 420px){
-  .topbar{ gap:8px; }
-  .btn, .menu-btn{ padding:9px 9px; }
-  .status{ right:14px; bottom:14px; }
-}
-  
-/* ===== Added wheel-scroll fix ===== */
-.sidebar { overflow: hidden !important; }
-.district-list {
-    flex: 1 1 auto !important;
-    min-height: 0 !important;
-    overflow-y: auto !important;
-}
+    @media (max-width: 900px){
+      body{ height:100dvh; }
+      .app{
+        grid-template-columns: 1fr;
+      }
+      .sidebar{
+        position:fixed;
+        top:0;
+        left:0;
+        height:100dvh;
+        width:min(86vw, 320px);
+        transform: translateX(-110%);
+        transition: transform .22s ease;
+        z-index:50;
+        box-shadow: 12px 0 30px rgba(0,0,0,.35);
+      }
+      .sidebar.open{ transform: translateX(0); }
+      .backdrop.show{ display:block; }
+      .menu-btn{ display:inline-flex; }
+      .viewer{ inset:10px; border-radius:14px; }
+      .topbar{ position:sticky; top:0; z-index:10; }
+      .hint{ display:none; }
 
+      .topbar .btn{
+        display:none;
+      }
+      .status{
+        display:none;
+      }
+      .stage{
+        cursor:default;
+        touch-action:auto;
+      }
+    }
 
-/* ===== Slim modern scrollbar ===== */
-.district-list {
-  scrollbar-width: thin;                 /* Firefox */
-  scrollbar-color: rgba(0,0,0,0.25) transparent;
-}
-
-/* Chrome, Edge, Safari */
-.district-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.district-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.district-list::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,0.25);
-  border-radius: 10px;
-}
-
-.district-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(0,0,0,0.4);
-}
-
-</style>
+    @media (max-width: 420px){
+      .topbar{ gap:8px; }
+      .btn, .menu-btn{ padding:9px 9px; }
+      .status{ right:14px; bottom:14px; }
+    }
+  </style>
 </head>
 
 <body>
@@ -336,7 +342,6 @@
       <div class="viewer-wrap">
         <div class="viewer">
           <div id="stage" class="stage">
-            <!-- 실제 이미지 -->
             <img id="mapImg" alt="map" style="display:none;" />
             <div id="empty" class="empty">
               <b>왼쪽에서 행정구역을 선택해줘</b>
@@ -357,9 +362,6 @@
 <script>
 $(function(){
 
-  // ✅ 여기에 "행정구역명: 이미지URL" 매핑만 채우면 됨
-  // GitHub 예시(반드시 raw URL로):
-  // https://raw.githubusercontent.com/<user>/<repo>/main/images/xxx.png
   const districts = {
     "송파구":"http://roy-fild.github.io/map/contents/songpa-gu.png",
     "성동구":"http://roy-fild.github.io/map/contents/seongdong-gu.png",
@@ -386,26 +388,33 @@ $(function(){
     "대전-서구": "http://roy-fild.github.io/map/contents/daejeon-seo-gu.png",
     "대구-수성구": "http://roy-fild.github.io/map/contents/daegu-suseong-gu.png",
     "광주-북구": "http://roy-fild.github.io/map/contents/gwangju-buk-gu.png",
-    "포항-북구": "http://roy-fild.github.io/map/contents/pohang-si-buk-gu.png",
-    
+    "포항-북구": "http://roy-fild.github.io/map/contents/pohang-si-buk-gu.png"
   };
 
   $('#districtTotalCount').text(Object.keys(districts).length);
 
-  // ---- UI: 리스트 렌더 ----
   const $list = $("#districtList");
+  const $sidebar = $(".sidebar");
+  const $backdrop = $("#backdrop");
+  const $stage = $("#stage");
+  const $img   = $("#mapImg");
+  const $empty = $("#empty");
+
+  function isMobile(){
+    return window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
+  }
 
   function renderList(filterText=""){
     $list.empty();
     const keys = Object.keys(districts);
-
     const filtered = keys.filter(name => name.includes(filterText));
+
     if(filtered.length === 0){
-      $list.append(`<div style="padding:14px;color:var(--muted);font-size:12px;">검색 결과가 없어요</div>`);
+      $list.append('<div style="padding:14px;color:var(--muted);font-size:12px;">검색 결과가 없어요</div>');
       return;
     }
 
-    filtered.forEach((name, idx) => {
+    filtered.forEach((name) => {
       const html = `
         <div class="district" data-name="${escapeHtml(name)}">
           <div>${escapeHtml(name)}</div>
@@ -421,34 +430,24 @@ $(function(){
 
   renderList();
 
-// ---- Mobile: 사이드바 토글 ----
-const $sidebar = $(".sidebar");
-const $backdrop = $("#backdrop");
+  function openSidebar(){
+    $sidebar.addClass("open");
+    $backdrop.addClass("show");
+    $("#menuBtn").attr("aria-label", "메뉴 닫기");
+  }
 
-function openSidebar(){
-  $sidebar.addClass("open");
-  $backdrop.addClass("show");
-  $("#menuBtn").attr("aria-label", "메뉴 닫기");
-}
-function closeSidebar(){
-  $sidebar.removeClass("open");
-  $backdrop.removeClass("show");
-  $("#menuBtn").attr("aria-label", "메뉴 열기");
-}
-function isMobile(){
-  return window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
-}
+  function closeSidebar(){
+    $sidebar.removeClass("open");
+    $backdrop.removeClass("show");
+    $("#menuBtn").attr("aria-label", "메뉴 열기");
+  }
 
-$("#menuBtn").on("click", function(){
-  if($sidebar.hasClass("open")) closeSidebar();
-  else openSidebar();
-});
-$backdrop.on("click", closeSidebar);
+  $("#menuBtn").on("click", function(){
+    if($sidebar.hasClass("open")) closeSidebar();
+    else openSidebar();
+  });
 
-  // ---- 뷰어(줌/드래그) ----
-  const $stage = $("#stage");
-  const $img   = $("#mapImg");
-  const $empty = $("#empty");
+  $backdrop.on("click", closeSidebar);
 
   let state = {
     scale: 1,
@@ -482,7 +481,6 @@ $backdrop.on("click", closeSidebar);
       const sh = $stage.height();
       const scaleFit = Math.min(sw / state.imgNaturalW, sh / state.imgNaturalH);
       state.scale = clampScale(scaleFit);
-      // 중앙 정렬
       state.x = (sw - state.imgNaturalW * state.scale) / 2;
       state.y = (sh - state.imgNaturalH * state.scale) / 2;
     }
@@ -491,11 +489,12 @@ $backdrop.on("click", closeSidebar);
   }
 
   function zoomAt(stageX, stageY, deltaScale){
+    if(isMobile()) return;
+
     const oldScale = state.scale;
     const newScale = clampScale(oldScale * deltaScale);
     if(newScale === oldScale) return;
 
-    // 줌 포인트 기준으로 이동 보정
     const wx = (stageX - state.x) / oldScale;
     const wy = (stageY - state.y) / oldScale;
 
@@ -506,84 +505,84 @@ $backdrop.on("click", closeSidebar);
     applyTransform();
   }
 
-  // 드래그 (마우스/터치 공통: Pointer Events)
-$stage.on("pointerdown", function(e){
-  if($img.is(":hidden")) return;
-  // 스크롤/줌 제스처 방지(모바일에서 드래그가 스크롤로 잡히는 것 방지)
-  e.preventDefault();
+  $stage.on("pointerdown", function(e){
+    if($img.is(":hidden")) return;
+    if(isMobile()) return;
 
-  state.dragging = true;
-  state.lastX = e.clientX;
-  state.lastY = e.clientY;
+    e.preventDefault();
+    state.dragging = true;
+    state.lastX = e.clientX;
+    state.lastY = e.clientY;
 
-  // 포인터 캡처 (손가락이 영역 밖으로 나가도 드래그 유지)
-  try { this.setPointerCapture(e.pointerId); } catch(_) {}
-  $stage.addClass("dragging");
-});
+    try { this.setPointerCapture(e.pointerId); } catch(_) {}
+    $stage.addClass("dragging");
+  });
 
-$stage.on("pointermove", function(e){
-  if(!state.dragging) return;
-  const dx = e.clientX - state.lastX;
-  const dy = e.clientY - state.lastY;
-  state.lastX = e.clientX;
-  state.lastY = e.clientY;
-  state.x += dx;
-  state.y += dy;
-  applyTransform();
-});
+  $stage.on("pointermove", function(e){
+    if(!state.dragging) return;
+    if(isMobile()) return;
 
-$stage.on("pointerup pointercancel", function(e){
-  state.dragging = false;
-  try { this.releasePointerCapture(e.pointerId); } catch(_) {}
-  $stage.removeClass("dragging");
-});
+    const dx = e.clientX - state.lastX;
+    const dy = e.clientY - state.lastY;
+    state.lastX = e.clientX;
+    state.lastY = e.clientY;
+    state.x += dx;
+    state.y += dy;
+    applyTransform();
+  });
 
-// 휠 줌
+  $stage.on("pointerup pointercancel", function(e){
+    state.dragging = false;
+    try { this.releasePointerCapture(e.pointerId); } catch(_) {}
+    $stage.removeClass("dragging");
+  });
+
   $stage.on("wheel", function(e){
     if($img.is(":hidden")) return;
+    if(isMobile()) return;
+
     e.preventDefault();
     const rect = $stage[0].getBoundingClientRect();
     const stageX = e.originalEvent.clientX - rect.left;
     const stageY = e.originalEvent.clientY - rect.top;
-
     const direction = e.originalEvent.deltaY > 0 ? 0.9 : 1.1;
     zoomAt(stageX, stageY, direction);
   });
 
-  // 더블클릭 리셋
   $stage.on("dblclick", function(){
     if($img.is(":hidden")) return;
+    if(isMobile()) return;
     resetView(true);
   });
 
-  // 버튼 줌/리셋
   $("#zoomIn").on("click", function(){
     if($img.is(":hidden")) return;
+    if(isMobile()) return;
     zoomAt($stage.width()/2, $stage.height()/2, 1.15);
   });
+
   $("#zoomOut").on("click", function(){
     if($img.is(":hidden")) return;
+    if(isMobile()) return;
     zoomAt($stage.width()/2, $stage.height()/2, 0.87);
   });
+
   $("#reset").on("click", function(){
     if($img.is(":hidden")) return;
     resetView(true);
   });
 
-  // ---- 구역 클릭 시 이미지 로드 ----
   $list.on("click", ".district", function(){
     const name = $(this).data("name");
     const url = districts[name];
 
     $(".district").removeClass("active");
     $(this).addClass("active");
-
     $("#nowName").text(name);
 
     $empty.hide();
     $img.hide().attr("src", url);
 
-    // 로딩 후 자연크기 기반 fit
     $img.off("load").on("load", function(){
       state.imgNaturalW = this.naturalWidth;
       state.imgNaturalH = this.naturalHeight;
@@ -605,98 +604,34 @@ $stage.on("pointerup pointercancel", function(e){
     });
   });
 
-  // 창 리사이즈 시 현재 뷰 fit 재적용(원하면 주석처리)
   $(window).on("resize", function(){
     if($img.is(":hidden")) return;
     resetView(true);
   });
 
-  // 유틸
   function escapeHtml(str){
     return String(str).replace(/[&<>"']/g, s => ({
-      "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      '"':"&quot;",
+      "'":"&#39;"
     }[s]));
   }
 
-});
-</script>
-
-<script>
-/* ===== Pinch Zoom 추가 (모바일 두손가락 확대/축소) ===== */
-(function(){
-  const viewer = document.querySelector('.viewer-inner');
-  if(!viewer) return;
-
-  let pointers = new Map();
-  let startDist = 0;
-  let startScale = 1;
-  let currentScale = 1;
-
-  function getDistance(a,b){
-    const dx = a.clientX - b.clientX;
-    const dy = a.clientY - b.clientY;
-    return Math.sqrt(dx*dx + dy*dy);
-  }
-
-  viewer.addEventListener("pointerdown", e=>{
-    pointers.set(e.pointerId, e);
-  });
-
-  viewer.addEventListener("pointermove", e=>{
-    if(!pointers.has(e.pointerId)) return;
-    pointers.set(e.pointerId, e);
-
-    if(pointers.size === 2){
-      const pts = Array.from(pointers.values());
-      const dist = getDistance(pts[0], pts[1]);
-
-      if(!startDist){
-        startDist = dist;
-        startScale = currentScale;
-      }else{
-        const scale = (dist / startDist) * startScale;
-        currentScale = Math.min(Math.max(scale, 0.5), 4); // 최소/최대 확대 제한
-        viewer.style.transform = `scale(${currentScale})`;
-      }
-    }
-  });
-
-  function resetPointer(e){
-    pointers.delete(e.pointerId);
-    if(pointers.size < 2){
-      startDist = 0;
-    }
-  }
-
-  viewer.addEventListener("pointerup", resetPointer);
-  viewer.addEventListener("pointercancel", resetPointer);
-  viewer.addEventListener("pointerleave", resetPointer);
-})();
-</script>
-
-
-<script>
-// ===== Added wheel-scroll forwarding =====
-document.addEventListener("DOMContentLoaded", function(){
+  document.addEventListener("DOMContentLoaded", function(){
     const sidebar = document.querySelector(".sidebar");
     const list = document.querySelector(".district-list");
     if(!sidebar || !list) return;
 
     sidebar.addEventListener("wheel", function(e){
-        // if wheel happens over sidebar but not directly scrollable element,
-        // forward scroll to the list
-        list.scrollTop += e.deltaY;
-        e.preventDefault();
+      list.scrollTop += e.deltaY;
+      e.preventDefault();
     }, { passive:false });
+  });
+
 });
 </script>
 
 </body>
 </html>
-
-
-
-
-
-
-
