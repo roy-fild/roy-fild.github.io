@@ -2,21 +2,8 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=yes" />
   <title>행정구역 지도 뷰어</title>
-
-  <script>
-    (function () {
-      const isMobile = window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
-      const meta = document.querySelector('meta[name="viewport"]');
-      if (isMobile && meta) {
-        meta.setAttribute(
-          "content",
-          "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes"
-        );
-      }
-    })();
-  </script>
 
   <!-- jQuery -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -47,7 +34,6 @@
       height:100vh;
     }
 
-    /* LEFT */
     .sidebar{
       background:rgba(17,24,39,.9);
       border-right:1px solid var(--line);
@@ -93,12 +79,8 @@
       scrollbar-width: thin;
       scrollbar-color: rgba(0,0,0,0.25) transparent;
     }
-    .district-list::-webkit-scrollbar {
-      width: 6px;
-    }
-    .district-list::-webkit-scrollbar-track {
-      background: transparent;
-    }
+    .district-list::-webkit-scrollbar { width: 6px; }
+    .district-list::-webkit-scrollbar-track { background: transparent; }
     .district-list::-webkit-scrollbar-thumb {
       background: rgba(0,0,0,0.25);
       border-radius: 10px;
@@ -136,7 +118,6 @@
       white-space:nowrap;
     }
 
-    /* MAIN */
     .main{
       display:flex;
       flex-direction:column;
@@ -197,7 +178,7 @@
       height:100%;
       overflow:hidden;
       cursor:grab;
-      touch-action: none;
+      touch-action:none;
     }
     .stage.dragging{ cursor:grabbing; }
 
@@ -209,6 +190,7 @@
       user-select:none;
       -webkit-user-drag:none;
       image-rendering:auto;
+      max-width:none;
     }
 
     .empty{
@@ -293,12 +275,9 @@
       .topbar .btn{
         display:none;
       }
-      .status{
-        display:none;
-      }
       .stage{
-        cursor:default;
-        touch-action:auto;
+        cursor:grab;
+        touch-action:none;
       }
     }
 
@@ -313,7 +292,6 @@
 <body>
   <div id="backdrop" class="backdrop"></div>
   <div class="app">
-    <!-- LEFT -->
     <aside class="sidebar">
       <header>
         <p class="title">행정구역 선택 (총 <span id="districtTotalCount">00</span> 개)</p>
@@ -327,7 +305,6 @@
       <div id="districtList" class="district-list"></div>
     </aside>
 
-    <!-- MAIN -->
     <main class="main">
       <div class="topbar">
         <button class="menu-btn" id="menuBtn" aria-label="메뉴 열기">☰ 메뉴</button>
@@ -397,17 +374,12 @@ $(function(){
   const $sidebar = $(".sidebar");
   const $backdrop = $("#backdrop");
   const $stage = $("#stage");
-  const $img   = $("#mapImg");
+  const $img = $("#mapImg");
   const $empty = $("#empty");
-
-  function isMobile(){
-    return window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
-  }
 
   function renderList(filterText=""){
     $list.empty();
-    const keys = Object.keys(districts);
-    const filtered = keys.filter(name => name.includes(filterText));
+    const filtered = Object.keys(districts).filter(name => name.includes(filterText));
 
     if(filtered.length === 0){
       $list.append('<div style="padding:14px;color:var(--muted);font-size:12px;">검색 결과가 없어요</div>');
@@ -415,12 +387,12 @@ $(function(){
     }
 
     filtered.forEach((name) => {
-      const html = `
+      $list.append(`
         <div class="district" data-name="${escapeHtml(name)}">
           <div>${escapeHtml(name)}</div>
           <div class="pill">MAP</div>
-        </div>`;
-      $list.append(html);
+        </div>
+      `);
     });
   }
 
@@ -442,6 +414,10 @@ $(function(){
     $("#menuBtn").attr("aria-label", "메뉴 열기");
   }
 
+  function isMobile(){
+    return window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
+  }
+
   $("#menuBtn").on("click", function(){
     if($sidebar.hasClass("open")) closeSidebar();
     else openSidebar();
@@ -458,6 +434,13 @@ $(function(){
     lastY: 0,
     imgNaturalW: 0,
     imgNaturalH: 0,
+    activePointers: new Map(),
+    pinchStartDist: 0,
+    pinchStartScale: 1,
+    pinchCenterStageX: 0,
+    pinchCenterStageY: 0,
+    pinchWorldX: 0,
+    pinchWorldY: 0
   };
 
   function applyTransform(){
@@ -489,8 +472,6 @@ $(function(){
   }
 
   function zoomAt(stageX, stageY, deltaScale){
-    if(isMobile()) return;
-
     const oldScale = state.scale;
     const newScale = clampScale(oldScale * deltaScale);
     if(newScale === oldScale) return;
@@ -505,37 +486,126 @@ $(function(){
     applyTransform();
   }
 
+  function getStagePoint(clientX, clientY){
+    const rect = $stage[0].getBoundingClientRect();
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    };
+  }
+
+  function getDistance(p1, p2){
+    const dx = p1.clientX - p2.clientX;
+    const dy = p1.clientY - p2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function getMidpoint(p1, p2){
+    return {
+      clientX: (p1.clientX + p2.clientX) / 2,
+      clientY: (p1.clientY + p2.clientY) / 2
+    };
+  }
+
+  function startPinch(){
+    const pts = Array.from(state.activePointers.values());
+    if(pts.length !== 2) return;
+
+    const p1 = pts[0];
+    const p2 = pts[1];
+    const mid = getMidpoint(p1, p2);
+    const stageMid = getStagePoint(mid.clientX, mid.clientY);
+
+    state.pinchStartDist = getDistance(p1, p2);
+    state.pinchStartScale = state.scale;
+    state.pinchCenterStageX = stageMid.x;
+    state.pinchCenterStageY = stageMid.y;
+    state.pinchWorldX = (stageMid.x - state.x) / state.scale;
+    state.pinchWorldY = (stageMid.y - state.y) / state.scale;
+    state.dragging = false;
+    $stage.removeClass("dragging");
+  }
+
   $stage.on("pointerdown", function(e){
     if($img.is(":hidden")) return;
-    if(isMobile()) return;
 
     e.preventDefault();
-    state.dragging = true;
-    state.lastX = e.clientX;
-    state.lastY = e.clientY;
+    state.activePointers.set(e.pointerId, {
+      pointerId: e.pointerId,
+      clientX: e.clientX,
+      clientY: e.clientY
+    });
 
     try { this.setPointerCapture(e.pointerId); } catch(_) {}
-    $stage.addClass("dragging");
+
+    if(state.activePointers.size === 1){
+      state.dragging = true;
+      state.lastX = e.clientX;
+      state.lastY = e.clientY;
+      $stage.addClass("dragging");
+    } else if(state.activePointers.size === 2){
+      startPinch();
+    }
   });
 
   $stage.on("pointermove", function(e){
-    if(!state.dragging) return;
-    if(isMobile()) return;
+    if(!state.activePointers.has(e.pointerId)) return;
 
-    const dx = e.clientX - state.lastX;
-    const dy = e.clientY - state.lastY;
-    state.lastX = e.clientX;
-    state.lastY = e.clientY;
-    state.x += dx;
-    state.y += dy;
-    applyTransform();
+    state.activePointers.set(e.pointerId, {
+      pointerId: e.pointerId,
+      clientX: e.clientX,
+      clientY: e.clientY
+    });
+
+    if(state.activePointers.size === 1 && state.dragging){
+      const dx = e.clientX - state.lastX;
+      const dy = e.clientY - state.lastY;
+      state.lastX = e.clientX;
+      state.lastY = e.clientY;
+      state.x += dx;
+      state.y += dy;
+      applyTransform();
+      return;
+    }
+
+    if(state.activePointers.size === 2){
+      const pts = Array.from(state.activePointers.values());
+      const p1 = pts[0];
+      const p2 = pts[1];
+      const dist = getDistance(p1, p2);
+      if(!state.pinchStartDist) return;
+
+      const newScale = clampScale(state.pinchStartScale * (dist / state.pinchStartDist));
+      const mid = getMidpoint(p1, p2);
+      const stageMid = getStagePoint(mid.clientX, mid.clientY);
+
+      state.scale = newScale;
+      state.x = stageMid.x - state.pinchWorldX * newScale;
+      state.y = stageMid.y - state.pinchWorldY * newScale;
+      applyTransform();
+    }
   });
 
-  $stage.on("pointerup pointercancel", function(e){
-    state.dragging = false;
-    try { this.releasePointerCapture(e.pointerId); } catch(_) {}
-    $stage.removeClass("dragging");
-  });
+  function endPointer(e){
+    state.activePointers.delete(e.pointerId);
+
+    try { $stage[0].releasePointerCapture(e.pointerId); } catch(_) {}
+
+    if(state.activePointers.size === 0){
+      state.dragging = false;
+      state.pinchStartDist = 0;
+      $stage.removeClass("dragging");
+    } else if(state.activePointers.size === 1){
+      const remaining = Array.from(state.activePointers.values())[0];
+      state.dragging = true;
+      state.lastX = remaining.clientX;
+      state.lastY = remaining.clientY;
+      state.pinchStartDist = 0;
+      $stage.addClass("dragging");
+    }
+  }
+
+  $stage.on("pointerup pointercancel pointerleave", endPointer);
 
   $stage.on("wheel", function(e){
     if($img.is(":hidden")) return;
@@ -557,13 +627,11 @@ $(function(){
 
   $("#zoomIn").on("click", function(){
     if($img.is(":hidden")) return;
-    if(isMobile()) return;
     zoomAt($stage.width()/2, $stage.height()/2, 1.15);
   });
 
   $("#zoomOut").on("click", function(){
     if($img.is(":hidden")) return;
-    if(isMobile()) return;
     zoomAt($stage.width()/2, $stage.height()/2, 0.87);
   });
 
@@ -609,16 +677,6 @@ $(function(){
     resetView(true);
   });
 
-  function escapeHtml(str){
-    return String(str).replace(/[&<>"']/g, s => ({
-      "&":"&amp;",
-      "<":"&lt;",
-      ">":"&gt;",
-      '"':"&quot;",
-      "'":"&#39;"
-    }[s]));
-  }
-
   document.addEventListener("DOMContentLoaded", function(){
     const sidebar = document.querySelector(".sidebar");
     const list = document.querySelector(".district-list");
@@ -630,6 +688,15 @@ $(function(){
     }, { passive:false });
   });
 
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, s => ({
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      '"':"&quot;",
+      "'":"&#39;"
+    }[s]));
+  }
 });
 </script>
 
