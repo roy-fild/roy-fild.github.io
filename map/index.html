@@ -34,6 +34,7 @@
       height:100vh;
     }
 
+    /* LEFT */
     .sidebar{
       background:rgba(17,24,39,.9);
       border-right:1px solid var(--line);
@@ -73,22 +74,10 @@
 
     .district-list{
       padding:10px;
-      flex:1 1 auto !important;
-      min-height:0 !important;
-      overflow-y:auto !important;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(0,0,0,0.25) transparent;
+      flex: 1 1 auto !important;
+      min-height: 0 !important;
+      overflow-y: auto !important;
     }
-    .district-list::-webkit-scrollbar { width: 6px; }
-    .district-list::-webkit-scrollbar-track { background: transparent; }
-    .district-list::-webkit-scrollbar-thumb {
-      background: rgba(0,0,0,0.25);
-      border-radius: 10px;
-    }
-    .district-list::-webkit-scrollbar-thumb:hover {
-      background: rgba(0,0,0,0.4);
-    }
-
     .district{
       padding:10px 12px;
       border:1px solid transparent;
@@ -118,6 +107,7 @@
       white-space:nowrap;
     }
 
+    /* MAIN */
     .main{
       display:flex;
       flex-direction:column;
@@ -178,7 +168,7 @@
       height:100%;
       overflow:hidden;
       cursor:grab;
-      touch-action:none;
+      touch-action: none;
     }
     .stage.dragging{ cursor:grabbing; }
 
@@ -250,7 +240,7 @@
     }
 
     @media (max-width: 900px){
-      body{ height:100dvh; }
+      body{ height:100dvh; overflow:hidden; }
       .app{
         grid-template-columns: 1fr;
       }
@@ -268,23 +258,53 @@
       .sidebar.open{ transform: translateX(0); }
       .backdrop.show{ display:block; }
       .menu-btn{ display:inline-flex; }
-      .viewer{ inset:10px; border-radius:14px; }
+      .viewer{ inset:0; border-radius:0; border:none; overflow:auto; -webkit-overflow-scrolling:touch; }
       .topbar{ position:sticky; top:0; z-index:10; }
       .hint{ display:none; }
 
-      .topbar .btn{
-        display:none;
-      }
+      /* 모바일: 이미지가 주가 되도록 native scroll/pinch 사용 */
       .stage{
-        cursor:grab;
-        touch-action:none;
+        position:relative;
+        width:max-content;
+        height:max-content;
+        min-width:100%;
+        min-height:calc(100dvh - 58px);
+        overflow:visible;
+        cursor:default;
+        touch-action:auto;
       }
+      #mapImg{
+        position:relative;
+        left:auto;
+        top:auto;
+        transform:none !important;
+        will-change:auto;
+        display:block;
+        max-width:none;
+        width:auto;
+        height:auto;
+      }
+      .status{ display:none; }
     }
 
     @media (max-width: 420px){
       .topbar{ gap:8px; }
       .btn, .menu-btn{ padding:9px 9px; }
       .status{ right:14px; bottom:14px; }
+    }
+
+    .district-list {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0,0,0,0.25) transparent;
+    }
+    .district-list::-webkit-scrollbar { width: 6px; }
+    .district-list::-webkit-scrollbar-track { background: transparent; }
+    .district-list::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.25);
+      border-radius: 10px;
+    }
+    .district-list::-webkit-scrollbar-thumb:hover {
+      background: rgba(0,0,0,0.4);
     }
   </style>
 </head>
@@ -374,25 +394,30 @@ $(function(){
   const $sidebar = $(".sidebar");
   const $backdrop = $("#backdrop");
   const $stage = $("#stage");
-  const $img = $("#mapImg");
+  const $img   = $("#mapImg");
   const $empty = $("#empty");
+  const $viewer = $(".viewer");
+
+  function isMobile(){
+    return window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
+  }
 
   function renderList(filterText=""){
     $list.empty();
-    const filtered = Object.keys(districts).filter(name => name.includes(filterText));
-
+    const keys = Object.keys(districts);
+    const filtered = keys.filter(name => name.includes(filterText));
     if(filtered.length === 0){
-      $list.append('<div style="padding:14px;color:var(--muted);font-size:12px;">검색 결과가 없어요</div>');
+      $list.append(`<div style="padding:14px;color:var(--muted);font-size:12px;">검색 결과가 없어요</div>`);
       return;
     }
 
     filtered.forEach((name) => {
-      $list.append(`
+      const html = `
         <div class="district" data-name="${escapeHtml(name)}">
           <div>${escapeHtml(name)}</div>
           <div class="pill">MAP</div>
-        </div>
-      `);
+        </div>`;
+      $list.append(html);
     });
   }
 
@@ -407,22 +432,16 @@ $(function(){
     $backdrop.addClass("show");
     $("#menuBtn").attr("aria-label", "메뉴 닫기");
   }
-
   function closeSidebar(){
     $sidebar.removeClass("open");
     $backdrop.removeClass("show");
     $("#menuBtn").attr("aria-label", "메뉴 열기");
   }
 
-  function isMobile(){
-    return window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
-  }
-
   $("#menuBtn").on("click", function(){
     if($sidebar.hasClass("open")) closeSidebar();
     else openSidebar();
   });
-
   $backdrop.on("click", closeSidebar);
 
   let state = {
@@ -434,16 +453,10 @@ $(function(){
     lastY: 0,
     imgNaturalW: 0,
     imgNaturalH: 0,
-    activePointers: new Map(),
-    pinchStartDist: 0,
-    pinchStartScale: 1,
-    pinchCenterStageX: 0,
-    pinchCenterStageY: 0,
-    pinchWorldX: 0,
-    pinchWorldY: 0
   };
 
   function applyTransform(){
+    if(isMobile()) return;
     $img.css("transform", `translate(${state.x}px, ${state.y}px) scale(${state.scale})`);
     $("#scaleText").text(state.scale.toFixed(2));
     $("#xText").text(Math.round(state.x));
@@ -455,6 +468,18 @@ $(function(){
   }
 
   function resetView(fitToStage=true){
+    if(isMobile()){
+      $img.css({
+        transform: "none",
+        left: "auto",
+        top: "auto",
+        width: "auto",
+        height: "auto",
+        display: "block"
+      });
+      return;
+    }
+
     state.scale = 1;
     state.x = 0;
     state.y = 0;
@@ -472,6 +497,8 @@ $(function(){
   }
 
   function zoomAt(stageX, stageY, deltaScale){
+    if(isMobile()) return;
+
     const oldScale = state.scale;
     const newScale = clampScale(oldScale * deltaScale);
     if(newScale === oldScale) return;
@@ -486,126 +513,37 @@ $(function(){
     applyTransform();
   }
 
-  function getStagePoint(clientX, clientY){
-    const rect = $stage[0].getBoundingClientRect();
-    return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
-    };
-  }
-
-  function getDistance(p1, p2){
-    const dx = p1.clientX - p2.clientX;
-    const dy = p1.clientY - p2.clientY;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-
-  function getMidpoint(p1, p2){
-    return {
-      clientX: (p1.clientX + p2.clientX) / 2,
-      clientY: (p1.clientY + p2.clientY) / 2
-    };
-  }
-
-  function startPinch(){
-    const pts = Array.from(state.activePointers.values());
-    if(pts.length !== 2) return;
-
-    const p1 = pts[0];
-    const p2 = pts[1];
-    const mid = getMidpoint(p1, p2);
-    const stageMid = getStagePoint(mid.clientX, mid.clientY);
-
-    state.pinchStartDist = getDistance(p1, p2);
-    state.pinchStartScale = state.scale;
-    state.pinchCenterStageX = stageMid.x;
-    state.pinchCenterStageY = stageMid.y;
-    state.pinchWorldX = (stageMid.x - state.x) / state.scale;
-    state.pinchWorldY = (stageMid.y - state.y) / state.scale;
-    state.dragging = false;
-    $stage.removeClass("dragging");
-  }
-
   $stage.on("pointerdown", function(e){
     if($img.is(":hidden")) return;
+    if(isMobile()) return;
 
     e.preventDefault();
-    state.activePointers.set(e.pointerId, {
-      pointerId: e.pointerId,
-      clientX: e.clientX,
-      clientY: e.clientY
-    });
+    state.dragging = true;
+    state.lastX = e.clientX;
+    state.lastY = e.clientY;
 
     try { this.setPointerCapture(e.pointerId); } catch(_) {}
-
-    if(state.activePointers.size === 1){
-      state.dragging = true;
-      state.lastX = e.clientX;
-      state.lastY = e.clientY;
-      $stage.addClass("dragging");
-    } else if(state.activePointers.size === 2){
-      startPinch();
-    }
+    $stage.addClass("dragging");
   });
 
   $stage.on("pointermove", function(e){
-    if(!state.activePointers.has(e.pointerId)) return;
+    if(isMobile()) return;
+    if(!state.dragging) return;
 
-    state.activePointers.set(e.pointerId, {
-      pointerId: e.pointerId,
-      clientX: e.clientX,
-      clientY: e.clientY
-    });
-
-    if(state.activePointers.size === 1 && state.dragging){
-      const dx = e.clientX - state.lastX;
-      const dy = e.clientY - state.lastY;
-      state.lastX = e.clientX;
-      state.lastY = e.clientY;
-      state.x += dx;
-      state.y += dy;
-      applyTransform();
-      return;
-    }
-
-    if(state.activePointers.size === 2){
-      const pts = Array.from(state.activePointers.values());
-      const p1 = pts[0];
-      const p2 = pts[1];
-      const dist = getDistance(p1, p2);
-      if(!state.pinchStartDist) return;
-
-      const newScale = clampScale(state.pinchStartScale * (dist / state.pinchStartDist));
-      const mid = getMidpoint(p1, p2);
-      const stageMid = getStagePoint(mid.clientX, mid.clientY);
-
-      state.scale = newScale;
-      state.x = stageMid.x - state.pinchWorldX * newScale;
-      state.y = stageMid.y - state.pinchWorldY * newScale;
-      applyTransform();
-    }
+    const dx = e.clientX - state.lastX;
+    const dy = e.clientY - state.lastY;
+    state.lastX = e.clientX;
+    state.lastY = e.clientY;
+    state.x += dx;
+    state.y += dy;
+    applyTransform();
   });
 
-  function endPointer(e){
-    state.activePointers.delete(e.pointerId);
-
-    try { $stage[0].releasePointerCapture(e.pointerId); } catch(_) {}
-
-    if(state.activePointers.size === 0){
-      state.dragging = false;
-      state.pinchStartDist = 0;
-      $stage.removeClass("dragging");
-    } else if(state.activePointers.size === 1){
-      const remaining = Array.from(state.activePointers.values())[0];
-      state.dragging = true;
-      state.lastX = remaining.clientX;
-      state.lastY = remaining.clientY;
-      state.pinchStartDist = 0;
-      $stage.addClass("dragging");
-    }
-  }
-
-  $stage.on("pointerup pointercancel pointerleave", endPointer);
+  $stage.on("pointerup pointercancel", function(e){
+    state.dragging = false;
+    try { this.releasePointerCapture(e.pointerId); } catch(_) {}
+    $stage.removeClass("dragging");
+  });
 
   $stage.on("wheel", function(e){
     if($img.is(":hidden")) return;
@@ -615,6 +553,7 @@ $(function(){
     const rect = $stage[0].getBoundingClientRect();
     const stageX = e.originalEvent.clientX - rect.left;
     const stageY = e.originalEvent.clientY - rect.top;
+
     const direction = e.originalEvent.deltaY > 0 ? 0.9 : 1.1;
     zoomAt(stageX, stageY, direction);
   });
@@ -627,16 +566,23 @@ $(function(){
 
   $("#zoomIn").on("click", function(){
     if($img.is(":hidden")) return;
+    if(isMobile()) return;
     zoomAt($stage.width()/2, $stage.height()/2, 1.15);
   });
 
   $("#zoomOut").on("click", function(){
     if($img.is(":hidden")) return;
+    if(isMobile()) return;
     zoomAt($stage.width()/2, $stage.height()/2, 0.87);
   });
 
   $("#reset").on("click", function(){
     if($img.is(":hidden")) return;
+    if(isMobile()){
+      $viewer.scrollLeft(0);
+      $viewer.scrollTop(0);
+      return;
+    }
     resetView(true);
   });
 
@@ -646,6 +592,7 @@ $(function(){
 
     $(".district").removeClass("active");
     $(this).addClass("active");
+
     $("#nowName").text(name);
 
     $empty.hide();
@@ -655,7 +602,21 @@ $(function(){
       state.imgNaturalW = this.naturalWidth;
       state.imgNaturalH = this.naturalHeight;
       $img.show();
-      resetView(true);
+
+      if(isMobile()){
+        $img.css({
+          transform: "none",
+          left: "auto",
+          top: "auto",
+          width: this.naturalWidth + "px",
+          height: this.naturalHeight + "px",
+          maxWidth: "none"
+        });
+        $viewer.scrollLeft(0);
+        $viewer.scrollTop(0);
+      } else {
+        resetView(true);
+      }
     });
 
     if(isMobile()) closeSidebar();
@@ -674,8 +635,18 @@ $(function(){
 
   $(window).on("resize", function(){
     if($img.is(":hidden")) return;
+    if(isMobile()){
+      $img.css("transform", "none");
+      return;
+    }
     resetView(true);
   });
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, s => ({
+      "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+    }[s]));
+  }
 
   document.addEventListener("DOMContentLoaded", function(){
     const sidebar = document.querySelector(".sidebar");
@@ -688,15 +659,6 @@ $(function(){
     }, { passive:false });
   });
 
-  function escapeHtml(str){
-    return String(str).replace(/[&<>"']/g, s => ({
-      "&":"&amp;",
-      "<":"&lt;",
-      ">":"&gt;",
-      '"':"&quot;",
-      "'":"&#39;"
-    }[s]));
-  }
 });
 </script>
 
