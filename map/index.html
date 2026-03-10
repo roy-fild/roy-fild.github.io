@@ -2,10 +2,9 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=yes" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
   <title>행정구역 지도 뷰어</title>
 
-  <!-- jQuery -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
   <style>
@@ -42,6 +41,7 @@
       flex-direction:column;
       min-width:240px;
       overflow:hidden !important;
+      z-index: 100;
     }
     .sidebar header{
       padding:16px 14px;
@@ -122,6 +122,7 @@
       gap:10px;
       align-items:center;
       flex-wrap:wrap;
+      z-index: 20;
     }
     .topbar .now{
       font-weight:700;
@@ -150,6 +151,7 @@
       background:radial-gradient(900px 500px at 40% 30%, rgba(96,165,250,.10), transparent 55%),
                  radial-gradient(900px 500px at 70% 70%, rgba(34,197,94,.08), transparent 55%),
                  rgba(2,6,23,.4);
+      overflow: hidden;
     }
 
     .viewer{
@@ -252,17 +254,25 @@
         width:min(86vw, 320px);
         transform: translateX(-110%);
         transition: transform .22s ease;
-        z-index:50;
+        z-index:150;
         box-shadow: 12px 0 30px rgba(0,0,0,.35);
       }
       .sidebar.open{ transform: translateX(0); }
       .backdrop.show{ display:block; }
       .menu-btn{ display:inline-flex; }
-      .viewer{ inset:0; border-radius:0; border:none; overflow:auto; -webkit-overflow-scrolling:touch; }
-      .topbar{ position:sticky; top:0; z-index:10; }
+      
+      /* 모바일에서 핀치 줌이 가능하도록 설정 변경 */
+      .viewer{ 
+        inset:0; 
+        border-radius:0; 
+        border:none; 
+        overflow:auto; 
+        -webkit-overflow-scrolling:touch; 
+      }
+      
+      .topbar{ position:sticky; top:0; z-index:110; }
       .hint{ display:none; }
 
-      /* 모바일: 이미지가 주가 되도록 native scroll/pinch 사용 */
       .stage{
         position:relative;
         width:max-content;
@@ -271,7 +281,8 @@
         min-height:calc(100dvh - 58px);
         overflow:visible;
         cursor:default;
-        touch-action:auto;
+        /* manipulation은 브라우저 기본 줌(핀치)을 허용합니다 */
+        touch-action: manipulation; 
       }
       #mapImg{
         position:relative;
@@ -280,7 +291,7 @@
         transform:none !important;
         will-change:auto;
         display:block;
-        max-width:none;
+        max-width:100%; /* 초기엔 가로에 맞춤 */
         width:auto;
         height:auto;
       }
@@ -360,32 +371,32 @@
 $(function(){
 
   const districts = {
-    "송파구":"http://roy-fild.github.io/map/contents/songpa-gu.png",
-    "성동구":"http://roy-fild.github.io/map/contents/seongdong-gu.png",
-    "양천구":"http://roy-fild.github.io/map/contents/yangcheon-gu.png",
-    "분당구":"http://roy-fild.github.io/map/contents/bundang-gu.png",
-    "종로구":"http://roy-fild.github.io/map/contents/jongno-gu.png",
-    "중구":"http://roy-fild.github.io/map/contents/jung-gu.png",
-    "동작구":"http://roy-fild.github.io/map/contents/dongjak-gu.png",
-    "관악구":"http://roy-fild.github.io/map/contents/gwanak-gu.png",
-    "동대문구":"http://roy-fild.github.io/map/contents/dongdaemun-gu.png",
-    "은평구": "http://roy-fild.github.io/map/contents/eunpyeong-gu.png",
-    "서대문구": "http://roy-fild.github.io/map/contents/seodaemun-gu.png",
-    "구로구": "http://roy-fild.github.io/map/contents/guro-gu.png",
-    "중랑구": "http://roy-fild.github.io/map/contents/jungnang-gu.png",
-    "수지구": "http://roy-fild.github.io/map/contents/suji-gu.png",
-    "수원시-영통구": "http://roy-fild.github.io/map/contents/suwon-si-yeongtong-gu.png",
-    "안양시-동안구": "http://roy-fild.github.io/map/contents/anyang-si-dongan-gu.png",
-    "화성시-동탄": "http://roy-fild.github.io/map/contents/dongtan.png",
-    "부천시": "http://roy-fild.github.io/map/contents/bu-cheon.png",
-    "구리시": "http://roy-fild.github.io/map/contents/guri-si.png",
-    "군포시": "http://roy-fild.github.io/map/contents/gunpo-si.png",
-    "인천시-부평구":"http://roy-fild.github.io/map/contents/bupyeong-gu.png",
-    "부산-진구": "http://roy-fild.github.io/map/contents/busanjin-gu.png",
-    "대전-서구": "http://roy-fild.github.io/map/contents/daejeon-seo-gu.png",
-    "대구-수성구": "http://roy-fild.github.io/map/contents/daegu-suseong-gu.png",
-    "광주-북구": "http://roy-fild.github.io/map/contents/gwangju-buk-gu.png",
-    "포항-북구": "http://roy-fild.github.io/map/contents/pohang-si-buk-gu.png"
+    "송파구":"https://roy-fild.github.io/map/contents/songpa-gu.png",
+    "성동구":"https://roy-fild.github.io/map/contents/seongdong-gu.png",
+    "양천구":"https://roy-fild.github.io/map/contents/yangcheon-gu.png",
+    "분당구":"https://roy-fild.github.io/map/contents/bundang-gu.png",
+    "종로구":"https://roy-fild.github.io/map/contents/jongno-gu.png",
+    "중구":"https://roy-fild.github.io/map/contents/jung-gu.png",
+    "동작구":"https://roy-fild.github.io/map/contents/dongjak-gu.png",
+    "관악구":"https://roy-fild.github.io/map/contents/gwanak-gu.png",
+    "동대문구":"https://roy-fild.github.io/map/contents/dongdaemun-gu.png",
+    "은평구": "https://roy-fild.github.io/map/contents/eunpyeong-gu.png",
+    "서대문구": "https://roy-fild.github.io/map/contents/seodaemun-gu.png",
+    "구로구": "https://roy-fild.github.io/map/contents/guro-gu.png",
+    "중랑구": "https://roy-fild.github.io/map/contents/jungnang-gu.png",
+    "수지구": "https://roy-fild.github.io/map/contents/suji-gu.png",
+    "수원시-영통구": "https://roy-fild.github.io/map/contents/suwon-si-yeongtong-gu.png",
+    "안양시-동안구": "https://roy-fild.github.io/map/contents/anyang-si-dongan-gu.png",
+    "화성시-동탄": "https://roy-fild.github.io/map/contents/dongtan.png",
+    "부천시": "https://roy-fild.github.io/map/contents/bu-cheon.png",
+    "구리시": "https://roy-fild.github.io/map/contents/guri-si.png",
+    "군포시": "https://roy-fild.github.io/map/contents/gunpo-si.png",
+    "인천시-부평구":"https://roy-fild.github.io/map/contents/bupyeong-gu.png",
+    "부산-진구": "https://roy-fild.github.io/map/contents/busanjin-gu.png",
+    "대전-서구": "https://roy-fild.github.io/map/contents/daejeon-seo-gu.png",
+    "대구-수성구": "https://roy-fild.github.io/map/contents/daegu-suseong-gu.png",
+    "광주-북구": "https://roy-fild.github.io/map/contents/gwangju-buk-gu.png",
+    "포항-북구": "https://roy-fild.github.io/map/contents/pohang-si-buk-gu.png"
   };
 
   $('#districtTotalCount').text(Object.keys(districts).length);
@@ -399,7 +410,7 @@ $(function(){
   const $viewer = $(".viewer");
 
   function isMobile(){
-    return window.matchMedia && window.matchMedia("(max-width: 900px)").matches;
+    return window.innerWidth <= 900;
   }
 
   function renderList(filterText=""){
@@ -473,10 +484,13 @@ $(function(){
         transform: "none",
         left: "auto",
         top: "auto",
-        width: "auto",
+        width: "100%",
+        maxWidth: "100%",
         height: "auto",
         display: "block"
       });
+      $viewer.scrollLeft(0);
+      $viewer.scrollTop(0);
       return;
     }
 
@@ -514,8 +528,7 @@ $(function(){
   }
 
   $stage.on("pointerdown", function(e){
-    if($img.is(":hidden")) return;
-    if(isMobile()) return;
+    if($img.is(":hidden") || isMobile()) return;
 
     e.preventDefault();
     state.dragging = true;
@@ -527,8 +540,7 @@ $(function(){
   });
 
   $stage.on("pointermove", function(e){
-    if(isMobile()) return;
-    if(!state.dragging) return;
+    if(isMobile() || !state.dragging) return;
 
     const dx = e.clientX - state.lastX;
     const dy = e.clientY - state.lastY;
@@ -546,8 +558,7 @@ $(function(){
   });
 
   $stage.on("wheel", function(e){
-    if($img.is(":hidden")) return;
-    if(isMobile()) return;
+    if($img.is(":hidden") || isMobile()) return;
 
     e.preventDefault();
     const rect = $stage[0].getBoundingClientRect();
@@ -559,30 +570,22 @@ $(function(){
   });
 
   $stage.on("dblclick", function(){
-    if($img.is(":hidden")) return;
-    if(isMobile()) return;
+    if($img.is(":hidden") || isMobile()) return;
     resetView(true);
   });
 
   $("#zoomIn").on("click", function(){
-    if($img.is(":hidden")) return;
-    if(isMobile()) return;
+    if($img.is(":hidden") || isMobile()) return;
     zoomAt($stage.width()/2, $stage.height()/2, 1.15);
   });
 
   $("#zoomOut").on("click", function(){
-    if($img.is(":hidden")) return;
-    if(isMobile()) return;
+    if($img.is(":hidden") || isMobile()) return;
     zoomAt($stage.width()/2, $stage.height()/2, 0.87);
   });
 
   $("#reset").on("click", function(){
     if($img.is(":hidden")) return;
-    if(isMobile()){
-      $viewer.scrollLeft(0);
-      $viewer.scrollTop(0);
-      return;
-    }
     resetView(true);
   });
 
@@ -602,21 +605,7 @@ $(function(){
       state.imgNaturalW = this.naturalWidth;
       state.imgNaturalH = this.naturalHeight;
       $img.show();
-
-      if(isMobile()){
-        $img.css({
-          transform: "none",
-          left: "auto",
-          top: "auto",
-          width: this.naturalWidth + "px",
-          height: this.naturalHeight + "px",
-          maxWidth: "none"
-        });
-        $viewer.scrollLeft(0);
-        $viewer.scrollTop(0);
-      } else {
-        resetView(true);
-      }
+      resetView(true);
     });
 
     if(isMobile()) closeSidebar();
@@ -626,7 +615,7 @@ $(function(){
       $empty.show().html(`
         <b>이미지 로드 실패</b>
         <div style="margin-top:6px;">
-          URL이 raw 주소인지 확인해줘요.<br/>
+          URL이 올바른지 확인해줘요.<br/>
           <span style="color:#cbd5e1;word-break:break-all;">${escapeHtml(url)}</span>
         </div>
       `);
@@ -635,10 +624,6 @@ $(function(){
 
   $(window).on("resize", function(){
     if($img.is(":hidden")) return;
-    if(isMobile()){
-      $img.css("transform", "none");
-      return;
-    }
     resetView(true);
   });
 
@@ -647,18 +632,6 @@ $(function(){
       "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
     }[s]));
   }
-
-  document.addEventListener("DOMContentLoaded", function(){
-    const sidebar = document.querySelector(".sidebar");
-    const list = document.querySelector(".district-list");
-    if(!sidebar || !list) return;
-
-    sidebar.addEventListener("wheel", function(e){
-      list.scrollTop += e.deltaY;
-      e.preventDefault();
-    }, { passive:false });
-  });
-
 });
 </script>
 
