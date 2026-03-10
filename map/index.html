@@ -11,7 +11,6 @@
     :root{
       --bg:#0b0f19;
       --panel:#111827;
-      --panel2:#0f172a;
       --line:#233047;
       --text:#e5e7eb;
       --muted:#9ca3af;
@@ -20,31 +19,21 @@
     *{ box-sizing:border-box; }
     body{
       margin:0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
+      font-family: system-ui, -apple-system, "Noto Sans KR", sans-serif;
       background:linear-gradient(180deg, #060814, #0b1020);
       color:var(--text);
       height:100vh;
       overflow:hidden;
     }
 
-    .app{
-      display:grid;
-      grid-template-columns: 280px 1fr;
-      height:100vh;
-    }
+    .app{ display:grid; grid-template-columns: 280px 1fr; height:100vh; }
 
     .sidebar{
-      background:rgba(17,24,39,.9);
-      border-right:1px solid var(--line);
-      display:flex;
-      flex-direction:column;
-      min-width:240px;
-      overflow:hidden !important;
-      z-index: 100;
+      background:rgba(17,24,39,.9); border-right:1px solid var(--line);
+      display:flex; flex-direction:column; min-width:240px; z-index: 100;
     }
     .sidebar header{ padding:16px 14px; border-bottom:1px solid var(--line); }
     .title{ font-size:15px; font-weight:700; margin:0 0 6px 0; }
-    .subtitle{ font-size:12px; color:var(--muted); margin:0; line-height:1.4; }
     .search{ padding:12px 14px; border-bottom:1px solid var(--line); }
     .search input{
       width:100%; padding:10px; border-radius:10px; border:1px solid #263450;
@@ -85,7 +74,7 @@
     #mapImg{ position:absolute; left:0; top:0; transform-origin: 0 0; will-change: transform; user-select:none; max-width:none; }
 
     .empty{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px; color:var(--muted); }
-    .status{ position:absolute; right:26px; bottom:26px; background:rgba(15,23,42,.85); border-radius:12px; padding:10px; font-size:12px; }
+    .status{ position:absolute; right:26px; bottom:26px; background:rgba(15,23,42,.85); border-radius:12px; padding:10px; font-size:12px; z-index: 30; }
 
     .menu-btn{ display:none; padding:9px 10px; border-radius:10px; border:1px solid #2a3a55; background:#0b1224; color:var(--text); cursor:pointer; }
     .backdrop{ position:fixed; inset:0; background:rgba(0,0,0,.45); backdrop-filter: blur(2px); display:none; z-index:140; }
@@ -106,7 +95,7 @@
   <div id="backdrop" class="backdrop"></div>
   <div class="app">
     <aside class="sidebar">
-      <header><p class="title">행정구역 선택</p></header>
+      <header><p class="title">행정구역 지도</p></header>
       <div class="search"><input id="q" type="text" placeholder="검색..." /></div>
       <div id="districtList" class="district-list"></div>
     </aside>
@@ -124,16 +113,17 @@
         <div class="viewer">
           <div id="stage" class="stage">
             <img id="mapImg" alt="map" style="display:none;" />
-            <div id="empty" class="empty"><b>왼쪽에서 행정구역을 선택해줘</b></div>
+            <div id="empty" class="empty"><b>행정구역을 선택해 주세요.</b></div>
           </div>
         </div>
-        <div class="status">스케일 <span id="scaleText">1.00</span></div>
+        <div class="status">배율 <span id="scaleText">1.00</span></div>
       </div>
     </main>
   </div>
 
 <script>
 $(function(){
+  // 데이터 목록 (보안을 위해 https 권장)
   const districts = {
     "송파구":"https://roy-fild.github.io/map/contents/songpa-gu.png",
     "성동구":"https://roy-fild.github.io/map/contents/seongdong-gu.png",
@@ -163,7 +153,7 @@ $(function(){
     "포항-북구": "https://roy-fild.github.io/map/contents/pohang-si-buk-gu.png"
   };
 
-  const $stage = $("#stage"), $img = $("#mapImg"), $empty = $("#empty"), $viewer = $(".viewer");
+  const $stage = $("#stage"), $img = $("#mapImg"), $empty = $("#empty");
   let state = { scale: 1, x: 0, y: 0, dragging: false, lastX: 0, lastY: 0 };
   let zoomTimer = null;
 
@@ -172,49 +162,63 @@ $(function(){
     $("#scaleText").text(state.scale.toFixed(2));
   }
 
-  function zoomAt(delta) {
+  // 핵심 확대/축소 로직 (좌표 중심 기준)
+  function zoom(delta, centerX, centerY) {
     const sw = $stage.width(), sh = $stage.height();
-    const centerX = sw / 2, centerY = sh / 2;
+    // 좌표 값이 없으면 화면 중앙 기준으로 설정
+    if (centerX === undefined) centerX = sw / 2;
+    if (centerY === undefined) centerY = sh / 2;
+
     const oldScale = state.scale;
     state.scale = Math.max(0.1, Math.min(10, state.scale * delta));
     
+    // 확대/축소 시 마우스(혹은 중앙) 지점이 유지되도록 좌표 보정
     const wx = (centerX - state.x) / oldScale;
     const wy = (centerY - state.y) / oldScale;
     state.x = centerX - wx * state.scale;
     state.y = centerY - wy * state.scale;
+    
     applyTransform();
   }
 
-  // 연속 확대/축소 처리 함수
-  function startZoom(delta) {
-    if (zoomTimer) return;
-    zoomAt(delta); // 즉시 한 번 실행
-    zoomTimer = setInterval(() => zoomAt(delta), 50); // 50ms 마다 실행
-  }
+  // 1. 마우스 휠 이벤트 추가
+  $stage.on("wheel", function(e) {
+    e.preventDefault();
+    const rect = $stage[0].getBoundingClientRect();
+    const mouseX = e.originalEvent.clientX - rect.left;
+    const mouseY = e.originalEvent.clientY - rect.top;
+    
+    const delta = e.originalEvent.deltaY < 0 ? 1.1 : 0.9;
+    zoom(delta, mouseX, mouseY);
+  });
 
-  function stopZoom() {
+  // 2. 버튼 꾹 누르기 기능
+  function startContinuousZoom(delta) {
+    if (zoomTimer) return;
+    zoom(delta); 
+    zoomTimer = setInterval(() => zoom(delta), 50);
+  }
+  function stopContinuousZoom() {
     clearInterval(zoomTimer);
     zoomTimer = null;
   }
 
-  // 확대 버튼 (마우스 & 터치)
-  $("#zoomIn").on("mousedown touchstart", (e) => { e.preventDefault(); startZoom(1.05); });
-  // 축소 버튼 (마우스 & 터치)
-  $("#zoomOut").on("mousedown touchstart", (e) => { e.preventDefault(); startZoom(0.95); });
-  // 중지 이벤트
-  $(window).on("mouseup mouseleave touchend touchcancel", stopZoom);
+  $("#zoomIn").on("mousedown touchstart", (e) => { e.preventDefault(); startContinuousZoom(1.05); });
+  $("#zoomOut").on("mousedown touchstart", (e) => { e.preventDefault(); startContinuousZoom(0.95); });
+  $(window).on("mouseup mouseleave touchend touchcancel", stopContinuousZoom);
 
-  // 리셋
+  // 3. 리셋 버튼 (화면 크기에 맞춤)
   $("#reset").on("click", () => {
-    state.scale = 1; state.x = 0; state.y = 0;
-    const scaleFit = Math.min($stage.width() / $img[0].naturalWidth, $stage.height() / $img[0].naturalHeight);
+    if (!$img[0].naturalWidth) return;
+    const sw = $stage.width(), sh = $stage.height();
+    const scaleFit = Math.min(sw / $img[0].naturalWidth, sh / $img[0].naturalHeight);
     state.scale = scaleFit || 1;
-    state.x = ($stage.width() - $img[0].naturalWidth * state.scale) / 2;
-    state.y = ($stage.height() - $img[0].naturalHeight * state.scale) / 2;
+    state.x = (sw - $img[0].naturalWidth * state.scale) / 2;
+    state.y = (sh - $img[0].naturalHeight * state.scale) / 2;
     applyTransform();
   });
 
-  // 드래그 로직 (PC/모바일 공통)
+  // 4. 드래그 이동
   $stage.on("pointerdown", function(e){
     if($img.is(":hidden")) return;
     state.dragging = true;
@@ -230,15 +234,21 @@ $(function(){
     state.dragging = false;
   });
 
-  // 리스트 렌더링 및 선택
-  function render() {
+  // 5. 검색 및 리스트 초기화
+  function render(filter = "") {
+    const $list = $("#districtList").empty();
     Object.keys(districts).forEach(name => {
-      $("#districtList").append(`<div class="district" data-url="${districts[name]}">${name}</div>`);
+      if (name.includes(filter)) {
+        $list.append(`<div class="district" data-url="${districts[name]}">${name}<div class="pill">MAP</div></div>`);
+      }
     });
   }
+  
+  $("#q").on("input", function() { render($(this).val()); });
+
   $("#districtList").on("click", ".district", function(){
     const url = $(this).data("url");
-    $("#nowName").text($(this).text());
+    $("#nowName").text($(this).text().replace("MAP", ""));
     $(".district").removeClass("active"); $(this).addClass("active");
     $empty.hide(); $img.attr("src", url).show();
     $img.off("load").on("load", () => $("#reset").click());
@@ -247,6 +257,7 @@ $(function(){
 
   $("#menuBtn").click(() => $(".sidebar, #backdrop").addClass("open show"));
   $("#backdrop").click(() => $(".sidebar, #backdrop").removeClass("open show"));
+  
   render();
 });
 </script>
