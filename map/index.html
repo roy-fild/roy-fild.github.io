@@ -28,9 +28,11 @@
 
     .app{ display:grid; grid-template-columns: 280px 1fr; height:100vh; }
 
+    /* 사이드바 */
     .sidebar{
       background:rgba(17,24,39,.9); border-right:1px solid var(--line);
       display:flex; flex-direction:column; min-width:240px; z-index: 100;
+      transition: transform 0.3s ease;
     }
     .sidebar header{ padding:16px 14px; border-bottom:1px solid var(--line); }
     .title{ font-size:15px; font-weight:700; margin:0 0 6px 0; }
@@ -52,7 +54,8 @@
       border:1px solid rgba(99,102,241,.35); padding:3px 8px; border-radius:999px; margin-left:auto;
     }
 
-    .main{ display:flex; flex-direction:column; height:100%; }
+    /* 메인 뷰어 */
+    .main{ display:flex; flex-direction:column; height:100%; position: relative; }
     .topbar{
       padding:12px 14px; border-bottom:1px solid var(--line);
       background:rgba(15,23,42,.85); display:flex; gap:10px; align-items:center; flex-wrap:wrap; z-index:20;
@@ -61,7 +64,7 @@
     .btn{
       padding:9px 10px; border-radius:10px; border:1px solid #2a3a55;
       background:#0b1224; color:var(--text); cursor:pointer; user-select:none; font-size:12px;
-      touch-action: manipulation;
+      touch-action: none; /* 버튼 자체 터치 간섭 방지 */
     }
     .btn:active { background: #1e293b; }
     
@@ -71,7 +74,8 @@
     }
     .viewer{ position:absolute; inset:14px; border:1px solid var(--line); border-radius:16px; overflow:hidden; }
     .stage{ position:absolute; left:0; top:0; width:100%; height:100%; overflow:hidden; cursor:grab; touch-action: none; }
-    #mapImg{ position:absolute; left:0; top:0; transform-origin: 0 0; will-change: transform; user-select:none; max-width:none; }
+    .stage:active { cursor: grabbing; }
+    #mapImg{ position:absolute; left:0; top:0; transform-origin: 0 0; will-change: transform; user-select:none; max-width:none; -webkit-user-drag: none; }
 
     .empty{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:8px; color:var(--muted); }
     .status{ position:absolute; right:26px; bottom:26px; background:rgba(15,23,42,.85); border-radius:12px; padding:10px; font-size:12px; z-index: 30; }
@@ -81,7 +85,7 @@
 
     @media (max-width: 900px){
       .app{ grid-template-columns: 1fr; }
-      .sidebar{ position:fixed; left:0; top:0; height:100dvh; width:280px; transform: translateX(-110%); transition: transform .2s; z-index:150; }
+      .sidebar{ position:fixed; left:0; top:0; height:100dvh; width:280px; transform: translateX(-110%); z-index:150; }
       .sidebar.open{ transform: translateX(0); }
       .backdrop.show{ display:block; }
       .menu-btn{ display:inline-flex; }
@@ -95,8 +99,8 @@
   <div id="backdrop" class="backdrop"></div>
   <div class="app">
     <aside class="sidebar">
-      <header><p class="title">행정구역 지도</p></header>
-      <div class="search"><input id="q" type="text" placeholder="검색..." /></div>
+      <header><p class="title">지도 뷰어</p></header>
+      <div class="search"><input id="q" type="text" placeholder="구역 검색..." /></div>
       <div id="districtList" class="district-list"></div>
     </aside>
 
@@ -113,7 +117,7 @@
         <div class="viewer">
           <div id="stage" class="stage">
             <img id="mapImg" alt="map" style="display:none;" />
-            <div id="empty" class="empty"><b>행정구역을 선택해 주세요.</b></div>
+            <div id="empty" class="empty"><b>왼쪽 메뉴에서 지역을 선택하세요.</b></div>
           </div>
         </div>
         <div class="status">배율 <span id="scaleText">1.00</span></div>
@@ -123,7 +127,6 @@
 
 <script>
 $(function(){
-  // 데이터 목록 (보안을 위해 https 권장)
   const districts = {
     "송파구":"https://roy-fild.github.io/map/contents/songpa-gu.png",
     "성동구":"https://roy-fild.github.io/map/contents/seongdong-gu.png",
@@ -162,17 +165,16 @@ $(function(){
     $("#scaleText").text(state.scale.toFixed(2));
   }
 
-  // 핵심 확대/축소 로직 (좌표 중심 기준)
+  // 확대/축소 핵심 함수
   function zoom(delta, centerX, centerY) {
+    if ($img.is(":hidden")) return;
     const sw = $stage.width(), sh = $stage.height();
-    // 좌표 값이 없으면 화면 중앙 기준으로 설정
     if (centerX === undefined) centerX = sw / 2;
     if (centerY === undefined) centerY = sh / 2;
 
     const oldScale = state.scale;
-    state.scale = Math.max(0.1, Math.min(10, state.scale * delta));
+    state.scale = Math.max(0.05, Math.min(10, state.scale * delta));
     
-    // 확대/축소 시 마우스(혹은 중앙) 지점이 유지되도록 좌표 보정
     const wx = (centerX - state.x) / oldScale;
     const wy = (centerY - state.y) / oldScale;
     state.x = centerX - wx * state.scale;
@@ -181,74 +183,80 @@ $(function(){
     applyTransform();
   }
 
-  // 1. 마우스 휠 이벤트 추가
+  // [1] 마우스 휠 확대/축소
   $stage.on("wheel", function(e) {
     e.preventDefault();
     const rect = $stage[0].getBoundingClientRect();
     const mouseX = e.originalEvent.clientX - rect.left;
     const mouseY = e.originalEvent.clientY - rect.top;
-    
     const delta = e.originalEvent.deltaY < 0 ? 1.1 : 0.9;
     zoom(delta, mouseX, mouseY);
   });
 
-  // 2. 버튼 꾹 누르기 기능
-  function startContinuousZoom(delta) {
+  // [2] 드래그 이동 기능 (PointerEvents - PC/모바일 통합)
+  $stage.on("pointerdown", function(e){
+    if($img.is(":hidden")) return;
+    state.dragging = true;
+    state.lastX = e.clientX;
+    state.lastY = e.clientY;
+    this.setPointerCapture(e.pointerId); // 포인터 고정
+  });
+
+  $(window).on("pointermove", function(e){
+    if(!state.dragging) return;
+    const dx = e.clientX - state.lastX;
+    const dy = e.clientY - state.lastY;
+    state.x += dx;
+    state.y += dy;
+    state.lastX = e.clientX;
+    state.lastY = e.clientY;
+    applyTransform();
+  });
+
+  $(window).on("pointerup pointercancel", function(e){
+    state.dragging = false;
+  });
+
+  // [3] 버튼 꾹 누르기 기능
+  function startZoomLoop(delta) {
     if (zoomTimer) return;
     zoom(delta); 
-    zoomTimer = setInterval(() => zoom(delta), 50);
+    zoomTimer = setInterval(() => zoom(delta), 40);
   }
-  function stopContinuousZoom() {
+  function stopZoomLoop() {
     clearInterval(zoomTimer);
     zoomTimer = null;
   }
 
-  $("#zoomIn").on("mousedown touchstart", (e) => { e.preventDefault(); startContinuousZoom(1.05); });
-  $("#zoomOut").on("mousedown touchstart", (e) => { e.preventDefault(); startContinuousZoom(0.95); });
-  $(window).on("mouseup mouseleave touchend touchcancel", stopContinuousZoom);
+  $("#zoomIn").on("mousedown touchstart", (e) => { e.preventDefault(); startZoomLoop(1.04); });
+  $("#zoomOut").on("mousedown touchstart", (e) => { e.preventDefault(); startZoomLoop(0.96); });
+  $(window).on("mouseup touchend blur", stopZoomLoop);
 
-  // 3. 리셋 버튼 (화면 크기에 맞춤)
+  // [4] 리셋 및 리스트 기능
   $("#reset").on("click", () => {
     if (!$img[0].naturalWidth) return;
     const sw = $stage.width(), sh = $stage.height();
-    const scaleFit = Math.min(sw / $img[0].naturalWidth, sh / $img[0].naturalHeight);
+    const scaleFit = Math.min(sw / $img[0].naturalWidth, sh / $img[0].naturalHeight) * 0.9;
     state.scale = scaleFit || 1;
     state.x = (sw - $img[0].naturalWidth * state.scale) / 2;
     state.y = (sh - $img[0].naturalHeight * state.scale) / 2;
     applyTransform();
   });
 
-  // 4. 드래그 이동
-  $stage.on("pointerdown", function(e){
-    if($img.is(":hidden")) return;
-    state.dragging = true;
-    state.lastX = e.clientX; state.lastY = e.clientY;
-    this.setPointerCapture(e.pointerId);
-  }).on("pointermove", function(e){
-    if(!state.dragging) return;
-    state.x += (e.clientX - state.lastX);
-    state.y += (e.clientY - state.lastY);
-    state.lastX = e.clientX; state.lastY = e.clientY;
-    applyTransform();
-  }).on("pointerup pointercancel", function(e){
-    state.dragging = false;
-  });
-
-  // 5. 검색 및 리스트 초기화
-  function render(filter = "") {
+  function renderList(filter = "") {
     const $list = $("#districtList").empty();
     Object.keys(districts).forEach(name => {
       if (name.includes(filter)) {
-        $list.append(`<div class="district" data-url="${districts[name]}">${name}<div class="pill">MAP</div></div>`);
+        $list.append(`<div class="district" data-url="${districts[name]}">${name}<div class="pill">지도</div></div>`);
       }
     });
   }
   
-  $("#q").on("input", function() { render($(this).val()); });
+  $("#q").on("input", function() { renderList($(this).val()); });
 
   $("#districtList").on("click", ".district", function(){
     const url = $(this).data("url");
-    $("#nowName").text($(this).text().replace("MAP", ""));
+    $("#nowName").text($(this).text().replace("지도", ""));
     $(".district").removeClass("active"); $(this).addClass("active");
     $empty.hide(); $img.attr("src", url).show();
     $img.off("load").on("load", () => $("#reset").click());
@@ -258,7 +266,7 @@ $(function(){
   $("#menuBtn").click(() => $(".sidebar, #backdrop").addClass("open show"));
   $("#backdrop").click(() => $(".sidebar, #backdrop").removeClass("open show"));
   
-  render();
+  renderList();
 });
 </script>
 </body>
