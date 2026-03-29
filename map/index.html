@@ -245,7 +245,7 @@ $(function(){
 
   function renderList(filter = "") {
     const $list = $("#districtList").empty();
-    Object.keys(districts).sort().forEach(name => {
+    Object.keys(districts).forEach(name => {
       if (name.includes(filter)) {
         $list.append(`<div class="district" data-url="${districts[name]}">${name}<div class="pill">지도</div></div>`);
       }
