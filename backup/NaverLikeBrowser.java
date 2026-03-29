@@ -26,6 +26,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -43,11 +45,14 @@ import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import inv.NaverComplexInfoSample.ComplexInfo;
 
 /****
  * 현재 브라우저 문제로 이게 호출 가능 소스
@@ -104,7 +109,7 @@ public class NaverLikeBrowser {
 		String prefix = "https://roy-fild.github.io/file/";
 		
 		String[] fileUrls = {
-//				"case-test",			// TEST용
+				"case-test",			// TEST용
 				// 정찰기
 //				"tracking-list",		// 수도권
 //				"tracking-jibang",		// 지방
@@ -113,9 +118,9 @@ public class NaverLikeBrowser {
 //				"daegu-suseong-gu",		// 대구_수성구
 //				"gangnam-gu",			// 강남구
 //				"seocho-gu",			// 서초구				
-//				
-//				// 서울시
-//
+				
+				// 서울시
+
 //				"songpa-gu",			// 송파구
 //				"seongdong-gu",			// 성동구
 //				"yeongdeungpo-gu",		// 영등포구
@@ -139,10 +144,10 @@ public class NaverLikeBrowser {
 //				"sujeong-jungwon-gu",	// 성남시_수정/증원구
 //				"bu-cheon",				// 부천시 
 //				"gunpo-si",				// 군포시			
-				"guri-si",				// 구리시
-				"bupyeong-gu",			// 인천시_부평구
-				
-				// 광역시
+//				"guri-si",				// 구리시
+//				"bupyeong-gu",			// 인천시_부평구
+//				
+//				// 광역시
 //				"daejeon-seo-gu",		// 대전_서구
 //				"daejeon-yuseong-gu", 	// 대전_유성구
 //				"gwangju-buk-gu",		// 광주_북구
@@ -276,40 +281,32 @@ public class NaverLikeBrowser {
 				System.out.println(res.body().substring(0, Math.min(800, res.body().length())));
 			} else {
 				// Jsoup 등으로 파싱
-				Document doc = Jsoup.parse(res.body());
+				Document doc = Jsoup.parse(res.body());				
 				String body = res.body();
+			  
+				ComplexInfo info = new ComplexInfo();
 				
-//				System.out.println(body);
+				// 1순위: script JSON
+		        boolean ok = fillFromNextScript(doc, info);
 
-		        // HTML 내 script 태그 안의 JSON 텍스트에서 데이터 추출
-				String aptNm = extractKoreanValue(body, "name");
-		        // 만약 name으로 못찾으면 complexName으로 재시도
-		        if (aptNm.isEmpty()) {
-		            aptNm = extractKoreanValue(body, "complexName");
-		        }
-		        String aptYear = extractTargetValue(body, "useApprovalDate").substring(0,4);
-		        String aptSedae = extractTargetValue(body, "totalHouseholdNumber");
-		        String gu = extractTargetValue(body, "division");
-		        String dong = extractTargetValue(body, "sector");
-		        String mCnt = extractTargetValue(body, "dealCount");
-		        String jCnt = extractTargetValue(body, "leaseDepositCount");
-		        
-		        // '구'로 끝나면 마지막 글자 제거
-		        if (gu != null && gu.endsWith("구") && gu.length() > 1) {
-		            gu = gu.substring(0, gu.length() - 1);
+		        // 2순위: HTML fallback
+		        if (!ok || isBlank(info.gu) || isBlank(info.dong) || isBlank(info.year) || isBlank(info.householdCount)) {
+		            fillFromHtml(doc, info);
 		        }
 
-		        // '동'으로 끝나면 마지막 글자 제거
-		        if (dong != null && dong.endsWith("동") && dong.length() > 1) {
-		            dong = dong.substring(0, dong.length() - 1);
+		        // 3순위: front-api fallback
+		        if (isBlank(info.gu) || isBlank(info.dong) || isBlank(info.year) || isBlank(info.householdCount)) {
+		            fillFromFrontApi(id, info);
 		        }
-				
-				//추출 확인용
-				//System.out.println(doc);
-
-				// 1) 주소
-				// jQuery: $('.HeaderBrandDepth-module_sub-name__t-5rA').text()
-				
+			
+		        String aptNm 	= info.aptNm;
+		        String gu	 	= info.gu;
+		        String dong		= info.dong;
+		        String year		= info.year;
+		        String sd		= info.householdCount;
+		        String mCnt		= info.dealCount;
+		        String jCnt		= info.leaseCount;
+		     				
 
 				JSONObject baseObj = new JSONObject();
 
@@ -317,8 +314,8 @@ public class NaverLikeBrowser {
 				baseObj.put("aptNm", aptNm);
 				baseObj.put("gu", gu);
 				baseObj.put("dong", dong);
-				baseObj.put("year", aptYear);
-				baseObj.put("sd", aptSedae);
+				baseObj.put("year", year);
+				baseObj.put("sd", sd);
 				baseObj.put("mCnt", mCnt);
 				baseObj.put("jCnt", jCnt);
 
@@ -328,6 +325,196 @@ public class NaverLikeBrowser {
 			e.printStackTrace();
 		}
 	}
+	
+	private static boolean fillFromNextScript(Document doc, ComplexInfo info) {
+	    Elements scripts = doc.select("script");
+
+	    for (Element script : scripts) {
+	        String raw = script.html();
+	        if (isBlank(raw)) {
+	            continue;
+	        }
+
+	        String text = raw
+	                .replace("\\\\\"", "\"")
+	                .replace("\\\"", "\"")
+	                .replace("\\\\/", "/");
+
+	        // 기본 단지정보
+	        if (text.contains("GET /complex")) {
+	            int queryIdx = text.indexOf("GET /complex");
+	            String near = text.substring(queryIdx);
+
+	            info.aptNm = firstGroup(near, "\"name\":\"([^\"]+)\"");
+	            info.gu = firstGroup(near, "\"division\":\"([^\"]+)\"");
+	            info.dong = firstGroup(near, "\"sector\":\"([^\"]+)\"");
+	            info.householdCount = firstGroup(near, "\"totalHouseholdNumber\":(\\d+)");
+	            String useApprovalDate = firstGroup(near, "\"useApprovalDate\":\"(\\d{8})\"");
+	            if (!isBlank(useApprovalDate) && useApprovalDate.length() >= 4) {
+	                info.year = useApprovalDate.substring(0, 4);
+	            }
+	        }
+
+	        // 매매/전세 건수
+	        if (text.contains("GET /complex/article/count")) {
+	            int queryIdx = text.indexOf("GET /complex/article/count");
+	            String near = text.substring(queryIdx);
+
+	            info.dealCount = firstGroup(near, "\"dealCount\":(\\d+)");
+	            info.leaseCount = firstGroup(near, "\"leaseDepositCount\":(\\d+)");
+	        }
+	    }
+
+	    return !isBlank(info.aptNm) || !isBlank(info.dealCount) || !isBlank(info.leaseCount);
+	}
+
+	private static void fillFromHtml(Document doc, ComplexInfo info) {
+	    if (isBlank(info.aptNm)) {
+	        info.aptNm = clean(doc.title());
+	    }
+
+	    Element addrEl = doc.selectFirst("a[class*=HeaderBrandDepth-module_sub-name]");
+	    if (addrEl != null) {
+	        String addr = clean(addrEl.text()); // 성북구 돈암동
+	        String[] parts = addr.split("\\s+");
+	        if (parts.length >= 2) {
+	            if (isBlank(info.gu)) info.gu = parts[0];
+	            if (isBlank(info.dong)) info.dong = parts[1];
+	        }
+	    }
+
+	    Elements summaryLis = doc.select("li[class*=ComplexSummary_item-detail-summary]");
+	    for (Element li : summaryLis) {
+	        String txt = li.text().trim();
+
+	        if (isBlank(info.householdCount) && txt.contains("세대")) {
+	            info.householdCount = txt.replaceAll("[^0-9]", "");
+	        }
+
+	        if (isBlank(info.year)) {
+	            Matcher m = Pattern.compile("^(\\d{4})\\.").matcher(txt);
+	            if (m.find()) {
+	                info.year = m.group(1);
+	            }
+	        }
+	    }
+
+	    // 매매/전세 버튼 영역
+	    Elements tabTexts = doc.select("span[class*=ComplexSummary_text-tab]");
+	    for (Element el : tabTexts) {
+	        String txt = el.text().replaceAll("\\s+", "");
+
+	        if (txt.startsWith("매매") && isBlank(info.dealCount)) {
+	            info.dealCount = txt.replaceAll("[^0-9]", "");
+	        }
+
+	        if (txt.startsWith("전세") && isBlank(info.leaseCount)) {
+	            info.leaseCount = txt.replaceAll("[^0-9]", "");
+	        }
+	    }
+	}
+
+	private static void fillFromFrontApi(String complexId, ComplexInfo info) {
+	    try {
+	        String apiUrl = "https://fin.land.naver.com/front-api/v1/complex?complexNumber=" + complexId;
+
+	        HttpRequest apiReq = HttpRequest.newBuilder(URI.create(apiUrl))
+	                .timeout(Duration.ofSeconds(30))
+	                .header("User-Agent", UA)
+	                .header("Accept", "application/json, text/plain, */*")
+	                .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+	                .header("Referer", "https://fin.land.naver.com/complexes/" + complexId + "?tab=article")
+	                .header("Origin", "https://fin.land.naver.com")
+	                .header("X-Requested-With", "XMLHttpRequest")
+	                .GET()
+	                .build();
+
+	        HttpResponse<String> apiRes = client.send(apiReq, HttpResponse.BodyHandlers.ofString());
+	        if (apiRes.statusCode() != 200) {
+	            return;
+	        }
+
+	        JSONObject root = new JSONObject(apiRes.body());
+	        JSONObject result = root.optJSONObject("result");
+	        if (result == null) {
+	            return;
+	        }
+
+	        if (isBlank(info.aptNm)) {
+	            info.aptNm = clean(result.optString("name", ""));
+	        }
+
+	        JSONObject address = result.optJSONObject("address");
+	        if (address != null) {
+	            if (isBlank(info.gu)) info.gu = clean(address.optString("division", ""));
+	            if (isBlank(info.dong)) info.dong = clean(address.optString("sector", ""));
+	        }
+
+	        if (isBlank(info.householdCount)) {
+	            int totalHouseholdNumber = result.optInt("totalHouseholdNumber", 0);
+	            if (totalHouseholdNumber > 0) {
+	                info.householdCount = String.valueOf(totalHouseholdNumber);
+	            }
+	        }
+
+	        if (isBlank(info.year)) {
+	            String useApprovalDate = result.optString("useApprovalDate", "");
+	            if (useApprovalDate.length() >= 4) {
+	                info.year = useApprovalDate.substring(0, 4);
+	            }
+	        }
+
+	        // 기사건수 API 별도 호출
+	        String countUrl = "https://fin.land.naver.com/front-api/v1/complex/article/count?complexNumber=" + complexId;
+
+	        HttpRequest countReq = HttpRequest.newBuilder(URI.create(countUrl))
+	                .timeout(Duration.ofSeconds(30))
+	                .header("User-Agent", UA)
+	                .header("Accept", "application/json, text/plain, */*")
+	                .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+	                .header("Referer", "https://fin.land.naver.com/complexes/" + complexId + "?tab=article")
+	                .header("Origin", "https://fin.land.naver.com")
+	                .header("X-Requested-With", "XMLHttpRequest")
+	                .GET()
+	                .build();
+
+	        HttpResponse<String> countRes = client.send(countReq, HttpResponse.BodyHandlers.ofString());
+	        if (countRes.statusCode() == 200) {
+	            JSONObject countRoot = new JSONObject(countRes.body());
+	            JSONObject countResult = countRoot.optJSONObject("result");
+
+	            if (countResult != null) {
+	                if (isBlank(info.dealCount)) {
+	                    info.dealCount = String.valueOf(countResult.optInt("dealCount", 0));
+	                }
+	                if (isBlank(info.leaseCount)) {
+	                    info.leaseCount = String.valueOf(countResult.optInt("leaseDepositCount", 0));
+	                }
+	            }
+	        }
+
+	    } catch (Exception ignored) {
+	    }
+	}
+
+    private static String firstGroup(String text, String regex) {
+        try {
+            Matcher m = Pattern.compile(regex).matcher(text);
+            if (m.find()) {
+                return clean(m.group(1));
+            }
+        } catch (Exception ignored) {
+        }
+        return "";
+    }
+
+    private static String clean(String s) {
+        return s == null ? "" : s.trim();
+    }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
+    }
 	
 	private static String extractKoreanValue(String content, String key) {
 	    try {
@@ -1157,6 +1344,16 @@ public class NaverLikeBrowser {
 
     private static String toOneDecimalPercent(BigDecimal v) {
         return v.setScale(1, RoundingMode.HALF_UP).toPlainString() + "%";
+    }
+    
+    static class ComplexInfo {
+        String aptNm = "";
+        String gu = "";
+        String dong = "";
+        String year = "";
+        String householdCount = "";
+        String dealCount = "";   // 매매
+        String leaseCount = "";  // 전세
     }
 
 }
