@@ -109,7 +109,7 @@ public class NaverLikeBrowser {
 		String prefix = "https://roy-fild.github.io/file/";
 		
 		String[] fileUrls = {
-				"case-test",			// TEST용
+//				"case-test",			// TEST용
 				// 정찰기
 //				"tracking-list",		// 수도권
 //				"tracking-jibang",		// 지방
@@ -121,43 +121,44 @@ public class NaverLikeBrowser {
 				
 				// 서울시
 
-//				"songpa-gu",			// 송파구
-//				"seongdong-gu",			// 성동구
-//				"yeongdeungpo-gu",		// 영등포구
-//				"yangcheon-gu",			// 양천구
-//				"jongno-jung-gu",		// 종로/중구
-//				"dongjak-gu",			// 동작구		
-//				"seong-buk-gu",			// 성북구
-//				"dongdaemun-gu",		// 동대분구
-//				"seodaemun-gu",			// 서대문구
-//				"gwanak-gu",			// 관악구
-//				"eunpyeong-gu",			// 은평구
-//				"jungnang-gu",			// 중랑구
-//				"guro-gu",				// 구로구
-//				
-//				// 수도권
-//				"suji-gu",				// 수지구
-//				"bundang-gu",			// 성남시_분당구
-//				"anyang-si-dongan-gu",	// 안양시_동안구
-//				"suwon-si-yeongtong-gu",// 수원시_영통구
-//				"dongtan",				// 화성시_동탄
-//				"sujeong-jungwon-gu",	// 성남시_수정/증원구
-//				"bu-cheon",				// 부천시 
-//				"gunpo-si",				// 군포시			
-//				"guri-si",				// 구리시
-//				"bupyeong-gu",			// 인천시_부평구
-//				
-//				// 광역시
-//				"daejeon-seo-gu",		// 대전_서구
-//				"daejeon-yuseong-gu", 	// 대전_유성구
-//				"gwangju-buk-gu",		// 광주_북구
-//				"busanjin-gu",			// 부산진구
-//				
-//				// 중소도시
-//				"cheonan",				// 천안시
-//				"cheongju",				// 청주
-//				"jeonju",				// 전주
-//				"pohang-si-buk-gu",		// 포항시_북구
+				"songpa-gu",			// 송파구
+				"seongdong-gu",			// 성동구
+				"yeongdeungpo-gu",		// 영등포구
+				"yangcheon-gu",			// 양천구
+				"jongno-jung-gu",		// 종로/중구
+				"dongjak-gu",			// 동작구		
+				"seong-buk-gu",			// 성북구
+				"dongdaemun-gu",		// 동대분구
+				"seodaemun-gu",			// 서대문구
+				"gwanak-gu",			// 관악구
+				"eunpyeong-gu",			// 은평구
+				"jungnang-gu",			// 중랑구
+				"guro-gu",				// 구로구
+				
+				// 수도권
+				"suji-gu",				// 수지구
+				"bundang-gu",			// 성남시_분당구
+				"anyang-si-dongan-gu",	// 안양시_동안구
+				"suwon-si-yeongtong-gu",// 수원시_영통구
+				"dongtan",				// 화성시_동탄
+				"sujeong-jungwon-gu",	// 성남시_수정/증원구
+				"bu-cheon",				// 부천시 
+				"gunpo-si",				// 군포시			
+				"guri-si",				// 구리시
+				
+				
+				// 광역시
+				"daejeon-seo-gu",		// 대전_서구
+				"daejeon-yuseong-gu", 	// 대전_유성구
+				"gwangju-buk-gu",		// 광주_북구
+				"busanjin-gu",			// 부산진구
+				"bupyeong-gu",			// 인천시_부평구
+				
+				// 중소도시
+				"cheonan",				// 천안시
+				"cheongju",				// 청주
+				"jeonju",				// 전주
+				"pohang-si-buk-gu",		// 포항시_북구
 		};
 
 		
@@ -263,67 +264,122 @@ public class NaverLikeBrowser {
 	}
 
 	// 2.아파트 기본 정보 조회
+	// 2.아파트 기본 정보 조회
 	public static void loadBaseData(String id, JSONArray baseArr) {
-		try {
-			warmup();
+	    try {
+	        warmup();
 
-			// 3) 타깃 페이지: 반드시 Referer를 같은 도메인으로
-			String url = "https://fin.land.naver.com/complexes/" + id + "?tab=article&tradeType=A1&pyeongTypeNumber=1";
-			// + "&transactionPyeongTypeNumber=2&transactionTradeType=A1";
+	        String url = "https://fin.land.naver.com/complexes/" + id
+	                + "?tab=article&tradeType=A1&pyeongTypeNumber=1";
 
-			HttpRequest req = base(url).header("Referer", "https://fin.land.naver.com/complexes/" + id + "?tab=article")
-					.GET().build();
+	        HttpRequest req = base(url)
+	                .header("Referer", "https://fin.land.naver.com/complexes/" + id + "?tab=article")
+	                .GET()
+	                .build();
 
-			HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
-//				System.out.println("status=" + res.statusCode());
-			if (res.statusCode() != 200) {
-				// 원인 파악용으로 응답 일부 출력
-				System.out.println(res.body().substring(0, Math.min(800, res.body().length())));
-			} else {
-				// Jsoup 등으로 파싱
-				Document doc = Jsoup.parse(res.body());				
-				String body = res.body();
-			  
-				ComplexInfo info = new ComplexInfo();
-				
-				// 1순위: script JSON
-		        boolean ok = fillFromNextScript(doc, info);
+	        HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
 
-		        // 2순위: HTML fallback
-		        if (!ok || isBlank(info.gu) || isBlank(info.dong) || isBlank(info.year) || isBlank(info.householdCount)) {
-		            fillFromHtml(doc, info);
-		        }
+	        String body = res.body() == null ? "" : res.body();
+	        int status = res.statusCode();
 
-		        // 3순위: front-api fallback
-		        if (isBlank(info.gu) || isBlank(info.dong) || isBlank(info.year) || isBlank(info.householdCount)) {
-		            fillFromFrontApi(id, info);
-		        }
-			
-		        String aptNm 	= info.aptNm;
-		        String gu	 	= info.gu;
-		        String dong		= info.dong;
-		        String year		= info.year;
-		        String sd		= info.householdCount;
-		        String mCnt		= info.dealCount;
-		        String jCnt		= info.leaseCount;
-		     				
+	        // 로그만 찍고, 500이어도 body 있으면 계속 파싱 진행
+	        if (status != 200) {
+	            System.out.println("[loadBaseData] HTTP " + status);
+	            System.out.println(body.substring(0, Math.min(800, body.length())));
+	        }
 
-				JSONObject baseObj = new JSONObject();
+	        if (body.isBlank()) {
+	            System.out.println("[loadBaseData] empty body, id=" + id);
+	            return;
+	        }
 
-				baseObj.put("id", id);
-				baseObj.put("aptNm", aptNm);
-				baseObj.put("gu", gu);
-				baseObj.put("dong", dong);
-				baseObj.put("year", year);
-				baseObj.put("sd", sd);
-				baseObj.put("mCnt", mCnt);
-				baseObj.put("jCnt", jCnt);
+	        Document doc = Jsoup.parse(body);
+	        ComplexInfo info = new ComplexInfo();
 
-				baseArr.put(baseObj);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+	        // 1) 단지명/주소/세대/연식/건수: HTML에서 먼저
+	        fillFromHtml(doc, info);
+
+	        // 2) script 안의 dehydrated data / __next_f 로 보강
+	        fillFromNextScript(doc, info);
+
+	        // 3) 그래도 비는 값 있으면 API fallback
+	        if (isBlank(info.aptNm) || isBlank(info.gu) || isBlank(info.dong)
+	                || isBlank(info.year) || isBlank(info.householdCount)
+	                || isBlank(info.dealCount) || isBlank(info.leaseCount)) {
+	            fillFromFrontApi(id, info);
+	        }
+
+	        // 4) 진짜 아무 값도 못 건졌으면 종료
+	        if (isBlank(info.aptNm) && isBlank(info.gu) && isBlank(info.dong)
+	                && isBlank(info.year) && isBlank(info.householdCount)
+	                && isBlank(info.dealCount) && isBlank(info.leaseCount)) {
+	            System.out.println("[loadBaseData] parse failed, id=" + id);
+	            return;
+	        }
+
+	        JSONObject oldObj = pickOneById(baseArr, id);
+	        JSONObject target = (oldObj != null) ? oldObj : new JSONObject();
+
+	        target.put("id", id);
+	        target.put("aptNm", nvl(info.aptNm));
+	        target.put("gu", nvl(info.gu));
+	        target.put("dong", nvl(info.dong));
+	        target.put("year", nvl(info.year));
+	        target.put("sd", nvl(info.householdCount));
+	        target.put("mCnt", nvl(info.dealCount));
+	        target.put("jCnt", nvl(info.leaseCount));
+
+	        if (oldObj == null) {
+	            baseArr.put(target);
+	        }
+
+//	        System.out.println(String.format(
+//	                "[loadBaseData] id=%s, aptNm=%s, gu=%s, dong=%s, year=%s, sd=%s, mCnt=%s, jCnt=%s",
+//	                id, nvl(info.aptNm), nvl(info.gu), nvl(info.dong),
+//	                nvl(info.year), nvl(info.householdCount),
+//	                nvl(info.dealCount), nvl(info.leaseCount)));
+
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	    }
+	}
+
+	private static String nvl(String s) {
+	    return s == null ? "" : s.trim();
+	}
+	
+	public static void loadBaseDataFromHtmlFile(String id, String htmlFilePath, JSONArray baseArr) {
+	    try {
+	        String body = Files.readString(Path.of(htmlFilePath), StandardCharsets.UTF_8);
+	        Document doc = Jsoup.parse(body);
+
+	        ComplexInfo info = new ComplexInfo();
+
+	        // 1순위: __next_f 내부 JSON
+	        boolean ok = fillFromNextScript(doc, info);
+
+	        // 2순위: 화면 HTML fallback
+	        if (!ok || isBlank(info.gu) || isBlank(info.dong) || isBlank(info.year) || isBlank(info.householdCount)) {
+	            fillFromHtml(doc, info);
+	        }
+
+	        JSONObject baseObj = new JSONObject();
+	        baseObj.put("id", id);
+	        baseObj.put("aptNm", info.aptNm);
+	        baseObj.put("gu", info.gu);
+	        baseObj.put("dong", info.dong);
+	        baseObj.put("year", info.year);
+	        baseObj.put("sd", info.householdCount);
+	        baseObj.put("mCnt", info.dealCount);
+	        baseObj.put("jCnt", info.leaseCount);
+
+	        baseArr.put(baseObj);
+
+	        System.out.println("파일 HTML 파싱 완료: " + baseObj.toString());
+
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	    }
 	}
 	
 	private static boolean fillFromNextScript(Document doc, ComplexInfo info) {
@@ -331,21 +387,22 @@ public class NaverLikeBrowser {
 
 	    for (Element script : scripts) {
 	        String raw = script.html();
-	        if (isBlank(raw)) {
-	            continue;
-	        }
+	        if (isBlank(raw)) continue;
 
 	        String text = raw
 	                .replace("\\\\\"", "\"")
 	                .replace("\\\"", "\"")
 	                .replace("\\\\/", "/");
 
-	        // 기본 단지정보
 	        if (text.contains("GET /complex")) {
-	            int queryIdx = text.indexOf("GET /complex");
-	            String near = text.substring(queryIdx);
+	            int idx = text.indexOf("GET /complex");
+	            String near = text.substring(idx, Math.min(text.length(), idx + 5000));
 
-	            info.aptNm = firstGroup(near, "\"name\":\"([^\"]+)\"");
+	            info.aptNm = firstGroup(near, "\"result\":\\{\"name\":\"([^\"]+)\"");
+	            if (isBlank(info.aptNm)) {
+	                info.aptNm = firstGroup(near, "\"name\":\"([^\"]+)\"");
+	            }
+
 	            info.gu = firstGroup(near, "\"division\":\"([^\"]+)\"");
 	            info.dong = firstGroup(near, "\"sector\":\"([^\"]+)\"");
 	            info.householdCount = firstGroup(near, "\"totalHouseholdNumber\":(\\d+)");
@@ -355,10 +412,9 @@ public class NaverLikeBrowser {
 	            }
 	        }
 
-	        // 매매/전세 건수
 	        if (text.contains("GET /complex/article/count")) {
-	            int queryIdx = text.indexOf("GET /complex/article/count");
-	            String near = text.substring(queryIdx);
+	            int idx = text.indexOf("GET /complex/article/count");
+	            String near = text.substring(idx, Math.min(text.length(), idx + 2000));
 
 	            info.dealCount = firstGroup(near, "\"dealCount\":(\\d+)");
 	            info.leaseCount = firstGroup(near, "\"leaseDepositCount\":(\\d+)");
@@ -370,12 +426,19 @@ public class NaverLikeBrowser {
 
 	private static void fillFromHtml(Document doc, ComplexInfo info) {
 	    if (isBlank(info.aptNm)) {
+	        Element nameEl = doc.selectFirst("span[class*=ComplexSummary_name]");
+	        if (nameEl != null) {
+	            info.aptNm = clean(nameEl.text());
+	        }
+	    }
+
+	    if (isBlank(info.aptNm)) {
 	        info.aptNm = clean(doc.title());
 	    }
 
 	    Element addrEl = doc.selectFirst("a[class*=HeaderBrandDepth-module_sub-name]");
 	    if (addrEl != null) {
-	        String addr = clean(addrEl.text()); // 성북구 돈암동
+	        String addr = clean(addrEl.text());
 	        String[] parts = addr.split("\\s+");
 	        if (parts.length >= 2) {
 	            if (isBlank(info.gu)) info.gu = parts[0];
@@ -399,15 +462,12 @@ public class NaverLikeBrowser {
 	        }
 	    }
 
-	    // 매매/전세 버튼 영역
 	    Elements tabTexts = doc.select("span[class*=ComplexSummary_text-tab]");
 	    for (Element el : tabTexts) {
 	        String txt = el.text().replaceAll("\\s+", "");
-
 	        if (txt.startsWith("매매") && isBlank(info.dealCount)) {
 	            info.dealCount = txt.replaceAll("[^0-9]", "");
 	        }
-
 	        if (txt.startsWith("전세") && isBlank(info.leaseCount)) {
 	            info.leaseCount = txt.replaceAll("[^0-9]", "");
 	        }
