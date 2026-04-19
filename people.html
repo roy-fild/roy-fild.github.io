@@ -279,6 +279,45 @@
             /* 모든 비율 열 동일 너비 */
             text-align: right;
         }
+
+        .tabNav {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 14px 0 8px;
+        }
+        .tabBtn {
+            padding: 10px 14px;
+            border: 1px solid #d7d7d7;
+            border-radius: 12px;
+            background: #fff;
+            cursor: pointer;
+            font-weight: 700;
+        }
+        .tabBtn.active {
+            background: #111;
+            color: #fff;
+            border-color: #111;
+        }
+        .tabPage { display:none; }
+        .tabPage.active { display:block; }
+        #tab-custom {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 18px 18px;
+            box-sizing: border-box;
+        }
+        #tab-custom .col {
+            min-width: 220px;
+        }
+        .tagList { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+        .tagItem {
+            display:inline-flex; align-items:center; gap:8px;
+            padding:8px 10px; border:1px solid #e0e0e0; border-radius:999px; background:#fff; font-size:13px;
+        }
+        .btnDanger { border:1px solid #e2b4b4; background:#fff7f7; }
+        .compareOnly { display:none !important; }
+
     </style>
 </head>
 
@@ -287,6 +326,49 @@
         <h1>인구 통계 그래프(26.01)
             <div class="muted">by 필디</div>
         </h1>
+
+        <div class="tabNav">
+            <button type="button" class="tabBtn active" data-tab="analysis">기본 분석</button>
+            <button type="button" class="tabBtn" data-tab="custom">사용자 지정 비교</button>
+        </div>
+
+        <div class="tabPage active" id="tab-analysis">
+
+        <div class="panel compareOnly" id="customComparePanelOld">
+            <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+                <div>
+                    <div style="font-weight:700;">사용자 지정 지역 비교 분석</div>
+                    <div class="muted">두 번째 탭에서 추가한 지역들을 한 번에 비교합니다.</div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <input id="customCompareToggleOld" type="checkbox" style="width:auto; margin:0;">
+                    <span style="font-size:13px; font-weight:700; color:#444;">첫 탭에 비교 분석 표시</span>
+                </div>
+            </div>
+            <div class="kpis" style="margin-top:12px;">
+                <div class="kpi"><div class="t">등록 지역 수</div><div class="v" id="customKpiCountOld">-</div><div class="s">사용자 지정 비교 목록 기준</div></div>
+                <div class="kpi"><div class="t">총인구수 합계</div><div class="v" id="customKpiPopOld">-</div><div class="s">등록 지역 합산</div></div>
+                <div class="kpi"><div class="t">세대수 합계</div><div class="v" id="customKpiHouseOld">-</div><div class="s">등록 지역 합산</div></div>
+                <div class="kpi"><div class="t">세대당 인구</div><div class="v" id="customKpiPphOld">-</div><div class="s">총인구수/세대수</div></div>
+            </div>
+        </div>
+
+        <div class="panel compareOnly" id="customCompareBarPanelOld">
+            <div style="font-weight:700; margin-bottom:6px;">사용자 지정 지역 비교 그래프</div>
+            <div class="muted">등록된 지역별 총인구수 / 세대수 / 세대당 인구 비교</div>
+            <div class="chartBox"><canvas id="customCompareBarChartOld"></canvas></div>
+        </div>
+
+        <div class="panel compareOnly" id="customCompareAgePanelOld">
+            <div style="font-weight:700; margin-bottom:6px;">사용자 지정 지역 연령대 비중 비교</div>
+            <div class="muted">~10대 / 20대 / 30대 / 40대 / 50대 / 60대~ 비중(%)</div>
+            <div class="chartBox" style="height:460px;"><canvas id="customCompareAgeChartOld"></canvas></div>
+        </div>
+
+        <div class="panel compareOnly" id="customCompareTablePanelOld">
+            <div style="font-weight:700; margin-bottom:10px;">사용자 지정 지역 비교 표</div>
+            <table id="customCompareTableOld" class="display"></table>
+        </div>
 
         <div class="panel">
             <div class="row">
@@ -542,6 +624,133 @@
         <table id="ageDetailTable" class="display"></table>
 
     </div>
+
+        </div>
+
+        <div class="tabPage" id="tab-custom">
+            <div class="panel">
+                <div style="font-weight:700; margin-bottom:6px;">사용자 지정 비교 지역 관리</div>
+                <div class="muted">이 탭 안에서 별도로 시/도, 시/군/구, 구/읍/면/동을 선택해 비교 지역을 추가합니다. 첫 탭과는 독립적으로 동작합니다.</div>
+                <div class="row" style="margin-top:12px;">
+                    <div class="col">
+                        <label>시/도</label>
+                        <select id="customSidoSelect"></select>
+                    </div>
+                    <div class="col">
+                        <label>시/군/구</label>
+                        <select id="customSigunguSelect"></select>
+                    </div>
+                    <div class="col">
+                        <label>구/읍/면/동 선택 (선택)</label>
+                        <select id="customEmdSelect"></select>
+                    </div>
+                </div>
+                <div class="row" style="margin-top:12px; align-items:flex-end;">
+                    <div class="col">
+                        <label>표시 이름(선택)</label>
+                        <input id="customLabelInput" placeholder="비워두면 지역명으로 자동 생성" />
+                    </div>
+                    <div class="col" style="flex:0 0 auto; min-width:240px;">
+                        <button class="btnCopy" id="addCustomRegionBtn" type="button">선택 지역 추가</button>
+                        <button class="btnCopy btnDanger" id="clearCustomRegionsBtn" type="button" style="margin-left:8px;">전체 삭제</button>
+                    </div>
+                </div>
+                <div class="status" id="customRegionStatus"></div>
+                <div id="customRegionList" class="tagList"></div>
+            </div>
+
+            <div class="panel" id="customComparePanel2New">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+                    <div>
+                        <div style="font-weight:700;">사용자 지정 지역 비교 분석</div>
+                        <div class="muted">이 탭에서 등록한 지역들만 비교합니다.</div>
+                    </div>
+                </div>
+                <div class="kpis" style="margin-top:12px;">
+                    <div class="kpi"><div class="t">등록 지역 수</div><div class="v" id="customKpiCount2">-</div><div class="s">사용자 지정 비교 목록 기준</div></div>
+                    <div class="kpi"><div class="t">총인구수 합계</div><div class="v" id="customKpiPop2">-</div><div class="s">등록 지역 합산</div></div>
+                    <div class="kpi"><div class="t">세대수 합계</div><div class="v" id="customKpiHouse2">-</div><div class="s">등록 지역 합산</div></div>
+                    <div class="kpi"><div class="t">세대당 인구</div><div class="v" id="customKpiPph2">-</div><div class="s">총인구수/세대수</div></div>
+                </div>
+            </div>
+
+            <div class="panel" id="customCompareBarPanel2New">
+                <div style="font-weight:700; margin-bottom:6px;">사용자 지정 지역 비교 그래프</div>
+                <div class="muted">등록된 지역별 총인구수 / 세대수 / 세대당 인구 비교</div>
+                <div class="chartBox"><canvas id="customCompareBarChart2"></canvas></div>
+            </div>
+
+            <div class="panel" id="customCompareAgePanel2New">
+                <div style="font-weight:700; margin-bottom:6px;">사용자 지정 지역 연령대 비중 비교</div>
+                <div class="muted">~10대 / 20대 / 30대 / 40대 / 50대 / 60대~ 비중(%)</div>
+                <div class="chartBox" style="height:460px;"><canvas id="customCompareAgeChart2"></canvas></div>
+            </div>
+
+            <div class="panel" id="customCompareHeatPanel2New">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+                    <div>
+                        <div style="font-weight:700; margin:0 0 6px 0;">평균 기준 표 (평균 이상: 핑크 / 평균 이하: 흰색)</div>
+                        <div class="muted">완성형 = ~10대 + 30대 + 40대 + 50대</div>
+                    </div>
+                </div>
+                <div class="heatWrap" id="customHeatWrap" style="margin-top:10px;">
+                    <table class="heat" id="customAgeHeatTable"></table>
+                </div>
+            </div>
+
+            <div class="panel" id="customCompareTop5Panel2New">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+                    <div>
+                        <div style="font-weight:700;">TOP 5 요약</div>
+                        <div class="muted">사용자 지정 비교 탭에 등록한 지역 기준</div>
+                    </div>
+                </div>
+
+                <div class="row" style="margin-top:10px;">
+                    <div class="col">
+                        <div style="font-weight:700; margin:0 0 6px 0;">인구 TOP 5</div>
+                        <div id="custom_top5_pop"></div>
+                    </div>
+                    <div class="col">
+                        <div style="font-weight:700; margin:0 0 6px 0;">세대수 TOP 5</div>
+                        <div id="custom_top5_house"></div>
+                    </div>
+                    <div class="col">
+                        <div style="font-weight:700; margin:0 0 6px 0;">세대당 인구 TOP 5</div>
+                        <div id="custom_top5_pph"></div>
+                    </div>
+                </div>
+
+                <div class="row" style="margin-top:12px;">
+                    <div class="col">
+                        <div style="font-weight:700; margin:0 0 6px 0;">완성형 가족 비율 TOP 5</div>
+                        <div id="custom_top5_family"></div>
+                    </div>
+                    <div class="col">
+                        <div style="font-weight:700; margin:0 0 6px 0;">0~9세 TOP 5</div>
+                        <div id="custom_top5_0_9"></div>
+                    </div>
+                    <div class="col">
+                        <div style="font-weight:700; margin:0 0 6px 0;">10~19세 TOP 5</div>
+                        <div id="custom_top5_10_19"></div>
+                    </div>
+                </div>
+
+                <div class="row" style="margin-top:12px;">
+                    <div class="col">
+                        <div style="font-weight:700; margin:0 0 6px 0;">(0~9 + 10~19) 총합 TOP 5</div>
+                        <div id="custom_top5_teen_sum"></div>
+                    </div>
+                    <div class="col"></div>
+                    <div class="col"></div>
+                </div>
+            </div>
+
+            <div class="panel" id="customCompareTablePanel2New">
+                <div style="font-weight:700; margin-bottom:10px;">사용자 지정 지역 비교 표</div>
+                <table id="customCompareTable2" class="display"></table>
+            </div>
+        </div>
 
     <script>
         var DATA_URLS = [
@@ -2302,6 +2511,8 @@ function renderAdultAgeChart() {
                 rawRows = normalizeRows(res1.data);
                 rebuildSelectors();
                 refreshSigungu();
+                rebuildCustomSelectors();
+                refreshCustomSigungu();
 
                 return tryFetchCsvFixedByUrls(AGE_URLS).then(function(res2) {
                     rawAgeRows = normalizeAgeRows(res2.data);
@@ -2534,7 +2745,394 @@ function renderAdultAgeChart() {
 
 
 
+
+        var customRegions = [];
+        var customCompareBarChart = null;
+        var customCompareAgeChart = null;
+        var customCompareDt = null;
+        var customCompareDataCache = [];
+        var CUSTOM_STORAGE_KEY = "people_custom_regions_v2";
+
+        function saveCustomRegions() {
+            try { localStorage.setItem(CUSTOM_STORAGE_KEY, JSON.stringify(customRegions || [])); } catch (e) {}
+        }
+        function loadCustomRegions() {
+            try {
+                var saved = localStorage.getItem(CUSTOM_STORAGE_KEY);
+                customRegions = saved ? JSON.parse(saved) : [];
+                if (!Array.isArray(customRegions)) customRegions = [];
+            } catch (e) { customRegions = []; }
+        }
+        function setCustomStatus(msg, ok) {
+            $("#customRegionStatus").removeClass("ok err").addClass(ok ? "ok" : "err").text(msg || "");
+        }
+        function getCustomSelectedEmd() {
+            return String($("#customEmdSelect").val() || "").trim();
+        }
+        function parseCustomEmdSelection(value) {
+            var v = String(value || "").trim();
+            if (!v) return { type: "", value: "" };
+            if (v.indexOf("__GU__::") === 0) return { type: "gu", value: v.replace("__GU__::", "") };
+            return { type: "emd", value: v };
+        }
+        function getCustomGuNameFromEmd(emd) {
+            var pr = parseGuRest(emd);
+            return pr && pr.gu ? pr.gu : "";
+        }
+        function getCurrentRegionSelectionForCustom() {
+            var sido = String($("#customSidoSelect").val() || "").trim();
+            var sigungu = String($("#customSigunguSelect").val() || "").trim();
+            var emdRaw = getCustomSelectedEmd();
+            var emdSel = parseCustomEmdSelection(emdRaw);
+            if (!sido) return null;
+            var region = { sido: sido, sigungu: "", emd: "", gu: "", level: "sido", label: String($("#customLabelInput").val() || "").trim() };
+            if (sigungu) { region.sigungu = sigungu; region.level = "sigungu"; }
+            if (emdSel.type === "gu") {
+                region.gu = emdSel.value;
+                region.level = "gu";
+            } else if (emdSel.type === "emd") {
+                region.emd = emdSel.value;
+                region.level = "emd";
+            }
+            if (!region.label) {
+                region.label = region.level === "emd" ? [region.sido, region.sigungu, region.emd].filter(Boolean).join(" / ") :
+                               region.level === "gu" ? [region.sido, region.sigungu, region.gu].filter(Boolean).join(" / ") :
+                               region.level === "sigungu" ? [region.sido, region.sigungu].filter(Boolean).join(" / ") : region.sido;
+            }
+            return region;
+        }
+        function isSameCustomRegion(a, b) {
+            return !!a && !!b &&
+                String(a.level||"") === String(b.level||"") &&
+                String(a.sido||"") === String(b.sido||"") &&
+                String(a.sigungu||"") === String(b.sigungu||"") &&
+                String(a.gu||"") === String(b.gu||"") &&
+                String(a.emd||"") === String(b.emd||"");
+        }
+        function renderCustomRegionList() {
+            var $list = $("#customRegionList");
+            $list.empty();
+            if (!customRegions.length) {
+                $list.html('<div class="muted">아직 추가된 지역이 없습니다.</div>');
+                return;
+            }
+            for (var i = 0; i < customRegions.length; i++) {
+                var r = customRegions[i];
+                var $item = $('<div class="tagItem"></div>');
+                $item.append($('<span></span>').text(r.label));
+                var $btn = $('<button type="button" class="btnCopy">삭제</button>');
+                (function(idx){ $btn.on('click', function(){ customRegions.splice(idx, 1); saveCustomRegions(); renderCustomRegionList(); renderCustomCompareSection(); }); })(i);
+                $item.append($btn);
+                $list.append($item);
+            }
+        }
+        function addCurrentRegionToCustom() {
+            var region = getCurrentRegionSelectionForCustom();
+            if (!region) {
+                setCustomStatus("먼저 이 탭에서 시/도 이상을 선택해 주세요.", false);
+                return;
+            }
+            for (var i = 0; i < customRegions.length; i++) {
+                if (isSameCustomRegion(customRegions[i], region)) {
+                    setCustomStatus("이미 추가된 지역입니다.", false);
+                    return;
+                }
+            }
+            customRegions.push(region);
+            saveCustomRegions();
+            renderCustomRegionList();
+            renderCustomCompareSection();
+            setCustomStatus("지역이 추가되었습니다.", true);
+        }
+        function getCustomLevelRows(region, rows) {
+            var out = [];
+            var level = region.level || 'sido';
+            for (var i = 0; i < rows.length; i++) {
+                var r = rows[i];
+                if (String(r.sido || '').trim() !== String(region.sido || '').trim()) continue;
+                if (level === 'sido') {
+                    if (!String(r.sigungu || '').trim() && !String(r.emd || '').trim()) out.push(r);
+                    continue;
+                }
+                if (String(r.sigungu || '').trim() !== String(region.sigungu || '').trim()) continue;
+                if (level === 'sigungu') {
+                    if (!String(r.emd || '').trim()) out.push(r);
+                    continue;
+                }
+                if (level === 'gu') {
+                    var emdGu = getCustomGuNameFromEmd(String(r.emd || '').trim());
+                    if (!emdGu) continue;
+                    if (emdGu === String(region.gu || '').trim()) out.push(r);
+                    continue;
+                }
+                if (String(r.emd || '').trim() === String(region.emd || '').trim()) out.push(r);
+            }
+            return out;
+        }
+        function summarizeCustomCompareRows() {
+            var out = [];
+            for (var i = 0; i < customRegions.length; i++) {
+                var region = customRegions[i];
+                var rows = getCustomLevelRows(region, rawRows || []);
+                var pop = 0, house = 0, pph = 0;
+                for (var rIdx = 0; rIdx < rows.length; rIdx++) {
+                    pop += Number(rows[rIdx].pop || 0);
+                    house += Number(rows[rIdx].house || 0);
+                }
+                pph = house ? (pop / house) : 0;
+
+                var ageRows = getCustomLevelRows(region, rawAgeRows || []);
+                var a0_9 = 0, a10_19 = 0, a20 = 0, a30 = 0, a40 = 0, a50 = 0, a60p = 0;
+                for (var aIdx = 0; aIdx < ageRows.length; aIdx++) {
+                    var a = ageRows[aIdx];
+                    a0_9 += Number(a.a0_9 || 0);
+                    a10_19 += Number(a.a10_19 || 0);
+                    a20 += Number(a.a20_29 || 0);
+                    a30 += Number(a.a30_39 || 0);
+                    a40 += Number(a.a40_49 || 0);
+                    a50 += Number(a.a50_59 || 0);
+                    a60p += Number(a.a60_69 || 0) + Number(a.a70_79 || 0) + Number(a.a80_89 || 0) + Number(a.a90_99 || 0) + Number(a.a100p || 0);
+                }
+                var totalAge = a0_9 + a10_19 + a20 + a30 + a40 + a50 + a60p;
+                out.push({
+                    label: region.label,
+                    sido: region.sido,
+                    sigungu: region.sigungu,
+                    gu: region.gu || "",
+                    emd: region.emd,
+                    pop: pop,
+                    house: house,
+                    pph: pph,
+                    pTeen: totalAge ? ((a0_9 + a10_19) / totalAge) * 100 : 0,
+                    p20: totalAge ? (a20 / totalAge) * 100 : 0,
+                    p30: totalAge ? (a30 / totalAge) * 100 : 0,
+                    p40: totalAge ? (a40 / totalAge) * 100 : 0,
+                    p50: totalAge ? (a50 / totalAge) * 100 : 0,
+                    p60p: totalAge ? (a60p / totalAge) * 100 : 0,
+                    pFamily: totalAge ? (((a0_9 + a10_19) + a30 + a40 + a50) / totalAge) * 100 : 0,
+                    teen: a0_9 + a10_19,
+                    a0_9: a0_9,
+                    a10_19: a10_19,
+                    totalAge: totalAge
+                });
+            }
+            return out;
+        }
+        function buildCustomAgeHeatTable(data) {
+            var cols = [
+                { key: "pTeen", title: "~10대" },
+                { key: "p20", title: "20대" },
+                { key: "p30", title: "30대" },
+                { key: "p40", title: "40대" },
+                { key: "p50", title: "50대" },
+                { key: "p60p", title: "60대~" },
+                { key: "pFamily", title: "완성형" }
+            ];
+            if (!data || !data.length) { $("#customAgeHeatTable").html(""); return; }
+            var avg = {};
+            for (var c = 0; c < cols.length; c++) avg[cols[c].key] = 0;
+            for (var i = 0; i < data.length; i++) for (var c2 = 0; c2 < cols.length; c2++) avg[cols[c2].key] += Number(data[i][cols[c2].key] || 0);
+            for (var c3 = 0; c3 < cols.length; c3++) avg[cols[c3].key] = avg[cols[c3].key] / data.length;
+            var html = "<thead><tr><th></th>";
+            for (var h = 0; h < cols.length; h++) html += "<th>" + cols[h].title + "</th>";
+            html += "</tr></thead><tbody>";
+            for (var r = 0; r < data.length; r++) {
+                html += "<tr><td class='name'>" + safeText(data[r].label) + "</td>";
+                for (var cc = 0; cc < cols.length; cc++) {
+                    var k = cols[cc].key;
+                    var v = Number(data[r][k] || 0);
+                    html += "<td class='" + (v >= avg[k] ? "hit" : "miss") + "'>" + Math.round(v) + "%</td>";
+                }
+                html += "</tr>";
+            }
+            html += "<tr class='avg'><td class='name'>평균</td>";
+            for (var a = 0; a < cols.length; a++) html += "<td>" + Math.round(avg[cols[a].key]) + "%</td>";
+            html += "</tr></tbody>";
+            $("#customAgeHeatTable").html(html);
+        }
+        function renderCustomTop5Summary(data) {
+            data = data || [];
+            renderTop5Table("custom_top5_pop", "총인구수", topN(data, 5, function(o){ return o.pop || 0; }), function(o){ return fmt(o.pop || 0); });
+            renderTop5Table("custom_top5_house", "세대수", topN(data, 5, function(o){ return o.house || 0; }), function(o){ return fmt(o.house || 0); });
+            renderTop5Table("custom_top5_pph", "세대당", topN(data, 5, function(o){ return o.pph || 0; }), function(o){ return o.pph ? Number(o.pph).toFixed(2) : "0.00"; });
+            renderTop5Table("custom_top5_family", "비율", topN(data, 5, function(o){ return o.pFamily || 0; }), function(o){ return Math.round(o.pFamily || 0) + "%"; });
+            renderTop5Table("custom_top5_0_9", "인구", topN(data, 5, function(o){ return o.a0_9 || 0; }), function(o){ return fmt(o.a0_9 || 0); });
+            renderTop5Table("custom_top5_10_19", "인구", topN(data, 5, function(o){ return o.a10_19 || 0; }), function(o){ return fmt(o.a10_19 || 0); });
+            renderTop5Table("custom_top5_teen_sum", "인구", topN(data, 5, function(o){ return o.teen || 0; }), function(o){ return fmt(o.teen || 0); });
+        }
+
+        function renderCustomCompareSection() {
+            var active = customRegions.length > 0;
+            $("#customComparePanel2New, #customCompareBarPanel2New, #customCompareAgePanel2New, #customCompareHeatPanel2New, #customCompareTop5Panel2New, #customCompareTablePanel2New").toggle(active);
+            if (!active) return;
+            var data = summarizeCustomCompareRows();
+            customCompareDataCache = data.slice(0);
+            var popSum = 0, houseSum = 0;
+            for (var i = 0; i < data.length; i++) { popSum += data[i].pop || 0; houseSum += data[i].house || 0; }
+            $("#customKpiCount2").text(fmt(data.length));
+            $("#customKpiPop2").text(fmt(popSum));
+            $("#customKpiHouse2").text(fmt(houseSum));
+            $("#customKpiPph2").text(houseSum ? (popSum / houseSum).toFixed(2) : "-");
+
+            var labels = [], popData = [], houseData = [], pphData = [];
+            for (var j = 0; j < data.length; j++) { labels.push(data[j].label); popData.push(data[j].pop); houseData.push(data[j].house); pphData.push(Number((data[j].pph || 0).toFixed(2))); }
+            if (customCompareBarChart) customCompareBarChart.destroy();
+            customCompareBarChart = new Chart(document.getElementById("customCompareBarChart2"), {
+                type: "bar",
+                data: { labels: labels, datasets: [
+                    { type:"bar", label:"총인구수", data: popData, yAxisID:"y" },
+                    { type:"bar", label:"세대수", data: houseData, yAxisID:"y" },
+                    { type:"line", label:"세대당 인구", data: pphData, yAxisID:"y1", tension:0.25, pointRadius:3 }
+                ]},
+                options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:true}, tooltip:{callbacks:{ label:function(ctx){ return ctx.dataset.yAxisID === 'y1' ? (ctx.dataset.label + ': ' + ctx.raw) : (ctx.dataset.label + ': ' + fmt(ctx.raw)); }}}}, scales:{ y:{ position:'left', ticks:{ callback:function(v){ return fmt(v); }}}, y1:{ position:'right', grid:{ drawOnChartArea:false }}} }
+            });
+
+            if (customCompareAgeChart) customCompareAgeChart.destroy();
+            customCompareAgeChart = new Chart(document.getElementById("customCompareAgeChart2"), {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label:"~10대", data:data.map(function(x){ return Math.round(x.pTeen); }), stack:'s' },
+                        { label:"20대", data:data.map(function(x){ return Math.round(x.p20); }), stack:'s' },
+                        { label:"30대", data:data.map(function(x){ return Math.round(x.p30); }), stack:'s' },
+                        { label:"40대", data:data.map(function(x){ return Math.round(x.p40); }), stack:'s' },
+                        { label:"50대", data:data.map(function(x){ return Math.round(x.p50); }), stack:'s' },
+                        { label:"60대~", data:data.map(function(x){ return Math.round(x.p60p); }), stack:'s' }
+                    ]
+                },
+                options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:true} }, scales:{ x:{ stacked:true }, y:{ stacked:true, max:100, ticks:{ callback:function(v){ return v + '%'; }}} } }
+            });
+
+            buildCustomAgeHeatTable(data);
+            renderCustomTop5Summary(data);
+
+            var tableRows = data.map(function(x){ return { 비교명:x.label, 시도:x.sido, 시군구:x.sigungu, 읍면동선택:(x.gu || x.emd || ''), 총인구수:x.pop, 세대수:x.house, 세대당인구:x.pph, 청소년인구:x.teen, '0~9세':x.a0_9, '10~19세':x.a10_19 }; });
+            var columns = [
+                { title:'비교명', data:'비교명' },
+                { title:'시/도', data:'시도' },
+                { title:'시/군/구', data:'시군구' },
+                { title:'읍/면/동 선택', data:'읍면동선택' },
+                { title:'총인구수', data:'총인구수', render:fmt },
+                { title:'세대수', data:'세대수', render:fmt },
+                { title:'세대당 인구', data:'세대당인구', render:function(d){ return d ? Number(d).toFixed(2) : '-'; } },
+                { title:'청소년 인구', data:'청소년인구', render:fmt },
+                { title:'0~9세', data:'0~9세', render:fmt },
+                { title:'10~19세', data:'10~19세', render:fmt }
+            ];
+            if (customCompareDt) {
+                customCompareDt.clear();
+                customCompareDt.rows.add(tableRows);
+                customCompareDt.draw();
+            } else {
+                customCompareDt = new DataTable('#customCompareTable2', {
+                    data: tableRows,
+                    columns: columns,
+                    pageLength: 10,
+                    order: [[4, 'desc']],
+                    language: { search:'검색:', lengthMenu:'_MENU_ 개씩 보기', info:'총 _TOTAL_개 중 _START_~_END_', paginate:{ previous:'이전', next:'다음' }, emptyTable:'표시할 데이터가 없습니다.' }
+                });
+            }
+        }
+
+        function rebuildCustomSelectors() {
+            var sidos = uniq($.map(rawRows, function(r) { return r.sido; }));
+            var $s = $("#customSidoSelect");
+            $s.empty();
+            $s.append('<option value="">(전체)</option>');
+            for (var i = 0; i < sidos.length; i++) $s.append('<option value="' + sidos[i] + '">' + sidos[i] + '</option>');
+            $("#customSigunguSelect").empty().append('<option value="">(전체)</option>');
+            rebuildCustomEmdSelect();
+        }
+        function refreshCustomSigungu() {
+            var sido = $("#customSidoSelect").val();
+            var list = [];
+            for (var i = 0; i < rawRows.length; i++) {
+                var r = rawRows[i];
+                if (sido && r.sido !== sido) continue;
+                if (!String(r.sigungu || '').trim()) continue;
+                list.push(r.sigungu);
+            }
+            list = uniq(list);
+            var $g = $("#customSigunguSelect");
+            var cur = $g.val();
+            $g.empty().append('<option value="">(전체)</option>');
+            for (var j = 0; j < list.length; j++) $g.append('<option value="' + list[j] + '">' + list[j] + '</option>');
+            for (var k = 0; k < list.length; k++) if (list[k] === cur) { $g.val(cur); break; }
+            rebuildCustomEmdSelect();
+        }
+        function rebuildCustomEmdSelect() {
+            var sido = String($("#customSidoSelect").val() || '').trim();
+            var sigungu = String($("#customSigunguSelect").val() || '').trim();
+            var $e = $("#customEmdSelect");
+            var cur = String($e.val() || '').trim();
+            $e.empty();
+            if (!sigungu) {
+                $e.append('<option value="">(시/군/구 먼저 선택)</option>');
+                $e.prop('disabled', true);
+                return;
+            }
+            var emdList = [];
+            var guMap = {};
+            for (var i = 0; i < rawRows.length; i++) {
+                var r = rawRows[i];
+                if (sido && String(r.sido || '').trim() !== sido) continue;
+                if (sigungu && String(r.sigungu || '').trim() !== sigungu) continue;
+                var emd = String(r.emd || '').trim();
+                if (!emd) continue;
+                if (/구$/.test(emd)) continue;
+                var gu = getCustomGuNameFromEmd(emd);
+                if (gu) guMap[gu] = true;
+                emdList.push(emd);
+            }
+            emdList = uniq(emdList);
+            var guList = Object.keys(guMap).sort();
+            $e.append('<option value="">(전체)</option>');
+            for (var g = 0; g < guList.length; g++) {
+                var guValue = '__GU__::' + guList[g];
+                $e.append('<option value="' + guValue + '">' + guList[g] + '</option>');
+            }
+            for (var j = 0; j < emdList.length; j++) $e.append('<option value="' + emdList[j] + '">' + emdList[j] + '</option>');
+            if (cur) {
+                if ($e.find('option[value="' + cur.replace(/"/g, '&quot;') + '"]').length) $e.val(cur);
+                else $e.val('');
+            }
+            $e.prop('disabled', false);
+        }
         $(function() {
+            loadCustomRegions();
+            renderCustomRegionList();
+            $("#customComparePanel2New, #customCompareBarPanel2New, #customCompareAgePanel2New, #customCompareHeatPanel2New, #customCompareTop5Panel2New, #customCompareTablePanel2New").hide();
+            $(document).on("click", ".tabBtn", function() {
+                var tab = $(this).data("tab");
+                $(".tabBtn").removeClass("active");
+                $(this).addClass("active");
+                $(".tabPage").removeClass("active");
+                $("#tab-" + tab).addClass("active");
+                if (tab === "custom") renderCustomCompareSection();
+            });
+
+            $("#addCustomRegionBtn").on("click", function() {
+                addCurrentRegionToCustom();
+            });
+
+            $("#clearCustomRegionsBtn").on("click", function() {
+                customRegions = [];
+                saveCustomRegions();
+                renderCustomRegionList();
+                renderCustomCompareSection();
+                setCustomStatus("등록된 지역을 모두 삭제했습니다.", true);
+            });
+
+            $("#customSidoSelect").on("change", function() {
+                $("#customSigunguSelect").val("");
+                refreshCustomSigungu();
+            });
+
+            $("#customSigunguSelect").on("change", function() {
+                rebuildCustomEmdSelect();
+            });
+
             $("#sidoSelect").on("change", function() {
                 $("#sigunguSelect").val("");
                 $("#emdFilter").val(""); // 검색 초기화
