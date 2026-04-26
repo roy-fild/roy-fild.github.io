@@ -167,6 +167,69 @@ $(function(){
     "인천시-부평구":"https://roy-fild.github.io/map/contents/bupyeong-gu.png",
     "부산-진구": "https://roy-fild.github.io/map/contents/busanjin-gu.png",
     "대전-서구": "https://roy-fild.github.io/map/contents/daejeon-seo-gu.png",
+    "대전-유  </style>
+</head>
+
+<body>
+  <div id="backdrop" class="backdrop"></div>
+  <div class="app">
+    <aside class="sidebar">
+      <header><p class="title">지도 뷰어</p></header>
+      <div class="search"><input id="q" type="text" placeholder="구역 검색..." /></div>
+      <div id="districtList" class="district-list"></div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <button class="menu-btn" id="menuBtn">☰ 메뉴</button>
+        <div class="now">선택: <span id="nowName" style="color:var(--accent)">-</span></div>
+        <button class="btn" id="zoomOut">축소</button>
+        <button class="btn" id="zoomIn">확대</button>
+        <button class="btn" id="reset">리셋</button>
+      </div>
+
+      <div class="viewer-wrap">
+        <div class="viewer">
+          <div id="stage" class="stage">
+            <img id="mapImg" alt="map" style="display:none;" />
+            <div id="empty" class="empty"><b>지역을 선택해 주세요.</b></div>
+          </div>
+        </div>
+        <div class="status">배율 <span id="scaleText">1.00</span></div>
+      </div>
+    </main>
+  </div>
+
+<script>
+$(function(){
+  const districts = {
+    "송파구":"https://roy-fild.github.io/map/contents/songpa-gu.png",
+    "성동구":"https://roy-fild.github.io/map/contents/seongdong-gu.png",
+    "양천구":"https://roy-fild.github.io/map/contents/yangcheon-gu.png",
+    "영등포구":"https://roy-fild.github.io/map/contents/yeongdeungpo-gu.png",
+    "분당구":"https://roy-fild.github.io/map/contents/bundang-gu.png",
+    "종로구":"https://roy-fild.github.io/map/contents/jongno-gu.png",
+    "중구":"https://roy-fild.github.io/map/contents/jung-gu.png",
+    "동작구":"https://roy-fild.github.io/map/contents/dongjak-gu.png",
+    "성북구":"https://roy-fild.github.io/map/contents/seongbuk-gu.png",
+    "관악구":"https://roy-fild.github.io/map/contents/gwanak-gu.png",
+    "동대문구":"https://roy-fild.github.io/map/contents/dongdaemun-gu.png",
+    "은평구": "https://roy-fild.github.io/map/contents/eunpyeong-gu.png",
+    "서대문구": "https://roy-fild.github.io/map/contents/seodaemun-gu.png",
+    "구로구": "https://roy-fild.github.io/map/contents/guro-gu.png",
+    "중랑구": "https://roy-fild.github.io/map/contents/jungnang-gu.png",
+    "수지구": "https://roy-fild.github.io/map/contents/suji-gu.png",
+    "수원시-영통구": "https://roy-fild.github.io/map/contents/suwon-si-yeongtong-gu.png",
+    "안양시-동안구": "https://roy-fild.github.io/map/contents/anyang-si-dongan-gu.png",
+    "수정중원구": "https://roy-fild.github.io/map/contents/sujeong-jungwon-gu.png",
+    "화성시-동탄": "https://roy-fild.github.io/map/contents/dongtan.png",
+    "부천시": "https://roy-fild.github.io/map/contents/bu-cheon.png",
+    "구리시": "https://roy-fild.github.io/map/contents/guri-si.png",
+    "군포시": "https://roy-fild.github.io/map/contents/gunpo-si.png",
+    "인천시-부평구":"https://roy-fild.github.io/map/contents/bupyeong-gu.png",
+    "부산-진구": "https://roy-fild.github.io/map/contents/busanjin-gu.png",
+    "대전-서구": "https://roy-fild.github.io/map/contents/daejeon-seo-gu.png",
+    "대전-유성구": "https://roy-fild.github.io/map/contents/daejeon-yuseong-gu.png",
     "대구-수성구": "https://roy-fild.github.io/map/contents/daegu-suseong-gu.png",
     "광주-북구": "https://roy-fild.github.io/map/contents/gwangju-buk-gu.png",
     "천안시": "https://roy-fild.github.io/map/contents/cheonan.png",
