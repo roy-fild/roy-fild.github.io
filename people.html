@@ -675,14 +675,24 @@
             </div>
 
             <div class="panel" id="customCompareBarPanel2New">
-                <div style="font-weight:700; margin-bottom:6px;">사용자 지정 지역 비교 그래프</div>
-                <div class="muted">등록된 지역별 총인구수 / 세대수 / 세대당 인구 비교</div>
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+                    <div>
+                        <div style="font-weight:700; margin-bottom:6px;">사용자 지정 지역 비교 그래프</div>
+                        <div class="muted">등록된 지역별 총인구수 / 세대수 / 세대당 인구 비교</div>
+                    </div>
+                    <button class="btnCopy" id="copyCustomCompareBarBtn" type="button">복사</button>
+                </div>
                 <div class="chartBox"><canvas id="customCompareBarChart2"></canvas></div>
             </div>
 
             <div class="panel" id="customCompareAgePanel2New">
-                <div style="font-weight:700; margin-bottom:6px;">사용자 지정 지역 연령대 비중 비교</div>
-                <div class="muted">~10대 / 20대 / 30대 / 40대 / 50대 / 60대~ 비중(%)</div>
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+                    <div>
+                        <div style="font-weight:700; margin-bottom:6px;">사용자 지정 지역 연령대 비중 비교</div>
+                        <div class="muted">~10대 / 20대 / 30대 / 40대 / 50대 / 60대~ 비중(%)</div>
+                    </div>
+                    <button class="btnCopy" id="copyCustomCompareAgeBtn" type="button">복사</button>
+                </div>
                 <div class="chartBox" style="height:460px;"><canvas id="customCompareAgeChart2"></canvas></div>
             </div>
 
@@ -692,6 +702,7 @@
                         <div style="font-weight:700; margin:0 0 6px 0;">평균 기준 표 (평균 이상: 핑크 / 평균 이하: 흰색)</div>
                         <div class="muted">완성형 = ~10대 + 30대 + 40대 + 50대</div>
                     </div>
+                    <button class="btnCopy" id="copyCustomHeatBtn" type="button">복사</button>
                 </div>
                 <div class="heatWrap" id="customHeatWrap" style="margin-top:10px;">
                     <table class="heat" id="customAgeHeatTable"></table>
@@ -704,6 +715,7 @@
                         <div style="font-weight:700;">TOP 5 요약</div>
                         <div class="muted">사용자 지정 비교 탭에 등록한 지역 기준</div>
                     </div>
+                    <button class="btnCopy" id="copyCustomTop5Btn" type="button">복사</button>
                 </div>
 
                 <div class="row" style="margin-top:10px;">
@@ -746,9 +758,60 @@
                 </div>
             </div>
 
+            <div class="panel" id="customCompareYouthPanel2New">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+                    <div>
+                        <div style="font-weight:700;">청소년(0~9 / 10~19) 인구</div>
+                        <div class="muted">사용자 지정 비교 탭에 등록한 지역 기준</div>
+                    </div>
+                    <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+                        <div style="min-width:240px;">
+                            <label>정렬 기준</label>
+                            <select id="customYouthSortMetric">
+                                <option value="sumDesc">총합 (내림차순)</option>
+                                <option value="a0_9Desc">0~9세 (내림차순)</option>
+                                <option value="a10_19Desc">10~19세 (내림차순)</option>
+                            </select>
+                        </div>
+                        <button class="btnCopy" id="copyCustomYouthBtn" type="button">복사</button>
+                    </div>
+                </div>
+                <div class="chartBox" style="height:420px; margin-top:10px;"><canvas id="customYouthChart2"></canvas></div>
+            </div>
+
+            <div class="panel" id="customCompareAdultPanel2New">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+                    <div>
+                        <div style="font-weight:700;">성인 연령대 별 인구 그래프</div>
+                        <div class="muted">사용자 지정 비교 탭에 등록한 지역 기준</div>
+                    </div>
+                    <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+                        <div style="min-width:220px;">
+                            <label>연령대 선택</label>
+                            <select id="customAdultAgeSelect">
+                                <option value="a20">20대</option>
+                                <option value="a30">30대</option>
+                                <option value="a40">40대</option>
+                                <option value="a50">50대</option>
+                                <option value="a60p">60대~</option>
+                            </select>
+                        </div>
+                        <button class="btnCopy" id="copyCustomAdultAgeBtn" type="button">복사</button>
+                    </div>
+                </div>
+                <div class="kpis" style="margin-top:12px;">
+                    <div class="kpi"><div class="t">선택 연령대 합산</div><div class="v" id="customKpiAdultSum">-</div><div class="s">사용자 지정 비교 목록 기준</div></div>
+                    <div class="kpi"><div class="t">표시된 항목 개수</div><div class="v" id="customKpiAdultCnt">-</div><div class="s">사용자 지정 비교 목록 기준</div></div>
+                </div>
+                <div class="chartBox" style="height:420px; margin-top:10px;"><canvas id="customAdultAgeChart2"></canvas></div>
+            </div>
+
             <div class="panel" id="customCompareTablePanel2New">
-                <div style="font-weight:700; margin-bottom:10px;">사용자 지정 지역 비교 표</div>
-                <table id="customCompareTable2" class="display"></table>
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+                    <div style="font-weight:700; margin-bottom:10px;">사용자 지정 지역 비교 표</div>
+                    <button class="btnCopy" id="copyCustomCompareTableBtn" type="button">복사</button>
+                </div>
+                <div id="customCompareTableWrap"><table id="customCompareTable2" class="display"></table></div>
             </div>
         </div>
 
@@ -2749,6 +2812,8 @@ function renderAdultAgeChart() {
         var customRegions = [];
         var customCompareBarChart = null;
         var customCompareAgeChart = null;
+        var customYouthChart = null;
+        var customAdultAgeChart = null;
         var customCompareDt = null;
         var customCompareDataCache = [];
         var CUSTOM_STORAGE_KEY = "people_custom_regions_v2";
@@ -2913,6 +2978,11 @@ function renderAdultAgeChart() {
                     teen: a0_9 + a10_19,
                     a0_9: a0_9,
                     a10_19: a10_19,
+                    a20: a20,
+                    a30: a30,
+                    a40: a40,
+                    a50: a50,
+                    a60p: a60p,
                     totalAge: totalAge
                 });
             }
@@ -2961,9 +3031,63 @@ function renderAdultAgeChart() {
             renderTop5Table("custom_top5_teen_sum", "인구", topN(data, 5, function(o){ return o.teen || 0; }), function(o){ return fmt(o.teen || 0); });
         }
 
+
+        function renderCustomYouthChart(data) {
+            data = (data || []).slice(0);
+            var m = $("#customYouthSortMetric").val() || "sumDesc";
+            data.sort(function(a, b) {
+                if (m === "a0_9Desc") return (b.a0_9 || 0) - (a.a0_9 || 0);
+                if (m === "a10_19Desc") return (b.a10_19 || 0) - (a.a10_19 || 0);
+                return (b.teen || 0) - (a.teen || 0);
+            });
+            var labels = data.map(function(x){ return x.label; });
+            if (customYouthChart) customYouthChart.destroy();
+            customYouthChart = new Chart(document.getElementById("customYouthChart2"), {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: "0~9세", data: data.map(function(x){ return x.a0_9 || 0; }) },
+                        { label: "10~19세", data: data.map(function(x){ return x.a10_19 || 0; }) }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: true }, tooltip: { callbacks: { label: function(ctx){ return ctx.dataset.label + ": " + fmt(ctx.raw); }}}},
+                    scales: { y: { ticks: { callback: function(v){ return fmt(v); }}}}
+                }
+            });
+        }
+
+        function renderCustomAdultAgeChart(data) {
+            data = (data || []).slice(0);
+            var ageKey = $("#customAdultAgeSelect").val() || "a20";
+            var label = getAdultAgeLabel(ageKey) + " 인구";
+            data.sort(function(a, b) { return (b[ageKey] || 0) - (a[ageKey] || 0); });
+            var sum = 0;
+            for (var i = 0; i < data.length; i++) sum += (data[i][ageKey] || 0);
+            $("#customKpiAdultSum").text(fmt(sum));
+            $("#customKpiAdultCnt").text(fmt(data.length));
+            if (customAdultAgeChart) customAdultAgeChart.destroy();
+            customAdultAgeChart = new Chart(document.getElementById("customAdultAgeChart2"), {
+                type: "bar",
+                data: {
+                    labels: data.map(function(x){ return x.label; }),
+                    datasets: [{ label: label, data: data.map(function(x){ return x[ageKey] || 0; }) }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: true }, tooltip: { callbacks: { label: function(ctx){ return ctx.dataset.label + ": " + fmt(ctx.raw); }}}},
+                    scales: { y: { ticks: { callback: function(v){ return fmt(v); }}}}
+                }
+            });
+        }
+
         function renderCustomCompareSection() {
             var active = customRegions.length > 0;
-            $("#customComparePanel2New, #customCompareBarPanel2New, #customCompareAgePanel2New, #customCompareHeatPanel2New, #customCompareTop5Panel2New, #customCompareTablePanel2New").toggle(active);
+            $("#customComparePanel2New, #customCompareBarPanel2New, #customCompareAgePanel2New, #customCompareHeatPanel2New, #customCompareTop5Panel2New, #customCompareYouthPanel2New, #customCompareAdultPanel2New, #customCompareTablePanel2New").toggle(active);
             if (!active) return;
             var data = summarizeCustomCompareRows();
             customCompareDataCache = data.slice(0);
@@ -3006,8 +3130,10 @@ function renderAdultAgeChart() {
 
             buildCustomAgeHeatTable(data);
             renderCustomTop5Summary(data);
+            renderCustomYouthChart(data);
+            renderCustomAdultAgeChart(data);
 
-            var tableRows = data.map(function(x){ return { 비교명:x.label, 시도:x.sido, 시군구:x.sigungu, 읍면동선택:(x.gu || x.emd || ''), 총인구수:x.pop, 세대수:x.house, 세대당인구:x.pph, 청소년인구:x.teen, '0~9세':x.a0_9, '10~19세':x.a10_19 }; });
+            var tableRows = data.map(function(x){ return { 비교명:x.label, 시도:x.sido, 시군구:x.sigungu, 읍면동선택:(x.gu || x.emd || ''), 총인구수:x.pop, 세대수:x.house, 세대당인구:x.pph, 청소년인구:x.teen, '0~9세':x.a0_9, '10~19세':x.a10_19, '20대':x.a20, '30대':x.a30, '40대':x.a40, '50대':x.a50, '60대~':x.a60p }; });
             var columns = [
                 { title:'비교명', data:'비교명' },
                 { title:'시/도', data:'시도' },
@@ -3018,7 +3144,12 @@ function renderAdultAgeChart() {
                 { title:'세대당 인구', data:'세대당인구', render:function(d){ return d ? Number(d).toFixed(2) : '-'; } },
                 { title:'청소년 인구', data:'청소년인구', render:fmt },
                 { title:'0~9세', data:'0~9세', render:fmt },
-                { title:'10~19세', data:'10~19세', render:fmt }
+                { title:'10~19세', data:'10~19세', render:fmt },
+                { title:'20대', data:'20대', render:fmt },
+                { title:'30대', data:'30대', render:fmt },
+                { title:'40대', data:'40대', render:fmt },
+                { title:'50대', data:'50대', render:fmt },
+                { title:'60대~', data:'60대~', render:fmt }
             ];
             if (customCompareDt) {
                 customCompareDt.clear();
@@ -3102,7 +3233,7 @@ function renderAdultAgeChart() {
         $(function() {
             loadCustomRegions();
             renderCustomRegionList();
-            $("#customComparePanel2New, #customCompareBarPanel2New, #customCompareAgePanel2New, #customCompareHeatPanel2New, #customCompareTop5Panel2New, #customCompareTablePanel2New").hide();
+            $("#customComparePanel2New, #customCompareBarPanel2New, #customCompareAgePanel2New, #customCompareHeatPanel2New, #customCompareTop5Panel2New, #customCompareYouthPanel2New, #customCompareAdultPanel2New, #customCompareTablePanel2New").hide();
             $(document).on("click", ".tabBtn", function() {
                 var tab = $(this).data("tab");
                 $(".tabBtn").removeClass("active");
@@ -3211,6 +3342,35 @@ function renderAdultAgeChart() {
 
             $("#excelAgeDetailBtn").on("click", function() {
                 exportDataTableToCsv(ageDt, "ingu_age_detail.csv");
+            });
+
+
+            $("#copyCustomCompareBarBtn").on("click", function() {
+                copyChartCanvasById("customCompareBarChart2", $("#copyCustomCompareBarBtn"));
+            });
+            $("#copyCustomCompareAgeBtn").on("click", function() {
+                copyChartCanvasById("customCompareAgeChart2", $("#copyCustomCompareAgeBtn"));
+            });
+            $("#copyCustomYouthBtn").on("click", function() {
+                copyChartCanvasById("customYouthChart2", $("#copyCustomYouthBtn"));
+            });
+            $("#copyCustomAdultAgeBtn").on("click", function() {
+                copyChartCanvasById("customAdultAgeChart2", $("#copyCustomAdultAgeBtn"));
+            });
+            $("#copyCustomHeatBtn").on("click", function() {
+                copyElementAsImage(document.getElementById("customHeatWrap"), $("#copyCustomHeatBtn"));
+            });
+            $("#copyCustomTop5Btn").on("click", function() {
+                copyElementAsImage(document.getElementById("customCompareTop5Panel2New"), $("#copyCustomTop5Btn"));
+            });
+            $("#copyCustomCompareTableBtn").on("click", function() {
+                copyElementAsImage(document.getElementById("customCompareTableWrap"), $("#copyCustomCompareTableBtn"));
+            });
+            $("#customYouthSortMetric").on("change", function() {
+                renderCustomYouthChart(customCompareDataCache);
+            });
+            $("#customAdultAgeSelect").on("change", function() {
+                renderCustomAdultAgeChart(customCompareDataCache);
             });
 
             $("#ageAvgToggle").on("change", function() {
