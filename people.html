@@ -2547,7 +2547,7 @@ function renderAdultAgeChart() {
                 for (var i = 0; i < items.length; i++) {
                     html += "<tr>";
                     html += "<td class='rank'>" + (i + 1) + "</td>";
-                    html += "<td>" + safeText(items[i].name) + "</td>";
+                    html += "<td>" + safeText(items[i].name || items[i].label) + "</td>";
                     html += "<td class='val'>" + valueFormatter(items[i]) + "</td>";
                     html += "</tr>";
                 }
