@@ -56,7 +56,7 @@
 
     .filter-box {
       display: grid;
-      grid-template-columns: repeat(5, minmax(130px, 1fr)) auto;
+      grid-template-columns: repeat(6, minmax(120px, 1fr)) auto;
       gap: 12px;
       align-items: end;
     }
@@ -436,6 +436,13 @@
         </div>
 
         <div class="field">
+          <label for="addr3Select">주소3</label>
+          <select id="addr3Select">
+            <option value="">전체</option>
+          </select>
+        </div>
+
+        <div class="field">
           <label for="schoolInput">학교명</label>
           <input type="text" id="schoolInput" placeholder="예: 대원국제중학교" />
         </div>
@@ -522,7 +529,7 @@
     let trendChart = null;
     let selectedSchools = new Map();
 
-    const HIDDEN_COLUMNS = ["주소3", "주소4"];
+    const HIDDEN_COLUMNS = ["주소4"];
     const SCORE_COLUMNS = ["국어", "영어", "수학", "평균"];
     const YEAR_LABELS = ["2021", "2022", "2023", "2024", "2025"];
 
@@ -539,6 +546,11 @@
 
       $("#addr1Select").on("change", function () {
         fillAddr2Select();
+        fillAddr3Select();
+      });
+
+      $("#addr2Select").on("change", function () {
+        fillAddr3Select();
       });
 
       $("#searchBtn").on("click", function () {
@@ -627,6 +639,7 @@
 
       fillSelect("#addr1Select", getUniqueValues("주소1"));
       fillAddr2Select();
+      fillAddr3Select();
     }
 
     function fillSelect(selector, values) {
@@ -663,6 +676,29 @@
       fillSelect("#addr2Select", values);
     }
 
+    function fillAddr3Select() {
+      const addr1 = $("#addr1Select").val();
+      const addr2 = $("#addr2Select").val();
+
+      let list = originalData;
+
+      if (addr1) {
+        list = list.filter(row => clean(row["주소1"]) === addr1);
+      }
+
+      if (addr2) {
+        list = list.filter(row => clean(row["주소2"]) === addr2);
+      }
+
+      const values = [...new Set(
+        list.map(row => clean(row["주소3"]))
+            .filter(v => v !== "")
+      )].sort();
+
+      $("#addr3Select").val("");
+      fillSelect("#addr3Select", values);
+    }
+
     function getUniqueValues(column) {
       return [...new Set(
         originalData.map(row => clean(row[column]))
@@ -679,6 +715,7 @@
       const year = $("#yearSelect").val();
       const addr1 = $("#addr1Select").val();
       const addr2 = $("#addr2Select").val();
+      const addr3 = $("#addr3Select").val();
       const schoolName = $("#schoolInput").val().trim();
       const sortColumn = $("#sortSelect").val();
 
@@ -686,11 +723,13 @@
         const rowYear = clean(row["year"]);
         const rowAddr1 = clean(row["주소1"]);
         const rowAddr2 = clean(row["주소2"]);
+        const rowAddr3 = clean(row["주소3"]);
         const rowSchool = clean(row["학교명"]);
 
         if (year && rowYear !== year) return false;
         if (addr1 && rowAddr1 !== addr1) return false;
         if (addr2 && rowAddr2 !== addr2) return false;
+        if (addr3 && rowAddr3 !== addr3) return false;
         if (schoolName && !rowSchool.includes(schoolName)) return false;
 
         return true;
@@ -713,6 +752,8 @@
       $("#addr1Select").val("");
       fillAddr2Select();
       $("#addr2Select").val("");
+      fillAddr3Select();
+      $("#addr3Select").val("");
       $("#schoolInput").val("");
       $("#sortSelect").val("평균");
       filteredData = [];
