@@ -351,6 +351,25 @@
       position: relative;
     }
 
+    .slope-chart-wrap {
+      height: 240px;
+      position: relative;
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .slope-chart-wrap.empty {
+      height: 48px;
+    }
+
+    .chart-subtitle {
+      margin: 20px 0 8px;
+      font-size: 15px;
+      font-weight: 900;
+      color: #0f172a;
+    }
+
     .trend-table-wrap {
       margin-top: 18px;
       overflow-x: auto;
@@ -420,6 +439,7 @@
         gap: 6px;
       }
       .chart-wrap { height: 300px; }
+      .slope-chart-wrap { height: 220px; }
     }
   </style>
 </head>
@@ -528,6 +548,11 @@
         <canvas id="trendChart"></canvas>
       </div>
 
+      <div class="chart-subtitle">기준연도 대비 최신연도 변화 비교</div>
+      <div class="slope-chart-wrap empty" id="slopeChartWrap">
+        <canvas id="slopeChart"></canvas>
+      </div>
+
       <div class="trend-table-wrap">
         <table id="trendSummaryTable">
           <thead></thead>
@@ -550,6 +575,7 @@
     let displayHeaders = [];
     let latestYear = "";
     let trendChart = null;
+    let slopeChart = null;
     let selectedSchools = new Map();
     let summaryBaseYear = "2021";
 
@@ -1023,6 +1049,171 @@
       });
     }
 
+    function getSelectedMetricValues(metric, years) {
+      const values = [];
+
+      selectedSchools.forEach(item => {
+        years.forEach(year => {
+          const row = findYearRow(item, year);
+          if (!row) return;
+
+          const value = toNumber(row[metric]);
+          if (value !== -999999) {
+            values.push(value);
+          }
+        });
+      });
+
+      return values;
+    }
+
+    function getAutoScale(values) {
+      if (!values.length) {
+        return {
+          min: 50,
+          max: 100
+        };
+      }
+
+      const minValue = Math.min(...values);
+      const maxValue = Math.max(...values);
+      const padding = Math.max(2, (maxValue - minValue) * 0.18);
+
+      let min = Math.floor(minValue - padding);
+      let max = Math.ceil(maxValue + padding);
+
+      if (min === max) {
+        min -= 2;
+        max += 2;
+      }
+
+      min = Math.max(0, min);
+      max = Math.min(100, max);
+
+      return { min, max };
+    }
+
+    function applyYAxisAutoScale(chart, values) {
+      if (!chart) return;
+
+      const scale = getAutoScale(values);
+      chart.options.scales.y.min = scale.min;
+      chart.options.scales.y.max = scale.max;
+    }
+
+    function initSlopeChart() {
+      const ctx = document.getElementById("slopeChart");
+
+      slopeChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: ["기준연도", "최신연도"],
+          datasets: []
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: "nearest",
+            intersect: false
+          },
+          plugins: {
+            title: {
+              display: true,
+              text: "기준연도 → 최신연도 변화 비교"
+            },
+            legend: {
+              position: "bottom"
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  const label = context.dataset.label || "";
+                  const value = context.parsed.y;
+                  return `${label}: ${value === null ? "-" : value}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              min: 50,
+              max: 100
+            }
+          }
+        }
+      });
+    }
+
+    function updateSlopeChart(metric) {
+      if (!slopeChart) return;
+
+      const datasets = [];
+      const slopeValues = [];
+      let colorIdx = 0;
+
+      selectedSchools.forEach(item => {
+        const color = CHART_COLORS[colorIdx % CHART_COLORS.length];
+        colorIdx++;
+
+        const rowBase = findYearRow(item, summaryBaseYear);
+        const rowLatest = findYearRow(item, latestYear);
+
+        const baseValue = rowBase ? toNumber(rowBase[metric]) : -999999;
+        const latestValue = rowLatest ? toNumber(rowLatest[metric]) : -999999;
+
+        const data = [
+          baseValue === -999999 ? null : baseValue,
+          latestValue === -999999 ? null : latestValue
+        ];
+
+        data.forEach(v => {
+          if (v !== null) slopeValues.push(v);
+        });
+
+        const diff =
+          data[0] !== null && data[1] !== null
+            ? Number((data[1] - data[0]).toFixed(1))
+            : null;
+
+        const diffText =
+          diff === null
+            ? ""
+            : diff > 0
+              ? ` +${diff}`
+              : ` ${diff}`;
+
+        datasets.push({
+          label: `${item.addr1} ${item.addr2} ${item.schoolName}${diffText}`,
+          data,
+          borderColor: color,
+          backgroundColor: color,
+          borderWidth: 3,
+          tension: 0,
+          pointRadius: 5,
+          pointHoverRadius: 7,
+          spanGaps: true
+        });
+      });
+
+      slopeChart.data.labels = [`${summaryBaseYear}년`, `${latestYear}년`];
+      slopeChart.data.datasets = datasets;
+      slopeChart.options.plugins.title = {
+        display: true,
+        text: `${metric} 기준 ${summaryBaseYear}년 → ${latestYear}년 변화 비교`
+      };
+
+      if (datasets.length === 0) {
+        $("#slopeChartWrap").addClass("empty");
+      } else {
+        $("#slopeChartWrap").removeClass("empty");
+      }
+
+      applyYAxisAutoScale(slopeChart, slopeValues);
+      slopeChart.resize();
+      slopeChart.update();
+    }
+
     function getChartYears() {
       const base = Number(summaryBaseYear || "2021");
       const latest = Number(latestYear || "2025");
@@ -1072,8 +1263,12 @@
         display: true,
         text: `${metric} 기준 ${summaryBaseYear}~${latestYear} 연도별 추이`
       };
+
+      const trendValues = getSelectedMetricValues(metric, chartYears);
+      applyYAxisAutoScale(trendChart, trendValues);
       trendChart.update();
 
+      updateSlopeChart(metric);
       renderTrendSummaryTable(metric);
     }
 
