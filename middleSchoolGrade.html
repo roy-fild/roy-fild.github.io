@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>전국 중학교 학업성취율 현황</title>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, "Noto Sans KR", sans-serif;
+      background: #f5f7fb;
+      color: #222;
+    }
+
+    .page {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 28px 20px;
+    }
+
+    .title-card {
+      background: linear-gradient(135deg, #1d4ed8, #2563eb);
+      color: white;
+      padding: 24px 28px;
+      border-radius: 18px;
+      box-shadow: 0 10px 24px rgba(37, 99, 235, 0.22);
+      margin-bottom: 18px;
+    }
+
+    .title-card h1 {
+      margin: 0 0 8px;
+      font-size: 26px;
+    }
+
+    .title-card p {
+      margin: 0;
+      opacity: 0.9;
+      font-size: 14px;
+    }
+
+    .filter-card,
+    .chart-card {
+      background: white;
+      border-radius: 18px;
+      padding: 18px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      margin-bottom: 16px;
+    }
+
+    .filter-box {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(130px, 1fr)) auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #475569;
+    }
+
+    select, input {
+      width: 100%;
+      height: 38px;
+      padding: 0 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      background: #fff;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    select:focus, input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+    }
+
+    .button-area {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      height: 38px;
+      padding: 0 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.12s, background 0.12s;
+      white-space: nowrap;
+    }
+
+    button:hover { transform: translateY(-1px); }
+
+    #searchBtn {
+      background: #2563eb;
+      color: white;
+      box-shadow: 0 6px 14px rgba(37, 99, 235, 0.24);
+    }
+
+    #searchBtn:hover { background: #1d4ed8; }
+
+    #resetBtn {
+      background: #e2e8f0;
+      color: #334155;
+    }
+
+    #resetBtn:hover { background: #cbd5e1; }
+
+    #downloadBtn {
+      background: #059669;
+      color: white;
+      box-shadow: 0 6px 14px rgba(5, 150, 105, 0.22);
+    }
+
+    #downloadBtn:hover { background: #047857; }
+
+    #addSelectedBtn {
+      background: #7c3aed;
+      color: white;
+      box-shadow: 0 6px 14px rgba(124, 58, 237, 0.22);
+    }
+
+    #addSelectedBtn:hover { background: #6d28d9; }
+
+    #addAllBtn {
+      background: #db2777;
+      color: white;
+      box-shadow: 0 6px 14px rgba(219, 39, 119, 0.20);
+    }
+
+    #addAllBtn:hover { background: #be185d; }
+
+    #clearChartBtn {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    #clearChartBtn:hover { background: #fecaca; }
+
+    button:disabled {
+      background: #94a3b8 !important;
+      color: white !important;
+      cursor: not-allowed;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    .summary-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      border-radius: 14px;
+      padding: 12px 16px;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+      margin-bottom: 12px;
+      font-size: 14px;
+    }
+
+    .count {
+      font-weight: 800;
+      color: #1e293b;
+    }
+
+    .hint {
+      color: #64748b;
+      font-size: 13px;
+    }
+
+    .table-card {
+      background: white;
+      border-radius: 18px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 58vh;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      min-width: 980px;
+    }
+
+    th, td {
+      border-bottom: 1px solid #e2e8f0;
+      padding: 9px 8px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #f8fafc;
+      color: #334155;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      font-weight: 800;
+      border-bottom: 1px solid #cbd5e1;
+    }
+
+    tbody tr {
+      cursor: pointer;
+    }
+
+    tbody tr:hover { background: #eff6ff; }
+
+    .select-col {
+      width: 44px;
+      min-width: 44px;
+    }
+
+    .row-check {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    .school-cell {
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    .score-cell {
+      font-weight: 700;
+      color: #1f2937;
+    }
+
+    .score-red {
+      background: rgba(248, 113, 113, 0.26);
+      color: #7f1d1d;
+    }
+
+    .score-orange {
+      background: rgba(251, 146, 60, 0.24);
+      color: #7c2d12;
+    }
+
+    .score-yellow {
+      background: rgba(250, 204, 21, 0.28);
+      color: #713f12;
+    }
+
+    .loading {
+      padding: 26px;
+      text-align: center;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .notice {
+      color: #475569;
+      font-size: 13px;
+      margin-top: 10px;
+      line-height: 1.5;
+    }
+
+    .chart-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .chart-title-row h2 {
+      margin: 0;
+      font-size: 18px;
+      color: #0f172a;
+    }
+
+    .chart-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .selected-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+      min-height: 28px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #eef2ff;
+      color: #3730a3;
+      border: 1px solid #c7d2fe;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .tag button {
+      height: auto;
+      padding: 0;
+      background: transparent;
+      color: #4338ca;
+      box-shadow: none;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .chart-wrap {
+      height: 360px;
+      position: relative;
+    }
+
+    .trend-table-wrap {
+      margin-top: 18px;
+      overflow-x: auto;
+    }
+
+    #trendSummaryTable {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      min-width: 720px;
+    }
+
+    #trendSummaryTable th,
+    #trendSummaryTable td {
+      border: 1px solid #e2e8f0;
+      padding: 8px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    #trendSummaryTable th {
+      background: #f8fafc;
+      color: #334155;
+      font-weight: 800;
+      position: static;
+    }
+
+    #trendSummaryTable td:first-child {
+      font-weight: 800;
+      color: #0f172a;
+      text-align: left;
+    }
+
+    .trend-up {
+      background: rgba(248, 113, 113, 0.18);
+      color: #991b1b;
+      font-weight: 700;
+    }
+
+    .trend-down {
+      background: rgba(96, 165, 250, 0.18);
+      color: #1d4ed8;
+      font-weight: 700;
+    }
+
+    .trend-flat {
+      background: rgba(203, 213, 225, 0.22);
+      color: #475569;
+      font-weight: 700;
+    }
+
+    @media (max-width: 1100px) {
+      .filter-box { grid-template-columns: repeat(2, minmax(140px, 1fr)); }
+      .button-area { grid-column: span 2; }
+      button { flex: 1; }
+    }
+
+    @media (max-width: 560px) {
+      .page { padding: 18px 12px; }
+      .title-card { padding: 20px; }
+      .title-card h1 { font-size: 21px; }
+      .filter-box { grid-template-columns: 1fr; }
+      .button-area { grid-column: span 1; }
+      .summary-bar {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .chart-wrap { height: 300px; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+    <section class="title-card">
+      <h1>전국 중학교 학업성취율 현황</h1>
+      <p>연도, 지역, 학교명으로 검색하고 평균/국어/영어/수학 기준으로 정렬 및 추이 비교가 가능합니다.</p>
+    </section>
+
+    <section class="filter-card">
+      <div class="filter-box">
+        <div class="field">
+          <label for="yearSelect">연도</label>
+          <select id="yearSelect">
+            <option value="">전체</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="addr1Select">주소1</label>
+          <select id="addr1Select">
+            <option value="">전체</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="addr2Select">주소2</label>
+          <select id="addr2Select">
+            <option value="">전체</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="schoolInput">학교명</label>
+          <input type="text" id="schoolInput" placeholder="예: 대원국제중학교" />
+        </div>
+
+        <div class="field">
+          <label for="sortSelect">정렬/차트 기준</label>
+          <select id="sortSelect">
+            <option value="평균">평균</option>
+            <option value="국어">국어</option>
+            <option value="영어">영어</option>
+            <option value="수학">수학</option>
+          </select>
+        </div>
+
+        <div class="button-area">
+          <button id="searchBtn" type="button">조회</button>
+          <button id="resetBtn" type="button">초기화</button>
+          <button id="downloadBtn" type="button" disabled>CSV 다운로드</button>
+        </div>
+      </div>
+
+      <div class="notice">
+        조회 후 행 체크 → 선택 추가, 행 더블클릭 → 즉시 차트 추가, 조회결과 전체 추가도 가능합니다.
+      </div>
+    </section>
+
+    <section class="summary-bar">
+      <div class="count" id="countText">CSV 로딩 중...</div>
+      <div class="hint">점수 색상: 95 이상 빨강, 90 이상 주황, 85 이상 노랑</div>
+    </section>
+
+    <section class="table-card">
+      <div class="table-wrap">
+        <table id="dataTable">
+          <thead></thead>
+          <tbody>
+            <tr>
+              <td class="loading">CSV를 불러오는 중입니다.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="chart-card">
+      <div class="chart-title-row">
+        <h2>선택 학교 2021~2025 변동 추이</h2>
+        <div class="chart-buttons">
+          <button id="addSelectedBtn" type="button" disabled>선택 추가</button>
+          <button id="addAllBtn" type="button" disabled>조회결과 전체 추가</button>
+          <button id="clearChartBtn" type="button">차트 비우기</button>
+        </div>
+      </div>
+
+      <div class="selected-list" id="selectedList">
+        <span class="hint">아직 차트에 추가된 학교가 없습니다.</span>
+      </div>
+
+      <div class="chart-wrap">
+        <canvas id="trendChart"></canvas>
+      </div>
+
+      <div class="trend-table-wrap">
+        <table id="trendSummaryTable">
+          <thead></thead>
+          <tbody>
+            <tr>
+              <td class="loading">차트에 학교를 추가하면 2021→2025 증감표가 표시됩니다.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const CSV_URL = "https://roy-fild.github.io/file/school/merged_middle_school_2021_2025_all.csv";
+
+    let originalData = [];
+    let filteredData = [];
+    let headers = [];
+    let displayHeaders = [];
+    let latestYear = "";
+    let trendChart = null;
+    let selectedSchools = new Map();
+
+    const HIDDEN_COLUMNS = ["주소3", "주소4"];
+    const SCORE_COLUMNS = ["국어", "영어", "수학", "평균"];
+    const YEAR_LABELS = ["2021", "2022", "2023", "2024", "2025"];
+
+    const CHART_COLORS = [
+      "#2563eb", "#dc2626", "#16a34a", "#9333ea", "#ea580c",
+      "#0891b2", "#be123c", "#4f46e5", "#65a30d", "#7c2d12",
+      "#0f766e", "#a21caf", "#ca8a04", "#1f2937", "#0284c7"
+    ];
+
+    $(document).ready(function () {
+      initChart();
+      renderTrendSummaryTable("평균");
+      loadCsv();
+
+      $("#addr1Select").on("change", function () {
+        fillAddr2Select();
+      });
+
+      $("#searchBtn").on("click", function () {
+        applyFilter();
+      });
+
+      $("#resetBtn").on("click", function () {
+        resetFilters();
+      });
+
+      $("#downloadBtn").on("click", function () {
+        downloadFilteredCsv();
+      });
+
+      $("#addSelectedBtn").on("click", function () {
+        addCheckedRowsToChart();
+      });
+
+      $("#addAllBtn").on("click", function () {
+        addAllFilteredRowsToChart();
+      });
+
+      $("#clearChartBtn").on("click", function () {
+        clearChartSchools();
+      });
+
+      $("#sortSelect").on("change", function () {
+        updateChart();
+      });
+
+      $("#schoolInput").on("keypress", function (e) {
+        if (e.which === 13) {
+          applyFilter();
+        }
+      });
+
+      $(document).on("change", "#checkAll", function () {
+        $(".row-check").prop("checked", this.checked);
+        updateAddSelectedButton();
+      });
+
+      $(document).on("change", ".row-check", function () {
+        updateAddSelectedButton();
+      });
+
+      $(document).on("dblclick", "#dataTable tbody tr.data-row", function () {
+        const rowIndex = Number($(this).data("row-index"));
+        const row = filteredData[rowIndex];
+        if (row) {
+          addSchoolToChart(row);
+        }
+      });
+    });
+
+    function loadCsv() {
+      Papa.parse(CSV_URL, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function (result) {
+          originalData = result.data || [];
+          headers = result.meta.fields || [];
+          displayHeaders = headers.filter(h => !HIDDEN_COLUMNS.includes(h));
+
+          initSelectBoxes();
+
+          $("#countText").text(`CSV 로딩 완료: ${originalData.length.toLocaleString()}건`);
+          renderEmptyMessage("조건을 선택한 뒤 조회 버튼을 눌러주세요.");
+        },
+        error: function (err) {
+          console.error(err);
+          $("#countText").text("CSV 파일을 불러오지 못했습니다.");
+          renderEmptyMessage("CSV 파일 로딩 실패");
+        }
+      });
+    }
+
+    function initSelectBoxes() {
+      const years = getUniqueValues("year").sort((a, b) => Number(a) - Number(b));
+      latestYear = years.length ? years[years.length - 1] : "";
+
+      fillSelect("#yearSelect", years);
+      if (latestYear) {
+        $("#yearSelect").val(latestYear);
+      }
+
+      fillSelect("#addr1Select", getUniqueValues("주소1"));
+      fillAddr2Select();
+    }
+
+    function fillSelect(selector, values) {
+      const $select = $(selector);
+      const currentValue = $select.val();
+
+      $select.find("option:not(:first)").remove();
+
+      values.forEach(value => {
+        if (value !== undefined && value !== null && String(value).trim() !== "") {
+          $select.append(`<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`);
+        }
+      });
+
+      if (values.includes(currentValue)) {
+        $select.val(currentValue);
+      }
+    }
+
+    function fillAddr2Select() {
+      const addr1 = $("#addr1Select").val();
+      let list = originalData;
+
+      if (addr1) {
+        list = list.filter(row => clean(row["주소1"]) === addr1);
+      }
+
+      const values = [...new Set(
+        list.map(row => clean(row["주소2"]))
+            .filter(v => v !== "")
+      )].sort();
+
+      $("#addr2Select").val("");
+      fillSelect("#addr2Select", values);
+    }
+
+    function getUniqueValues(column) {
+      return [...new Set(
+        originalData.map(row => clean(row[column]))
+            .filter(v => v !== "")
+      )].sort();
+    }
+
+    function applyFilter() {
+      if (!originalData.length) {
+        renderEmptyMessage("아직 CSV 로딩이 완료되지 않았습니다.");
+        return;
+      }
+
+      const year = $("#yearSelect").val();
+      const addr1 = $("#addr1Select").val();
+      const addr2 = $("#addr2Select").val();
+      const schoolName = $("#schoolInput").val().trim();
+      const sortColumn = $("#sortSelect").val();
+
+      filteredData = originalData.filter(row => {
+        const rowYear = clean(row["year"]);
+        const rowAddr1 = clean(row["주소1"]);
+        const rowAddr2 = clean(row["주소2"]);
+        const rowSchool = clean(row["학교명"]);
+
+        if (year && rowYear !== year) return false;
+        if (addr1 && rowAddr1 !== addr1) return false;
+        if (addr2 && rowAddr2 !== addr2) return false;
+        if (schoolName && !rowSchool.includes(schoolName)) return false;
+
+        return true;
+      });
+
+      filteredData.sort((a, b) => {
+        const av = toNumber(a[sortColumn]);
+        const bv = toNumber(b[sortColumn]);
+        return bv - av;
+      });
+
+      renderTable(filteredData);
+      $("#downloadBtn").prop("disabled", filteredData.length === 0);
+      $("#addAllBtn").prop("disabled", filteredData.length === 0);
+      updateAddSelectedButton();
+    }
+
+    function resetFilters() {
+      $("#yearSelect").val(latestYear || "");
+      $("#addr1Select").val("");
+      fillAddr2Select();
+      $("#addr2Select").val("");
+      $("#schoolInput").val("");
+      $("#sortSelect").val("평균");
+      filteredData = [];
+      $("#downloadBtn").prop("disabled", true);
+      $("#addAllBtn").prop("disabled", true);
+      $("#addSelectedBtn").prop("disabled", true);
+      $("#countText").text(`CSV 로딩 완료: ${originalData.length.toLocaleString()}건`);
+      renderEmptyMessage("조건을 선택한 뒤 조회 버튼을 눌러주세요.");
+    }
+
+    function renderEmptyMessage(message) {
+      const $thead = $("#dataTable thead");
+      const $tbody = $("#dataTable tbody");
+
+      $thead.empty();
+      $tbody.html(`<tr><td class="loading">${escapeHtml(message)}</td></tr>`);
+    }
+
+    function renderTable(data) {
+      const $thead = $("#dataTable thead");
+      const $tbody = $("#dataTable tbody");
+
+      $thead.empty();
+      $tbody.empty();
+
+      if (!displayHeaders.length) {
+        renderEmptyMessage("표시할 컬럼이 없습니다.");
+        return;
+      }
+
+      let headHtml = `<tr><th class="select-col"><input type="checkbox" id="checkAll" title="전체 선택"></th>`;
+      displayHeaders.forEach(header => {
+        headHtml += `<th>${escapeHtml(header)}</th>`;
+      });
+      headHtml += "</tr>";
+
+      $thead.html(headHtml);
+
+      if (!data.length) {
+        $tbody.html(`<tr><td class="loading" colspan="${displayHeaders.length + 1}">조회 결과가 없습니다.</td></tr>`);
+        $("#countText").text("조회 건수: 0건");
+        return;
+      }
+
+      const rowsHtml = data.map((row, idx) => {
+        let html = `<tr class="data-row" data-row-index="${idx}">`;
+        html += `<td class="select-col"><input type="checkbox" class="row-check" data-row-index="${idx}"></td>`;
+
+        displayHeaders.forEach(header => {
+          const value = clean(row[header]);
+          const classes = getCellClasses(header, value);
+          html += `<td class="${classes}">${escapeHtml(value)}</td>`;
+        });
+
+        html += "</tr>";
+        return html;
+      }).join("");
+
+      $tbody.html(rowsHtml);
+      $("#countText").text(`조회 건수: ${data.length.toLocaleString()}건`);
+    }
+
+    function getCellClasses(header, value) {
+      const classes = [];
+
+      if (header === "학교명") {
+        classes.push("school-cell");
+      }
+
+      if (SCORE_COLUMNS.includes(header)) {
+        classes.push("score-cell");
+
+        const score = toNumber(value);
+
+        if (score >= 95) {
+          classes.push("score-red");
+        } else if (score >= 90) {
+          classes.push("score-orange");
+        } else if (score >= 85) {
+          classes.push("score-yellow");
+        }
+      }
+
+      return classes.join(" ");
+    }
+
+    function updateAddSelectedButton() {
+      const checkedCount = $(".row-check:checked").length;
+      $("#addSelectedBtn").prop("disabled", checkedCount === 0);
+    }
+
+    function addCheckedRowsToChart() {
+      $(".row-check:checked").each(function () {
+        const rowIndex = Number($(this).data("row-index"));
+        const row = filteredData[rowIndex];
+        if (row) {
+          addSchoolToChart(row, false);
+        }
+      });
+
+      updateChart();
+      renderSelectedList();
+    }
+
+    function addAllFilteredRowsToChart() {
+      if (!filteredData.length) return;
+
+      const ok = filteredData.length > 30
+        ? confirm(`조회 결과 ${filteredData.length.toLocaleString()}건을 모두 차트에 추가하면 그래프가 복잡할 수 있습니다. 계속할까요?`)
+        : true;
+
+      if (!ok) return;
+
+      filteredData.forEach(row => addSchoolToChart(row, false));
+
+      updateChart();
+      renderSelectedList();
+    }
+
+    function addSchoolToChart(row, refresh = true) {
+      const key = buildSchoolKey(row);
+
+      if (!key) return;
+
+      if (!selectedSchools.has(key)) {
+        selectedSchools.set(key, {
+          key,
+          addr1: clean(row["주소1"]),
+          addr2: clean(row["주소2"]),
+          schoolName: clean(row["학교명"])
+        });
+      }
+
+      if (refresh) {
+        updateChart();
+        renderSelectedList();
+      }
+    }
+
+    function clearChartSchools() {
+      selectedSchools.clear();
+      updateChart();
+      renderSelectedList();
+    }
+
+    function removeSchoolFromChart(key) {
+      selectedSchools.delete(key);
+      updateChart();
+      renderSelectedList();
+    }
+
+    function renderSelectedList() {
+      const $list = $("#selectedList");
+      $list.empty();
+
+      if (!selectedSchools.size) {
+        $list.html(`<span class="hint">아직 차트에 추가된 학교가 없습니다.</span>`);
+        return;
+      }
+
+      selectedSchools.forEach(item => {
+        const label = `${item.addr1} ${item.addr2} ${item.schoolName}`;
+        const tag = `
+          <span class="tag">
+            ${escapeHtml(label)}
+            <button type="button" title="삭제" onclick="removeSchoolFromChart('${escapeAttr(item.key)}')">×</button>
+          </span>
+        `;
+        $list.append(tag);
+      });
+    }
+
+    function initChart() {
+      const ctx = document.getElementById("trendChart");
+
+      trendChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: YEAR_LABELS,
+          datasets: []
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: "index",
+            intersect: false
+          },
+          plugins: {
+            title: {
+              display: true,
+              text: "평균 기준 연도별 추이"
+            },
+            legend: {
+              position: "bottom"
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  const label = context.dataset.label || "";
+                  const value = context.parsed.y;
+                  return `${label}: ${value === null ? "-" : value}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              suggestedMin: 50,
+              suggestedMax: 100,
+              ticks: {
+                callback: function(value) {
+                  return value;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function updateChart() {
+      if (!trendChart) return;
+
+      const metric = $("#sortSelect").val() || "평균";
+      const datasets = [];
+      let colorIdx = 0;
+
+      selectedSchools.forEach(item => {
+        const color = CHART_COLORS[colorIdx % CHART_COLORS.length];
+        colorIdx++;
+
+        const data = YEAR_LABELS.map(year => {
+          const row = findYearRow(item, year);
+          if (!row) return null;
+
+          const value = toNumber(row[metric]);
+          return value === -999999 ? null : value;
+        });
+
+        datasets.push({
+          label: `${item.addr1} ${item.addr2} ${item.schoolName}`,
+          data,
+          borderColor: color,
+          backgroundColor: color,
+          borderWidth: 2,
+          tension: 0.25,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          spanGaps: true
+        });
+      });
+
+      trendChart.data.datasets = datasets;
+      trendChart.options.plugins.title = {
+        display: true,
+        text: `${metric} 기준 연도별 추이`
+      };
+      trendChart.update();
+
+      renderTrendSummaryTable(metric);
+    }
+
+    function renderTrendSummaryTable(metric) {
+      const $thead = $("#trendSummaryTable thead");
+      const $tbody = $("#trendSummaryTable tbody");
+
+      $thead.html(`
+        <tr>
+          <th>학교명</th>
+          <th>2021</th>
+          <th>2025</th>
+          <th>변화량</th>
+          <th>상태</th>
+        </tr>
+      `);
+
+      $tbody.empty();
+
+      if (!selectedSchools.size) {
+        $tbody.html(`
+          <tr>
+            <td colspan="5" class="loading">선택된 학교가 없습니다.</td>
+          </tr>
+        `);
+        return;
+      }
+
+      const rows = [];
+
+      selectedSchools.forEach(item => {
+        const row2021 = findYearRow(item, "2021");
+        const row2025 = findYearRow(item, "2025");
+
+        const raw2021 = row2021 ? toNumber(row2021[metric]) : null;
+        const raw2025 = row2025 ? toNumber(row2025[metric]) : null;
+
+        const has2021 = raw2021 !== null && raw2021 !== -999999;
+        const has2025 = raw2025 !== null && raw2025 !== -999999;
+
+        let diff = null;
+
+        if (has2021 && has2025) {
+          diff = Number((raw2025 - raw2021).toFixed(1));
+        }
+
+        rows.push({
+          item,
+          v2021: has2021 ? raw2021 : null,
+          v2025: has2025 ? raw2025 : null,
+          diff
+        });
+      });
+
+      rows.sort((a, b) => {
+        const av = a.diff === null ? -999999 : a.diff;
+        const bv = b.diff === null ? -999999 : b.diff;
+        return bv - av;
+      });
+
+      rows.forEach(({ item, v2021, v2025, diff }) => {
+        let cls = "trend-flat";
+        let status = "➖ 유지";
+
+        if (diff !== null) {
+          if (diff >= 1) {
+            cls = "trend-up";
+            status = "🔺 상승";
+          } else if (diff <= -1) {
+            cls = "trend-down";
+            status = "🔻 하락";
+          }
+        }
+
+        const diffText =
+          diff === null
+            ? "-"
+            : (diff > 0 ? "+" + diff.toFixed(1) : diff.toFixed(1));
+
+        const name = `${item.addr1} ${item.addr2} ${item.schoolName}`;
+
+        $tbody.append(`
+          <tr class="${cls}">
+            <td>${escapeHtml(name)}</td>
+            <td>${v2021 === null ? "-" : v2021.toFixed(1)}</td>
+            <td>${v2025 === null ? "-" : v2025.toFixed(1)}</td>
+            <td>${diffText}</td>
+            <td>${status}</td>
+          </tr>
+        `);
+      });
+    }
+
+    function findYearRow(item, year) {
+      return originalData.find(row =>
+        clean(row["year"]) === year &&
+        clean(row["주소1"]) === item.addr1 &&
+        clean(row["주소2"]) === item.addr2 &&
+        clean(row["학교명"]) === item.schoolName
+      );
+    }
+
+    function buildSchoolKey(row) {
+      const addr1 = clean(row["주소1"]);
+      const addr2 = clean(row["주소2"]);
+      const schoolName = clean(row["학교명"]);
+
+      if (!schoolName) return "";
+
+      return `${addr1}|${addr2}|${schoolName}`;
+    }
+
+    function downloadFilteredCsv() {
+      if (!filteredData.length) {
+        alert("다운로드할 조회 결과가 없습니다.");
+        return;
+      }
+
+      const downloadRows = filteredData.map(row => {
+        const obj = {};
+        displayHeaders.forEach(header => {
+          obj[header] = clean(row[header]);
+        });
+        return obj;
+      });
+
+      const csv = Papa.unparse(downloadRows, {
+        columns: displayHeaders
+      });
+
+      const bom = "\uFEFF";
+      const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+
+      const year = $("#yearSelect").val() || "all";
+      const addr1 = $("#addr1Select").val() || "all";
+      const fileName = `middle_school_search_${year}_${addr1}.csv`;
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      URL.revokeObjectURL(url);
+    }
+
+    function clean(value) {
+      if (value === undefined || value === null) return "";
+      return String(value).trim();
+    }
+
+    function toNumber(value) {
+      const n = parseFloat(clean(value).replace(/,/g, ""));
+      return isNaN(n) ? -999999 : n;
+    }
+
+    function escapeHtml(value) {
+      return clean(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function escapeAttr(value) {
+      return clean(value)
+        .replaceAll("\\", "\\\\")
+        .replaceAll("'", "\\'")
+        .replaceAll('"', "&quot;");
+    }
+  </script>
+</body>
+</html>
