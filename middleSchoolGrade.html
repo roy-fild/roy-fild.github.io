@@ -49,9 +49,10 @@
     .chart-card {
       background: white;
       border-radius: 18px;
-      padding: 18px;
+      padding: 18px 18px 28px;
       box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
       margin-bottom: 16px;
+      overflow: visible;
     }
 
     .filter-box {
@@ -370,9 +371,152 @@
       color: #0f172a;
     }
 
+    .special-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .special-year-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      color: #475569;
+    }
+
+    .special-year-control select {
+      width: 120px;
+      height: 34px;
+    }
+
     .trend-table-wrap {
       margin-top: 18px;
       overflow-x: auto;
+    }
+
+    .special-bar-wrap {
+      position: relative;
+      margin-top: 24px;
+      padding: 18px 16px 20px;
+      border-top: 1px solid #e2e8f0;
+      background: #ffffff;
+      border-radius: 16px;
+      overflow: visible;
+      min-height: 72px;
+    }
+
+    .special-bar-wrap.empty {
+      min-height: 72px;
+    }
+
+    .special-bar-html {
+      width: 100%;
+      padding: 4px 0 4px;
+      overflow: visible;
+    }
+
+    .bar-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 6px 0 14px;
+      font-size: 12px;
+      color: #475569;
+      font-weight: 800;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend-color {
+      width: 13px;
+      height: 13px;
+      border-radius: 4px;
+      display: inline-block;
+      box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: minmax(210px, 290px) minmax(240px, 1fr) 64px;
+      gap: 12px;
+      align-items: center;
+      margin: 10px 0;
+      font-size: 13px;
+      width: 100%;
+      padding-right: 4px;
+    }
+
+    .bar-label {
+      font-weight: 800;
+      color: #0f172a;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .bar-track {
+      height: 28px;
+      background: #edf2f7;
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      width: 100%;
+      box-shadow: inset 0 0 0 1px rgba(100, 116, 139, 0.14);
+    }
+
+    .bar-fill {
+      height: 100%;
+      min-width: 2px;
+      transition: width 0.2s ease;
+      position: relative;
+    }
+
+    .bar-fill:first-child {
+      border-top-left-radius: 999px;
+      border-bottom-left-radius: 999px;
+    }
+
+    .bar-fill:last-child {
+      border-top-right-radius: 999px;
+      border-bottom-right-radius: 999px;
+    }
+
+    .bar-fill.single {
+      border-radius: 999px;
+      background: linear-gradient(90deg, #60a5fa, #2563eb);
+    }
+
+    .bar-value {
+      text-align: right;
+      font-weight: 900;
+      color: #1d4ed8;
+    }
+
+    .bar-empty {
+      padding: 16px;
+      text-align: center;
+      color: #64748b;
+      font-weight: 700;
+    }
+
+    @media (max-width: 760px) {
+      .bar-row {
+        grid-template-columns: 1fr;
+        gap: 5px;
+      }
+
+      .bar-value {
+        text-align: left;
+      }
     }
 
     #trendSummaryTable {
@@ -440,6 +584,7 @@
       }
       .chart-wrap { height: 300px; }
       .slope-chart-wrap { height: 220px; }
+      .special-bar-wrap { min-height: 72px; }
     }
   </style>
 </head>
@@ -563,6 +708,21 @@
           </tbody>
         </table>
       </div>
+
+      <div class="chart-subtitle special-title-row">
+        <span>선택 학교 특목고계 비교</span>
+        <label class="special-year-control">
+          특목고계 연도
+          <select id="specialHighYearSelect">
+            <option value="all">전체</option>
+          </select>
+        </label>
+      </div>
+      <div class="special-bar-wrap empty" id="specialBarWrap">
+        <div id="specialHighBarChartHtml" class="special-bar-html">
+          <div class="loading">선택 학교를 추가하면 특목고계 차트가 표시됩니다.</div>
+        </div>
+      </div>
     </section>
   </div>
 
@@ -576,6 +736,7 @@
     let latestYear = "";
     let trendChart = null;
     let slopeChart = null;
+    let specialHighYear = "all";
     let selectedSchools = new Map();
     let summaryBaseYear = "2021";
 
@@ -636,6 +797,11 @@
         updateChart();
       });
 
+      $("#specialHighYearSelect").on("change", function () {
+        specialHighYear = $(this).val() || "all";
+        updateSpecialHighBarChart();
+      });
+
       $("#schoolInput").on("keypress", function (e) {
         if (e.which === 13) {
           applyFilter();
@@ -693,6 +859,7 @@
       }
 
       initSummaryBaseYearSelect(years);
+      initSpecialHighYearSelect(years);
 
       fillSelect("#addr1Select", getUniqueValues("주소1"));
       fillAddr2Select();
@@ -714,6 +881,19 @@
         summaryBaseYear = defaultYear;
         $select.val(defaultYear);
       }
+    }
+
+    function initSpecialHighYearSelect(years) {
+      const $select = $("#specialHighYearSelect");
+      $select.empty();
+      $select.append(`<option value="all">전체</option>`);
+
+      years.forEach(year => {
+        $select.append(`<option value="${escapeHtml(year)}">${escapeHtml(year)}년</option>`);
+      });
+
+      specialHighYear = "all";
+      $select.val("all");
     }
 
     function fillSelect(selector, values) {
@@ -1049,6 +1229,152 @@
       });
     }
 
+    function updateSpecialHighBarChart() {
+      const $wrap = $("#specialBarWrap");
+      const $chart = $("#specialHighBarChartHtml");
+
+      if (!$chart.length) return;
+
+      const rows = [];
+
+      selectedSchools.forEach(item => {
+        const yearValues = getSpecialHighYearValues(item);
+        const total = YEAR_LABELS.reduce((sum, year) => sum + yearValues[year], 0);
+
+        rows.push({
+          label: `${item.addr2} ${item.schoolName}`,
+          yearValues,
+          total,
+          selectedValue: specialHighYear === "all" ? total : yearValues[specialHighYear]
+        });
+      });
+
+      rows.sort((a, b) => b.selectedValue - a.selectedValue);
+
+      if (!rows.length) {
+        $wrap.addClass("empty");
+        $chart.html(`<div class="bar-empty">선택 학교를 추가하면 특목고계 차트가 표시됩니다.</div>`);
+        return;
+      }
+
+      $wrap.removeClass("empty");
+
+      const maxValue = Math.max(...rows.map(r => r.selectedValue), 1);
+
+      const titleYear =
+        specialHighYear === "all"
+          ? "전체 연도 합계"
+          : `${specialHighYear}년`;
+
+      let chartHtml = `<div class="bar-empty" style="text-align:left; padding:0 0 12px; color:#334155;">
+        ${escapeHtml(titleYear)} 기준 특목고계
+      </div>`;
+
+      if (specialHighYear === "all") {
+        chartHtml += `<div class="bar-legend">`;
+        YEAR_LABELS.forEach(year => {
+          chartHtml += `
+            <span class="legend-item">
+              <span class="legend-color" style="background:${getYearColor(year)}"></span>
+              ${year}
+            </span>
+          `;
+        });
+        chartHtml += `</div>`;
+      }
+
+      rows.forEach(row => {
+        const trackWidth = Math.max(2, (row.selectedValue / maxValue) * 100);
+
+        let barInner = "";
+
+        if (specialHighYear === "all") {
+          YEAR_LABELS.forEach(year => {
+            const value = row.yearValues[year];
+            if (value <= 0) return;
+
+            const segmentWidth = row.total > 0 ? (value / row.total) * 100 : 0;
+
+            barInner += `
+              <div class="bar-fill"
+                   title="${year}: ${value}"
+                   style="width:${segmentWidth}%; background:${getYearColor(year)}"></div>
+            `;
+          });
+
+          if (!barInner) {
+            barInner = `<div class="bar-fill" style="width:2%; background:#cbd5e1"></div>`;
+          }
+
+        } else {
+          barInner = `
+            <div class="bar-fill single"
+                 title="${specialHighYear}: ${row.selectedValue}"
+                 style="width:100%"></div>
+          `;
+        }
+
+        chartHtml += `
+          <div class="bar-row">
+            <div class="bar-label" title="${escapeHtml(row.label)}">${escapeHtml(row.label)}</div>
+            <div class="bar-track" style="width:${trackWidth}%">
+              ${barInner}
+            </div>
+            <div class="bar-value">${row.selectedValue}</div>
+          </div>
+        `;
+      });
+
+      $chart.html(chartHtml);
+    }
+
+    function getSpecialHighYearValues(item) {
+      const values = {};
+
+      YEAR_LABELS.forEach(year => {
+        const row = findYearRow(item, year);
+        values[year] = parseSpecialHigh(row);
+      });
+
+      return values;
+    }
+
+    function getYearColor(year) {
+      const colorMap = {
+        "2021": "#2563eb",  // blue
+        "2022": "#16a34a",  // green
+        "2023": "#f59e0b",  // amber
+        "2024": "#dc2626",  // red
+        "2025": "#7c3aed"   // purple
+      };
+
+      return colorMap[year] || "#2563eb";
+    }
+
+    function getSpecialHighValue(item) {
+      if (specialHighYear === "all") {
+        return YEAR_LABELS.reduce((sum, year) => {
+          const row = findYearRow(item, year);
+          return sum + parseSpecialHigh(row);
+        }, 0);
+      }
+
+      const row = findYearRow(item, specialHighYear);
+      return parseSpecialHigh(row);
+    }
+
+    function parseSpecialHigh(row) {
+      if (!row) return 0;
+
+      const raw = clean(row["특목고계"]);
+
+      if (raw === "") return 0;
+
+      const n = Number(String(raw).replace(/,/g, ""));
+
+      return Number.isFinite(n) ? n : 0;
+    }
+
     function getSelectedMetricValues(metric, years) {
       const values = [];
 
@@ -1270,6 +1596,7 @@
 
       updateSlopeChart(metric);
       renderTrendSummaryTable(metric);
+      updateSpecialHighBarChart();
     }
 
     function renderTrendSummaryTable(metric) {
