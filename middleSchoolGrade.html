@@ -294,6 +294,25 @@
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
+      align-items: end;
+    }
+
+    .chart-control {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 130px;
+    }
+
+    .chart-control label {
+      font-size: 12px;
+      font-weight: 800;
+      color: #475569;
+    }
+
+    .chart-control select {
+      height: 38px;
+      min-width: 130px;
     }
 
     .selected-list {
@@ -491,6 +510,10 @@
       <div class="chart-title-row">
         <h2>선택 학교 2021~2025 변동 추이</h2>
         <div class="chart-buttons">
+          <div class="chart-control">
+            <label for="summaryBaseYearSelect">요약표 기준연도</label>
+            <select id="summaryBaseYearSelect"></select>
+          </div>
           <button id="addSelectedBtn" type="button" disabled>선택 추가</button>
           <button id="addAllBtn" type="button" disabled>조회결과 전체 추가</button>
           <button id="clearChartBtn" type="button">차트 비우기</button>
@@ -528,6 +551,7 @@
     let latestYear = "";
     let trendChart = null;
     let selectedSchools = new Map();
+    let summaryBaseYear = "2021";
 
     const HIDDEN_COLUMNS = ["주소4"];
     const SCORE_COLUMNS = ["국어", "영어", "수학", "평균"];
@@ -578,6 +602,11 @@
       });
 
       $("#sortSelect").on("change", function () {
+        updateChart();
+      });
+
+      $("#summaryBaseYearSelect").on("change", function () {
+        summaryBaseYear = $(this).val() || "2021";
         updateChart();
       });
 
@@ -637,9 +666,28 @@
         $("#yearSelect").val(latestYear);
       }
 
+      initSummaryBaseYearSelect(years);
+
       fillSelect("#addr1Select", getUniqueValues("주소1"));
       fillAddr2Select();
       fillAddr3Select();
+    }
+
+    function initSummaryBaseYearSelect(years) {
+      const baseYears = years.filter(y => Number(y) < Number(latestYear));
+      const defaultYear = baseYears.includes("2021") ? "2021" : (baseYears.length ? baseYears[0] : "");
+
+      const $select = $("#summaryBaseYearSelect");
+      $select.empty();
+
+      baseYears.forEach(year => {
+        $select.append(`<option value="${escapeHtml(year)}">${escapeHtml(year)}년</option>`);
+      });
+
+      if (defaultYear) {
+        summaryBaseYear = defaultYear;
+        $select.val(defaultYear);
+      }
     }
 
     function fillSelect(selector, values) {
@@ -975,10 +1023,21 @@
       });
     }
 
+    function getChartYears() {
+      const base = Number(summaryBaseYear || "2021");
+      const latest = Number(latestYear || "2025");
+
+      return YEAR_LABELS.filter(year => {
+        const y = Number(year);
+        return y >= base && y <= latest;
+      });
+    }
+
     function updateChart() {
       if (!trendChart) return;
 
       const metric = $("#sortSelect").val() || "평균";
+      const chartYears = getChartYears();
       const datasets = [];
       let colorIdx = 0;
 
@@ -986,7 +1045,7 @@
         const color = CHART_COLORS[colorIdx % CHART_COLORS.length];
         colorIdx++;
 
-        const data = YEAR_LABELS.map(year => {
+        const data = chartYears.map(year => {
           const row = findYearRow(item, year);
           if (!row) return null;
 
@@ -1007,10 +1066,11 @@
         });
       });
 
+      trendChart.data.labels = chartYears;
       trendChart.data.datasets = datasets;
       trendChart.options.plugins.title = {
         display: true,
-        text: `${metric} 기준 연도별 추이`
+        text: `${metric} 기준 ${summaryBaseYear}~${latestYear} 연도별 추이`
       };
       trendChart.update();
 
@@ -1024,8 +1084,8 @@
       $thead.html(`
         <tr>
           <th>학교명</th>
-          <th>2021</th>
-          <th>2025</th>
+          <th>${escapeHtml(summaryBaseYear)}</th>
+          <th>${escapeHtml(latestYear)}</th>
           <th>변화량</th>
           <th>상태</th>
         </tr>
@@ -1045,25 +1105,25 @@
       const rows = [];
 
       selectedSchools.forEach(item => {
-        const row2021 = findYearRow(item, "2021");
-        const row2025 = findYearRow(item, "2025");
+        const rowBase = findYearRow(item, summaryBaseYear);
+        const rowLatest = findYearRow(item, latestYear);
 
-        const raw2021 = row2021 ? toNumber(row2021[metric]) : null;
-        const raw2025 = row2025 ? toNumber(row2025[metric]) : null;
+        const rawBase = rowBase ? toNumber(rowBase[metric]) : null;
+        const rawLatest = rowLatest ? toNumber(rowLatest[metric]) : null;
 
-        const has2021 = raw2021 !== null && raw2021 !== -999999;
-        const has2025 = raw2025 !== null && raw2025 !== -999999;
+        const hasBase = rawBase !== null && rawBase !== -999999;
+        const hasLatest = rawLatest !== null && rawLatest !== -999999;
 
         let diff = null;
 
-        if (has2021 && has2025) {
-          diff = Number((raw2025 - raw2021).toFixed(1));
+        if (hasBase && hasLatest) {
+          diff = Number((rawLatest - rawBase).toFixed(1));
         }
 
         rows.push({
           item,
-          v2021: has2021 ? raw2021 : null,
-          v2025: has2025 ? raw2025 : null,
+          vBase: hasBase ? rawBase : null,
+          vLatest: hasLatest ? rawLatest : null,
           diff
         });
       });
@@ -1074,7 +1134,7 @@
         return bv - av;
       });
 
-      rows.forEach(({ item, v2021, v2025, diff }) => {
+      rows.forEach(({ item, vBase, vLatest, diff }) => {
         let cls = "trend-flat";
         let status = "➖ 유지";
 
@@ -1098,8 +1158,8 @@
         $tbody.append(`
           <tr class="${cls}">
             <td>${escapeHtml(name)}</td>
-            <td>${v2021 === null ? "-" : v2021.toFixed(1)}</td>
-            <td>${v2025 === null ? "-" : v2025.toFixed(1)}</td>
+            <td>${vBase === null ? "-" : vBase.toFixed(1)}</td>
+            <td>${vLatest === null ? "-" : vLatest.toFixed(1)}</td>
             <td>${diffText}</td>
             <td>${status}</td>
           </tr>
