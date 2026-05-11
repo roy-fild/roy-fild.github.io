@@ -341,28 +341,48 @@
 
         .chart-scroll {
             overflow-x: auto;
+            width: 100%;
+        }
+
+        /* 그래프와 범례를 완전히 분리: 범례가 늘어나도 그래프 위치/크기에 영향 없음 */
+        .chart-plot-layer {
+            height: 360px;
+            overflow: hidden;
+            border-bottom: 1px solid #eef2f7;
         }
 
         .chart-svg {
-            min-width: 920px;
             width: 100%;
-            height: 380px;
+            min-width: 100%;
+            height: 360px;
             display: block;
+        }
+
+        .chart-legend-layer {
+            max-height: 84px;
+            overflow-y: auto;
+            overflow-x: auto;
+            padding-top: 10px;
         }
 
         .chart-legend {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px 14px;
-            margin-top: 8px;
+            gap: 10px 14px;
             font-size: 12px;
             color: var(--text-sub);
+            align-items: flex-start;
         }
 
+        /* 항목이 많아져도 글자가 찌그러지거나 압축되지 않게 고정 */
         .legend-item {
             display: inline-flex;
             align-items: center;
-            gap: 5px;
+            gap: 6px;
+            flex: 0 0 auto;
+            white-space: nowrap;
+            min-width: max-content;
+            line-height: 1.5;
         }
 
         .legend-color {
@@ -370,6 +390,166 @@
             width: 10px;
             height: 10px;
             border-radius: 999px;
+        }
+
+
+        /* FIX: 선택 항목이 늘어나도 그래프가 위로 밀리지 않도록 고정 */
+        #chartArea {
+            width: 100%;
+        }
+
+        #chartArea .chart-scroll {
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        #chartArea .chart-plot-layer {
+            height: 360px;
+            overflow: hidden;
+            border-bottom: 1px solid #eef2f7;
+        }
+
+        #chartArea .chart-svg {
+            width: 100%;
+            min-width: 100%;
+            height: 360px;
+            display: block;
+        }
+
+        #chartArea .chart-legend-layer {
+            max-height: 72px;
+            overflow-y: auto;
+            padding-top: 10px;
+        }
+
+
+        /* FINAL FIX: 범례 글자 간격 고정
+           - 항목이 많아져도 줄바꿈/압축하지 않음
+           - 가로 스크롤로 전체 범례 확인 */
+        #chartArea .chart-legend-layer {
+            max-height: none !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            padding-top: 12px !important;
+            padding-bottom: 8px !important;
+            border-top: 1px solid #eef2f7;
+        }
+
+        #chartArea .chart-legend {
+            display: inline-flex !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            gap: 0 !important;
+            width: max-content !important;
+            min-width: max-content !important;
+            white-space: nowrap !important;
+        }
+
+        #chartArea .legend-item {
+            display: inline-flex !important;
+            align-items: center !important;
+            flex: 0 0 auto !important;
+            white-space: nowrap !important;
+            min-width: max-content !important;
+            width: max-content !important;
+            margin-right: 26px !important;
+            gap: 7px !important;
+            font-size: 12px !important;
+            letter-spacing: 0 !important;
+            word-spacing: 0 !important;
+            line-height: 1.6 !important;
+        }
+
+        #chartArea .legend-color {
+            flex: 0 0 10px !important;
+            width: 10px !important;
+            height: 10px !important;
+        }
+
+
+        /* FINAL FIX 2: 그래프 설명란을 완전 별도 레이어처럼 분리
+           - 범례가 많아도 그래프/SVG 크기와 글자 간격에 영향 없음
+           - 범례는 카드 하단 고정 높이 + 가로 스크롤 */
+        #chartArea .chart-legend-layer {
+            position: relative !important;
+            display: block !important;
+            height: 64px !important;
+            min-height: 64px !important;
+            max-height: 64px !important;
+            overflow: hidden !important;
+            padding: 0 !important;
+            margin-top: 10px !important;
+            border-top: 1px solid #eef2f7;
+            background: #ffffff;
+        }
+
+        #chartArea .chart-legend-scroll {
+            position: absolute !important;
+            left: 0 !important;
+            right: 0 !important;
+            top: 0 !important;
+            bottom: 0 !important;
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            white-space: nowrap !important;
+            padding: 16px 0 10px 0 !important;
+        }
+
+        #chartArea .chart-legend {
+            display: inline-flex !important;
+            flex-wrap: nowrap !important;
+            align-items: center !important;
+            gap: 0 !important;
+            width: max-content !important;
+            min-width: max-content !important;
+            white-space: nowrap !important;
+        }
+
+        #chartArea .legend-item {
+            display: inline-flex !important;
+            align-items: center !important;
+            flex: 0 0 auto !important;
+            white-space: nowrap !important;
+            min-width: max-content !important;
+            width: max-content !important;
+            margin-right: 32px !important;
+            gap: 7px !important;
+            font-size: 12px !important;
+            letter-spacing: normal !important;
+            word-spacing: normal !important;
+            line-height: 1.6 !important;
+        }
+
+        #chartArea .legend-color {
+            flex: 0 0 10px !important;
+            width: 10px !important;
+            height: 10px !important;
+        }
+
+
+        /* FINAL FIX 3: X축 라벨(출근승차/퇴근하차 등) 글자 찌그러짐 방지
+           원인: SVG를 width:100% + preserveAspectRatio:none 으로 강제 압축하면서
+                 SVG 내부 text까지 같이 가로로 눌렸음.
+           해결: SVG는 계산된 px 폭 그대로 유지하고, 부족하면 가로 스크롤 */
+        #chartArea .chart-scroll {
+            overflow-x: auto !important;
+            overflow-y: hidden !important;
+            width: 100% !important;
+        }
+
+        #chartArea .chart-svg {
+            width: auto !important;
+            min-width: 0 !important;
+            max-width: none !important;
+            height: 360px !important;
+            display: block !important;
+            flex: 0 0 auto !important;
+        }
+
+        #chartArea .chart-plot-layer {
+            height: 360px !important;
+            overflow: visible !important;
+            min-width: max-content !important;
         }
 
         #loading {
@@ -994,20 +1174,31 @@
 
             summary.text(`선택된 역 ${selectedChartRows.length}개 · 더블클릭/체크박스/조회조건 전체 추가 가능`);
 
-            const width = Math.max(920, labels.length * Math.max(90, selectedChartRows.length * 22));
-            const height = 380;
-            const margin = { top: 28, right: 24, bottom: 92, left: 72 };
+            // 핵심 수정:
+            // 1) SVG 높이를 고정
+            // 2) plot 영역을 SVG 안에서 중앙에 가깝게 배치
+            // 3) 범례는 chart-legend-layer로 분리해서 선택 개수가 늘어도 그래프 위치가 변하지 않게 처리
+            const containerWidth = Math.max(1100, container.innerWidth() || 1100);
+            const width = Math.max(containerWidth, labels.length * Math.max(155, selectedChartRows.length * 46));
+            const height = 360;
+            const margin = { top: 44, right: 28, bottom: 74, left: 72 };
             const plotW = width - margin.left - margin.right;
             const plotH = height - margin.top - margin.bottom;
-            const maxVal = Math.max(1, ...selectedChartRows.flatMap(r => r.values));
-            const groupW = plotW / labels.length;
-            const barGap = 3;
-            const barW = Math.max(8, Math.min(28, (groupW - 18) / selectedChartRows.length - barGap));
 
-            let svg = `<svg class="chart-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMinYMin meet">`;
+            const rawMax = Math.max(1, ...selectedChartRows.flatMap(r => r.values));
+            const maxVal = rawMax * 1.18;
+
+            const groupW = plotW / labels.length;
+            const barGap = 4;
+            const barW = Math.max(8, Math.min(30, (groupW - 24) / selectedChartRows.length - barGap));
+
+            let svg = `<svg class="chart-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMinYMin meet">`;
+
+            // 축
             svg += `<line x1="${margin.left}" y1="${margin.top + plotH}" x2="${margin.left + plotW}" y2="${margin.top + plotH}" stroke="#9ca3af"/>`;
             svg += `<line x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${margin.top + plotH}" stroke="#9ca3af"/>`;
 
+            // y축 grid
             for (let i = 0; i <= 4; i++) {
                 const y = margin.top + plotH - (plotH * i / 4);
                 const val = Math.round(maxVal * i / 4);
@@ -1029,8 +1220,9 @@
                     svg += `<title>${row.cityName} ${row.line} ${row.station} / ${label}: ${formatNum(val)}</title></rect>`;
                 });
 
-                svg += `<text x="${groupX}" y="${margin.top + plotH + 20}" text-anchor="middle" font-size="11" fill="#111827">${label.split(' ')[0]}</text>`;
-                svg += `<text x="${groupX}" y="${margin.top + plotH + 36}" text-anchor="middle" font-size="11" fill="#4b5563">${label.split(' ')[1]}</text>`;
+                const parts = label.split(' ');
+                svg += `<text x="${groupX}" y="${margin.top + plotH + 24}" text-anchor="middle" font-size="12" font-weight="600" letter-spacing="0" fill="#111827">${parts[0]}</text>`;
+                svg += `<text x="${groupX}" y="${margin.top + plotH + 42}" text-anchor="middle" font-size="12" letter-spacing="0" fill="#4b5563">${parts[1]}</text>`;
             });
 
             svg += `</svg>`;
@@ -1042,7 +1234,16 @@
                 </span>
             `).join('');
 
-            container.html(`<div class="chart-scroll">${svg}</div><div class="chart-legend">${legend}</div>`);
+            container.html(`
+                <div class="chart-scroll">
+                    <div class="chart-plot-layer">${svg}</div>
+                </div>
+                <div class="chart-legend-layer">
+                    <div class="chart-legend-scroll">
+                        <div class="chart-legend">${legend}</div>
+                    </div>
+                </div>
+            `);
         }
 
         function exportToExcel() {
