@@ -552,6 +552,89 @@
             min-width: max-content !important;
         }
 
+
+        /* FINAL FIX 4: 한 화면 고정형 그래프
+           - SVG 내부 X축 텍스트를 제거하고, HTML 라벨 레이어로 분리
+           - 그래프 폭은 화면에 맞춰 줄어들지만, 출근승차/퇴근하차 라벨 글자는 압축되지 않음
+           - 가로 스크롤 없이 한 화면에 표시 */
+        #chartArea .chart-scroll {
+            overflow-x: hidden !important;
+            overflow-y: hidden !important;
+            width: 100% !important;
+        }
+
+        #chartArea .chart-plot-layer {
+            height: 318px !important;
+            overflow: hidden !important;
+            min-width: 0 !important;
+        }
+
+        #chartArea .chart-svg {
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+            height: 318px !important;
+            display: block !important;
+        }
+
+        #chartArea .chart-x-labels {
+            display: grid;
+            grid-template-columns: repeat(8, minmax(0, 1fr));
+            padding-left: 72px;
+            padding-right: 28px;
+            margin-top: 4px;
+            margin-bottom: 10px;
+            column-gap: 4px;
+        }
+
+        #chartArea .x-label-item {
+            text-align: center;
+            font-size: 12px;
+            line-height: 1.35;
+            color: #111827;
+            white-space: normal;
+            word-break: keep-all;
+            min-width: 0;
+        }
+
+        #chartArea .x-label-item .time {
+            display: block;
+            margin-top: 2px;
+            color: #4b5563;
+            font-size: 11px;
+        }
+
+        #chartArea .chart-legend-layer {
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: 92px !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            margin-top: 8px !important;
+            padding-top: 10px !important;
+        }
+
+        #chartArea .chart-legend-scroll {
+            position: static !important;
+            overflow: visible !important;
+            padding: 0 !important;
+        }
+
+        #chartArea .chart-legend {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 8px 18px !important;
+            width: auto !important;
+            min-width: 0 !important;
+            white-space: normal !important;
+        }
+
+        #chartArea .legend-item {
+            margin-right: 0 !important;
+            white-space: nowrap !important;
+            flex: 0 0 auto !important;
+        }
+
         #loading {
             font-size: 11px;
             color: var(--text-sub);
@@ -1174,14 +1257,11 @@
 
             summary.text(`선택된 역 ${selectedChartRows.length}개 · 더블클릭/체크박스/조회조건 전체 추가 가능`);
 
-            // 핵심 수정:
-            // 1) SVG 높이를 고정
-            // 2) plot 영역을 SVG 안에서 중앙에 가깝게 배치
-            // 3) 범례는 chart-legend-layer로 분리해서 선택 개수가 늘어도 그래프 위치가 변하지 않게 처리
-            const containerWidth = Math.max(1100, container.innerWidth() || 1100);
-            const width = Math.max(containerWidth, labels.length * Math.max(155, selectedChartRows.length * 46));
-            const height = 360;
-            const margin = { top: 44, right: 28, bottom: 74, left: 72 };
+            // 한 화면 고정형: SVG는 화면 폭에 맞추고, X축 글자는 HTML 레이어로 따로 분리
+            const containerWidth = Math.max(900, container.innerWidth() || 1100);
+            const width = containerWidth;
+            const height = 318;
+            const margin = { top: 36, right: 28, bottom: 16, left: 72 };
             const plotW = width - margin.left - margin.right;
             const plotH = height - margin.top - margin.bottom;
 
@@ -1189,16 +1269,15 @@
             const maxVal = rawMax * 1.18;
 
             const groupW = plotW / labels.length;
-            const barGap = 4;
-            const barW = Math.max(8, Math.min(30, (groupW - 24) / selectedChartRows.length - barGap));
+            const barGap = selectedChartRows.length > 25 ? 1 : 2;
+            const innerPadding = selectedChartRows.length > 25 ? 10 : 18;
+            const barW = Math.max(1.5, Math.min(24, (groupW - innerPadding) / selectedChartRows.length - barGap));
 
-            let svg = `<svg class="chart-svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMinYMin meet">`;
+            let svg = `<svg class="chart-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">`;
 
-            // 축
             svg += `<line x1="${margin.left}" y1="${margin.top + plotH}" x2="${margin.left + plotW}" y2="${margin.top + plotH}" stroke="#9ca3af"/>`;
             svg += `<line x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${margin.top + plotH}" stroke="#9ca3af"/>`;
 
-            // y축 grid
             for (let i = 0; i <= 4; i++) {
                 const y = margin.top + plotH - (plotH * i / 4);
                 const val = Math.round(maxVal * i / 4);
@@ -1216,16 +1295,17 @@
                     const barH = (val / maxVal) * plotH;
                     const x = startX + rowIdx * (barW + barGap);
                     const y = margin.top + plotH - barH;
-                    svg += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3" fill="${colors[rowIdx % colors.length]}">`;
+                    svg += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="2" fill="${colors[rowIdx % colors.length]}">`;
                     svg += `<title>${row.cityName} ${row.line} ${row.station} / ${label}: ${formatNum(val)}</title></rect>`;
                 });
-
-                const parts = label.split(' ');
-                svg += `<text x="${groupX}" y="${margin.top + plotH + 24}" text-anchor="middle" font-size="12" font-weight="600" letter-spacing="0" fill="#111827">${parts[0]}</text>`;
-                svg += `<text x="${groupX}" y="${margin.top + plotH + 42}" text-anchor="middle" font-size="12" letter-spacing="0" fill="#4b5563">${parts[1]}</text>`;
             });
 
             svg += `</svg>`;
+
+            const xLabels = labels.map(label => {
+                const parts = label.split(' ');
+                return `<div class="x-label-item">${parts[0]}<span class="time">${parts[1]}</span></div>`;
+            }).join('');
 
             const legend = selectedChartRows.map((row, idx) => `
                 <span class="legend-item">
@@ -1238,6 +1318,7 @@
                 <div class="chart-scroll">
                     <div class="chart-plot-layer">${svg}</div>
                 </div>
+                <div class="chart-x-labels">${xLabels}</div>
                 <div class="chart-legend-layer">
                     <div class="chart-legend-scroll">
                         <div class="chart-legend">${legend}</div>
