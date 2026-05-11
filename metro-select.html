@@ -149,22 +149,19 @@
         }
         
         .tables-wrapper {
-            display: flex;
-            flex-wrap: nowrap;
-            gap: 16px;
             margin-top: 4px;
             overflow-x: auto;
         }
         
         .table-card {
-            flex: 0 0 50%;
+            width: 100%;
             border-radius: 12px;
             border: 1px solid var(--border);
             background: #ffffff;
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            min-width: 600px;
+            min-width: 980px;
         }
         
         .table-title {
@@ -222,18 +219,15 @@
             background: #eff6ff;
         }
         
-        #tblBoarding th:nth-child(1),
-        #tblAlighting th:nth-child(1) {
+        #tblMetro th:nth-child(1) {
             width: 90px;
         }
         
-        #tblBoarding th:nth-child(2),
-        #tblAlighting th:nth-child(2) {
+        #tblMetro th:nth-child(2) {
             width: 180px;
         }
         
-        #tblBoarding th:nth-child(n+3),
-        #tblAlighting th:nth-child(n+3) {
+        #tblMetro th:nth-child(n+3) {
             width: 90px;
         }
         
@@ -267,12 +261,8 @@
         }
         
         @media (max-width: 768px) {
-            .tables-wrapper {
-                flex-direction: column;
-                gap: 12px;
-            }
             .table-card {
-                width: 100%;
+                min-width: 900px;
             }
             .filter-grid {
                 grid-template-columns: 90px 1fr;
@@ -294,12 +284,10 @@
             td {
                 padding: 4px 5px;
             }
-            #tblBoarding th:nth-child(1),
-            #tblAlighting th:nth-child(1) {
+            #tblMetro th:nth-child(1) {
                 width: 70px;
             }
-            #tblBoarding th:nth-child(2),
-            #tblAlighting th:nth-child(2) {
+            #tblMetro th:nth-child(2) {
                 width: 120px;
             }
         }
@@ -718,27 +706,21 @@
         }
 
         function clearTables() {
-            $('#tblBoarding tbody').empty();
-            $('#tblAlighting tbody').empty();
+            $('#tblMetro tbody').empty();
         }
 
         function renderTables(rows, city) {
             const state = cityState[city];
-
-            const left = $('#tblBoarding tbody').empty();
-            const right = $('#tblAlighting tbody').empty();
+            const tbody = $('#tblMetro tbody').empty();
 
             rows.forEach(r => {
-                left.append(`<tr>
-                    <td>${r[state.lineField]}</td><td>${r[state.stationField]}</td>
+                tbody.append(`<tr>
+                    <td>${r[state.lineField]}</td>
+                    <td>${r[state.stationField]}</td>
                     <td>${r[state.timeFields.board_07_08] || ''}</td>
                     <td>${r[state.timeFields.board_08_09] || ''}</td>
                     <td>${r[state.timeFields.alight_18_19] || ''}</td>
                     <td>${r[state.timeFields.alight_19_20] || ''}</td>
-                </tr>`);
-
-                right.append(`<tr>
-                    <td>${r[state.lineField]}</td><td>${r[state.stationField]}</td>
                     <td>${r[state.timeFields.alight_07_08] || ''}</td>
                     <td>${r[state.timeFields.alight_08_09] || ''}</td>
                     <td>${r[state.timeFields.board_18_19] || ''}</td>
@@ -836,7 +818,7 @@
                 }
             }];
 
-            XLSX.utils.book_append_sheet(wb, ws, "화면_같이_출력");
+            XLSX.utils.book_append_sheet(wb, ws, "통합_출력");
             XLSX.writeFile(wb, `metro_${cityState[activeCity].name}_${$('#selMonth').val()}.xlsx`);
         }
 
@@ -900,15 +882,17 @@
             <div class="tables-wrapper">
 
                 <div class="table-card">
-                    <div class="table-title">[A] 출근 승차 & 퇴근 하차</div>
+                    <div class="table-title">전체 시간대 승·하차 통합</div>
                     <div class="table-scroll">
-                        <table id="tblBoarding">
+                        <table id="tblMetro">
                             <thead>
                                 <tr>
                                     <th></th>
                                     <th></th>
-                                    <th colspan="2">승차</th>
-                                    <th colspan="2">하차</th>
+                                    <th colspan="2">출근 승차</th>
+                                    <th colspan="2">퇴근 하차</th>
+                                    <th colspan="2">출근 하차</th>
+                                    <th colspan="2">퇴근 승차</th>
                                 </tr>
                                 <tr>
                                     <th>호선명</th>
@@ -917,27 +901,6 @@
                                     <th>08-09</th>
                                     <th>18-19</th>
                                     <th>19-20</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="table-card">
-                    <div class="table-title">[B] 출근 하차 & 퇴근 승차</div>
-                    <div class="table-scroll">
-                        <table id="tblAlighting">
-                            <thead>
-                                <tr>
-                                    <th></th>
-                                    <th></th>
-                                    <th colspan="2">하차</th>
-                                    <th colspan="2">승차</th>
-                                </tr>
-                                <tr>
-                                    <th>호선명</th>
-                                    <th>지하철역</th>
                                     <th>07-08</th>
                                     <th>08-09</th>
                                     <th>18-19</th>
