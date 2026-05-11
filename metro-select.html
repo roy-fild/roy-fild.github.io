@@ -141,6 +141,35 @@
             cursor: pointer;
             border: none;
         }
+
+        .btn-chart {
+            border-radius: 999px;
+            background: #111827;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 14px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-reset {
+            border-radius: 999px;
+            background: #6b7280;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 14px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-chart:hover,
+        .btn-reset:hover,
+        .btn-excel:hover,
+        .btn-search:hover {
+            opacity: 0.9;
+        }
         
         .tables-toolbar {
             display: flex;
@@ -220,17 +249,129 @@
         }
         
         #tblMetro th:nth-child(1) {
+            width: 48px;
+        }
+
+        #tblMetro th:nth-child(2) {
             width: 90px;
         }
         
-        #tblMetro th:nth-child(2) {
+        #tblMetro th:nth-child(3) {
             width: 180px;
         }
         
-        #tblMetro th:nth-child(n+3) {
+        #tblMetro th:nth-child(n+4) {
             width: 90px;
         }
         
+        #tblMetro th:nth-child(5),
+        #tblMetro td:nth-child(5),
+        #tblMetro th:nth-child(7),
+        #tblMetro td:nth-child(7),
+        #tblMetro th:nth-child(9),
+        #tblMetro td:nth-child(9) {
+            border-right: 3px solid #9ca3af;
+        }
+
+        #tblMetro tbody tr.selected-row td {
+            background: #dbeafe !important;
+            font-weight: 600;
+        }
+
+        .row-check {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .chart-card {
+            margin-top: 16px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: #ffffff;
+            overflow: hidden;
+        }
+
+        .chart-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            background: #111827;
+            color: #f9fafb;
+        }
+
+        .chart-title {
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .chart-help {
+            font-size: 11px;
+            color: #d1d5db;
+        }
+
+        .chart-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .chart-body {
+            padding: 12px;
+        }
+
+        #selectedSummary {
+            font-size: 12px;
+            color: var(--text-sub);
+            margin-bottom: 10px;
+        }
+
+        .chart-empty {
+            border: 1px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-sub);
+            background: #f9fafb;
+        }
+
+        .chart-scroll {
+            overflow-x: auto;
+        }
+
+        .chart-svg {
+            min-width: 920px;
+            width: 100%;
+            height: 380px;
+            display: block;
+        }
+
+        .chart-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 14px;
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        .legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .legend-color {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+        }
+
         #loading {
             font-size: 11px;
             color: var(--text-sub);
@@ -285,9 +426,12 @@
                 padding: 4px 5px;
             }
             #tblMetro th:nth-child(1) {
-                width: 70px;
+                width: 44px;
             }
             #tblMetro th:nth-child(2) {
+                width: 70px;
+            }
+            #tblMetro th:nth-child(3) {
                 width: 120px;
             }
         }
@@ -380,6 +524,7 @@
         };
 
         let activeCity = 'seoul'; // 기본: 서울
+        let selectedChartRows = [];
 
         $(function() {
             // 초기: 서울 데이터 로딩
@@ -388,6 +533,30 @@
             // 조회 버튼
             $('#btnSearch').on('click', function() {
                 applyFilterAndRender(activeCity);
+            });
+
+            $('#btnAddCheckedChart').on('click', function() {
+                addCheckedRowsToChart();
+            });
+
+            $('#btnAddFilteredChart').on('click', function() {
+                addFilteredRowsToChart();
+            });
+
+            $('#btnResetChart').on('click', function() {
+                resetChart();
+            });
+
+            $('#tblMetro tbody').on('change', '.row-check', function() {
+                $(this).closest('tr').toggleClass('selected-row', this.checked);
+            });
+
+            $('#tblMetro tbody').on('dblclick', 'tr', function(e) {
+                if ($(e.target).is('input')) return;
+                const idx = Number($(this).data('idx'));
+                if (!Number.isNaN(idx)) {
+                    addRowToChart(cityState[activeCity].lastResult[idx]);
+                }
             });
 
             // 사용월 변경 시 호선 재구성
@@ -709,12 +878,37 @@
             $('#tblMetro tbody').empty();
         }
 
+        function toNumber(v) {
+            if (typeof v === 'number') return v;
+            if (v === null || v === undefined || v === '') return 0;
+            const num = parseInt(String(v).replace(/,/g, ''), 10);
+            return isNaN(num) ? 0 : num;
+        }
+
+        function getChartValues(row, state) {
+            return [
+                toNumber(row[state.timeFields.board_07_08]),
+                toNumber(row[state.timeFields.board_08_09]),
+                toNumber(row[state.timeFields.alight_18_19]),
+                toNumber(row[state.timeFields.alight_19_20]),
+                toNumber(row[state.timeFields.alight_07_08]),
+                toNumber(row[state.timeFields.alight_08_09]),
+                toNumber(row[state.timeFields.board_18_19]),
+                toNumber(row[state.timeFields.board_19_20])
+            ];
+        }
+
+        function getRowKey(row, state) {
+            return [activeCity, row[state.monthField], row[state.lineField], row[state.stationField]].join('|');
+        }
+
         function renderTables(rows, city) {
             const state = cityState[city];
             const tbody = $('#tblMetro tbody').empty();
 
-            rows.forEach(r => {
-                tbody.append(`<tr>
+            rows.forEach((r, idx) => {
+                tbody.append(`<tr data-idx="${idx}" title="더블클릭하면 하단 그래프에 추가됩니다">
+                    <td><input type="checkbox" class="row-check" aria-label="그래프 선택"></td>
                     <td>${r[state.lineField]}</td>
                     <td>${r[state.stationField]}</td>
                     <td>${r[state.timeFields.board_07_08] || ''}</td>
@@ -727,6 +921,128 @@
                     <td>${r[state.timeFields.board_19_20] || ''}</td>
                 </tr>`);
             });
+        }
+
+        function addRowToChart(row) {
+            if (!row) return;
+            const state = cityState[activeCity];
+            const key = getRowKey(row, state);
+            if (selectedChartRows.some(item => item.key === key)) {
+                renderChart();
+                return;
+            }
+
+            selectedChartRows.push({
+                key,
+                city: activeCity,
+                cityName: state.name,
+                month: row[state.monthField],
+                line: row[state.lineField],
+                station: row[state.stationField],
+                values: getChartValues(row, state)
+            });
+            renderChart();
+        }
+
+        function addCheckedRowsToChart() {
+            const rows = cityState[activeCity].lastResult;
+            const checked = $('#tblMetro tbody .row-check:checked');
+
+            if (!checked.length) {
+                alert('그래프로 볼 행을 체크하거나 행을 더블클릭해 주세요.');
+                return;
+            }
+
+            checked.each(function() {
+                const idx = Number($(this).closest('tr').data('idx'));
+                addRowToChart(rows[idx]);
+            });
+        }
+
+        function addFilteredRowsToChart() {
+            const rows = cityState[activeCity].lastResult;
+            if (!rows.length) {
+                alert('먼저 조회를 실행해 주세요.');
+                return;
+            }
+
+            rows.forEach(r => addRowToChart(r));
+        }
+
+        function resetChart() {
+            selectedChartRows = [];
+            $('#tblMetro tbody .row-check').prop('checked', false);
+            $('#tblMetro tbody tr').removeClass('selected-row');
+            renderChart();
+        }
+
+        function formatNum(num) {
+            return Number(num || 0).toLocaleString('ko-KR');
+        }
+
+        function renderChart() {
+            const labels = ['출근승차 07-08', '출근승차 08-09', '퇴근하차 18-19', '퇴근하차 19-20', '출근하차 07-08', '출근하차 08-09', '퇴근승차 18-19', '퇴근승차 19-20'];
+            const colors = ['#2563eb', '#0ea5e9', '#f97316', '#fb923c', '#16a34a', '#22c55e', '#9333ea', '#a855f7', '#dc2626', '#64748b'];
+            const container = $('#chartArea');
+            const summary = $('#selectedSummary');
+
+            if (!selectedChartRows.length) {
+                summary.text('선택된 역 없음');
+                container.html('<div class="chart-empty">표의 행을 더블클릭하거나 체크박스로 선택 후 [선택 항목 그래프 추가]를 눌러주세요.</div>');
+                return;
+            }
+
+            summary.text(`선택된 역 ${selectedChartRows.length}개 · 더블클릭/체크박스/조회조건 전체 추가 가능`);
+
+            const width = Math.max(920, labels.length * Math.max(90, selectedChartRows.length * 22));
+            const height = 380;
+            const margin = { top: 28, right: 24, bottom: 92, left: 72 };
+            const plotW = width - margin.left - margin.right;
+            const plotH = height - margin.top - margin.bottom;
+            const maxVal = Math.max(1, ...selectedChartRows.flatMap(r => r.values));
+            const groupW = plotW / labels.length;
+            const barGap = 3;
+            const barW = Math.max(8, Math.min(28, (groupW - 18) / selectedChartRows.length - barGap));
+
+            let svg = `<svg class="chart-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMinYMin meet">`;
+            svg += `<line x1="${margin.left}" y1="${margin.top + plotH}" x2="${margin.left + plotW}" y2="${margin.top + plotH}" stroke="#9ca3af"/>`;
+            svg += `<line x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${margin.top + plotH}" stroke="#9ca3af"/>`;
+
+            for (let i = 0; i <= 4; i++) {
+                const y = margin.top + plotH - (plotH * i / 4);
+                const val = Math.round(maxVal * i / 4);
+                svg += `<line x1="${margin.left}" y1="${y}" x2="${margin.left + plotW}" y2="${y}" stroke="#e5e7eb"/>`;
+                svg += `<text x="${margin.left - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#4b5563">${formatNum(val)}</text>`;
+            }
+
+            labels.forEach((label, labelIdx) => {
+                const groupX = margin.left + labelIdx * groupW + groupW / 2;
+                const totalBarsW = selectedChartRows.length * barW + (selectedChartRows.length - 1) * barGap;
+                const startX = groupX - totalBarsW / 2;
+
+                selectedChartRows.forEach((row, rowIdx) => {
+                    const val = row.values[labelIdx];
+                    const barH = (val / maxVal) * plotH;
+                    const x = startX + rowIdx * (barW + barGap);
+                    const y = margin.top + plotH - barH;
+                    svg += `<rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3" fill="${colors[rowIdx % colors.length]}">`;
+                    svg += `<title>${row.cityName} ${row.line} ${row.station} / ${label}: ${formatNum(val)}</title></rect>`;
+                });
+
+                svg += `<text x="${groupX}" y="${margin.top + plotH + 20}" text-anchor="middle" font-size="11" fill="#111827">${label.split(' ')[0]}</text>`;
+                svg += `<text x="${groupX}" y="${margin.top + plotH + 36}" text-anchor="middle" font-size="11" fill="#4b5563">${label.split(' ')[1]}</text>`;
+            });
+
+            svg += `</svg>`;
+
+            const legend = selectedChartRows.map((row, idx) => `
+                <span class="legend-item">
+                    <span class="legend-color" style="background:${colors[idx % colors.length]}"></span>
+                    ${row.cityName} · ${row.line} · ${row.station}
+                </span>
+            `).join('');
+
+            container.html(`<div class="chart-scroll">${svg}</div><div class="chart-legend">${legend}</div>`);
         }
 
         function exportToExcel() {
@@ -875,7 +1191,10 @@
                 <div id="loading"></div>
             </div>
 
-            <div class="tables-toolbar">
+            <div class="tables-toolbar" style="gap: 6px; flex-wrap: wrap;">
+                <button class="btn-chart" id="btnAddCheckedChart">선택 항목 그래프 추가</button>
+                <button class="btn-chart" id="btnAddFilteredChart">조회 조건 전체 추가</button>
+                <button class="btn-reset" id="btnResetChart">초기화</button>
                 <button class="btn-excel" onclick="exportToExcel()">엑셀 다운로드</button>
             </div>
 
@@ -889,12 +1208,14 @@
                                 <tr>
                                     <th></th>
                                     <th></th>
+                                    <th></th>
                                     <th colspan="2">출근 승차</th>
                                     <th colspan="2">퇴근 하차</th>
                                     <th colspan="2">출근 하차</th>
                                     <th colspan="2">퇴근 승차</th>
                                 </tr>
                                 <tr>
+                                    <th>선택</th>
                                     <th>호선명</th>
                                     <th>지하철역</th>
                                     <th>07-08</th>
@@ -912,6 +1233,26 @@
                     </div>
                 </div>
 
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <div>
+                        <div class="chart-title">선택 역 시간대별 그래프</div>
+                        <div class="chart-help">행 더블클릭 또는 체크박스 선택 후 그래프 추가 / 조회된 조건 전체 추가 가능</div>
+                    </div>
+                    <div class="chart-actions">
+                        <button class="btn-chart" onclick="addCheckedRowsToChart()">선택 항목 그래프 추가</button>
+                        <button class="btn-chart" onclick="addFilteredRowsToChart()">조회 조건 전체 추가</button>
+                        <button class="btn-reset" onclick="resetChart()">초기화</button>
+                    </div>
+                </div>
+                <div class="chart-body">
+                    <div id="selectedSummary">선택된 역 없음</div>
+                    <div id="chartArea">
+                        <div class="chart-empty">표의 행을 더블클릭하거나 체크박스로 선택 후 [선택 항목 그래프 추가]를 눌러주세요.</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
