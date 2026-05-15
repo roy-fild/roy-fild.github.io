@@ -647,12 +647,25 @@
 
         function createSchoolInfo(a, t) {
             var html = [];
+            var searchRegion = charTrim(a || '');
+            var searchName = charTrim(t || '');
+
             $.getJSON('https://roy-fild.github.io/json/junior-data.json', function(data) {
 
                 $.each(data, function(i, item) {
-                    if (item.region.match(a) && item.name.match(t)) {
+                    if (!item) return true;
 
-                        var rate = (Number(item.cnt1) / Number(item.cnt6)) * 100;
+                    var region = String(item.region || '');
+                    var name = String(item.name || '');
+                    var regionForSearch = charTrim(region);
+                    var nameForSearch = charTrim(name);
+
+                    if ((searchRegion === '' || regionForSearch.includes(searchRegion)) &&
+                        (searchName === '' || nameForSearch.includes(searchName))) {
+
+                        var cnt1 = Number(item.cnt1) || 0;
+                        var cnt6 = Number(item.cnt6) || 0;
+                        var rate = cnt6 === 0 ? 0 : (cnt1 / cnt6) * 100;
 
                         html.push('<table>');
                         html.push('<thead>');
@@ -702,6 +715,7 @@
         }
 
         function charTrim(v) {
+            v = (v === null || v === undefined) ? '' : String(v);
             v = v.replace(/\s/gi, "");
             return v;
         }
