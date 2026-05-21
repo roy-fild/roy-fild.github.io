@@ -1,0 +1,1383 @@
+package com.sample;
+
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.DataFormat;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.util.CellReference;
+import org.apache.poi.util.IOUtils;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+
+
+/****
+ * 현재 브라우저 문제로 이게 호출 가능 소스
+ */
+//@Slf4j
+public class NaverLikeBrowser {
+	
+	private static final String JSON_URL = "https://roy-fild.github.io/tracking/prev-high.json";
+	
+	private static Map<String, Object> PREV_HIGH_MAP = null;
+
+
+	private static final Logger log = LoggerFactory.getLogger(NaverLikeBrowser.class);
+
+	static final String UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+			+ "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
+
+	// 1) 쿠키 매니저 + 리다이렉트 허용 클라이언트 (전역 1개)
+	static final HttpClient client = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2)
+			.followRedirects(HttpClient.Redirect.NORMAL).cookieHandler(new CookieManager(null, CookiePolicy.ACCEPT_ALL))
+			.connectTimeout(Duration.ofSeconds(15)).build();
+
+	static HttpRequest.Builder base(String url) {
+	    return HttpRequest.newBuilder(URI.create(url))
+	        .timeout(Duration.ofSeconds(30))
+	        .header("User-Agent", UA)
+	        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	        .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7");
+	}
+
+
+	// 2) 웜업: 같은 도메인에서 아무 페이지 하나 먼저 열어 쿠키 확보
+	static void warmup() throws Exception {
+		String warm = "https://fin.land.naver.com/";
+		HttpRequest req = base(warm).GET().build();
+		HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
+		// 200/302여도 쿠키만 잘 받으면 OK
+//		System.out.println("warmup status=" + res.statusCode());
+	}
+
+	// 재사용 가능한 HttpClient
+	private static final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20)).build();
+
+	public static void main(String[] args) throws Exception {
+		
+		// 구로구 3202 저가 체크
+		
+		
+//		String fileUrl = "https://roy-fild.github.io/file/suji-gu.xlsx"; // 수지구
+//		String fileUrl = "https://roy-fild.github.io/file/seong-buk-gu.xlsx"; // 성북구
+//		String fileUrl = "https://roy-fild.github.io/file/suwon-si-yeongtong-gu.xlsx"; // 영통구
+//		String fileUrl = "https://roy-fild.github.io/file/case-test.xlsx"; // TEST용
+		
+		String prefix = "https://roy-fild.github.io/file/";
+		
+		String[] fileUrls = {
+//				"case-test",			// TEST용
+				// 정찰기
+//				"tracking-list",		// 수도권
+//				"tracking-jibang",		// 지방
+				
+				// 미임장지역
+//				"daegu-suseong-gu",		// 대구_수성구
+//				"gangnam-gu",			// 강남구
+//				"seocho-gu",			// 서초구				
+				
+				// 서울시
+
+//				"songpa-gu",			// 송파구
+//				"seongdong-gu",			// 성동구
+//				"yeongdeungpo-gu",		// 영등포구
+//				"yangcheon-gu",			// 양천구
+//				"jongno-jung-gu",		// 종로/중구
+				"dongjak-gu",			// 동작구		
+				"seong-buk-gu",			// 성북구
+				"dongdaemun-gu",		// 동대분구
+				"seodaemun-gu",			// 서대문구
+				"gwanak-gu",			// 관악구
+				"eunpyeong-gu",			// 은평구
+				"jungnang-gu",			// 중랑구
+				"guro-gu",				// 구로구
+				
+				// 수도권
+				"suji-gu",				// 수지구
+				"bundang-gu",			// 성남시_분당구
+				"anyang-si-dongan-gu",	// 안양시_동안구
+				"suwon-si-yeongtong-gu",// 수원시_영통구
+				"dongtan",				// 화성시_동탄
+				"sujeong-jungwon-gu",	// 성남시_수정/증원구
+				"bu-cheon",				// 부천시 
+				"gunpo-si",				// 군포시			
+				"guri-si",				// 구리시
+				
+				
+				// 광역시
+				"daejeon-seo-gu",		// 대전_서구
+				"daejeon-yuseong-gu", 	// 대전_유성구
+				"gwangju-buk-gu",		// 광주_북구
+				"busanjin-gu",			// 부산진구
+				"bupyeong-gu",			// 인천시_부평구
+				
+				// 중소도시
+				"cheonan",				// 천안시
+				"cheongju",				// 청주
+				"jeonju",				// 전주
+				"pohang-si-buk-gu",		// 포항시_북구
+		};
+
+		
+        // AS-IS 순차
+		for(String fileUrl : fileUrls) {	
+			fileUrl = String.format("%s%s.xlsx", prefix, fileUrl);
+			readExcelFileFromUrl(fileUrl); // Excel 읽어 오기
+		}
+    }
+
+
+	// 1.github 에 있는 Excel 파일 조회
+	public static void readExcelFileFromUrl(String fileUrl) {
+		try {
+			// 0) 정말 큰 파일 대비(필요시 상향: 200MB 예시)
+			IOUtils.setByteArrayMaxOverride(200 * 1024 * 1024);
+
+			// 1) 다운로드 (바이너리)
+			HttpRequest req = HttpRequest.newBuilder(URI.create(fileUrl)).timeout(Duration.ofSeconds(60))
+					.header("User-Agent", UA)
+					.header("Accept",
+							"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream;q=0.9,*/*;q=0.5")
+					.GET().build();
+
+			HttpResponse<byte[]> res = http.send(req, HttpResponse.BodyHandlers.ofByteArray());
+			int status = res.statusCode();
+			String ctype = res.headers().firstValue("content-type").orElse("-");
+			System.out.println("GET " + status + " content-type=" + ctype);
+
+			if (status != 200) {
+				Files.writeString(Path.of("xlsx_download_error.html"),
+						"HTTP " + status + "\n\n" + new String(res.body()));
+				throw new IllegalStateException("엑셀 다운로드 실패: HTTP " + status + " (xlsx_download_error.html 저장됨)");
+			}
+
+			byte[] body = res.body();
+
+			// 2) 매직 바이트 확인 (XLSX=ZIP: 'P''K''\003''\004')
+			boolean isZip = body.length >= 4 && body[0] == 0x50 && body[1] == 0x4B && body[2] == 0x03
+					&& body[3] == 0x04;
+
+			if (!isZip) {
+				// HTML/텍스트 가능성 – 저장해서 내용 확인
+				Path dump = Path.of("downloaded_non_xlsx.bin");
+				Files.write(dump, body);
+				String head = new String(body, 0, Math.min(body.length, 800));
+				System.out.println("NOT XLSX. preview:\n" + head);
+				throw new IllegalStateException("받은 파일이 XLSX가 아닙니다. saved: " + dump.toAbsolutePath());
+			}
+
+			// 3) Apache POI 파싱
+			List<String> aptIds = new ArrayList<>();
+			try (InputStream is = new ByteArrayInputStream(body); Workbook wb = new XSSFWorkbook(is)) {
+
+				DataFormatter fmt = new DataFormatter();
+
+				for (int s = 0; s < wb.getNumberOfSheets(); s++) {
+					Sheet sheet = wb.getSheetAt(s);
+					if (sheet == null)
+						continue;
+
+					for (Row row : sheet) {
+						if (row == null)
+							continue;
+
+						Cell idCell = row.getCell(0, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+						String idStr = (idCell == null) ? "" : fmt.formatCellValue(idCell).trim();
+
+						if (idStr.isEmpty() || idStr.equalsIgnoreCase("id"))
+							continue;
+//						System.out.println(idStr);
+						aptIds.add(idStr);
+					}
+				}
+			}
+
+			// 4) 다음 단계로 전달
+			// requestNaver(aptIds);
+
+			JSONArray baseArr = new JSONArray();
+
+			// 기본정보 조회
+			for (String id : aptIds) {
+				loadBaseData(id, baseArr);
+				loadPyeongList(id, baseArr);
+				getPriceData(id, baseArr, 0);
+			}
+
+//			JSONObject obj = pickOneById(baseArr, "100473");
+//			log.debug("{}", obj);
+
+//			log.debug("{}", baseArr);
+			
+			String fileName = extractBaseName(fileUrl);
+
+			Path out = Path.of(String.format("%s_%s.xlsx", fileName,getNowDate()));
+			export(baseArr, out);
+			System.out.println("엑셀 생성 완료: " + out.toAbsolutePath());
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	// 2.아파트 기본 정보 조회
+	public static void loadBaseData(String id, JSONArray baseArr) {
+	    try {
+	        ComplexInfo info = new ComplexInfo();
+
+	        // HTML 긁지 말고 API fallback만 사용
+	        fillFromFrontApi(id, info);
+
+	        if (isBlank(info.aptNm) && isBlank(info.gu) && isBlank(info.dong)) {
+	            System.out.println("[loadBaseData] no data, id=" + id);
+	            return;
+	        }
+
+	        JSONObject oldObj = pickOneById(baseArr, id);
+	        JSONObject target = oldObj != null ? oldObj : new JSONObject();
+
+	        target.put("id", id);
+	        target.put("aptNm", nvl(info.aptNm));
+	        target.put("gu", nvl(info.gu));
+	        target.put("dong", nvl(info.dong));
+	        target.put("year", nvl(info.year));
+	        target.put("sd", nvl(info.householdCount));
+	        target.put("mCnt", nvl(info.dealCount));
+	        target.put("jCnt", nvl(info.leaseCount));
+
+	        if (oldObj == null) {
+	            baseArr.put(target);
+	        }
+
+	        sleepRandom(3000, 7000);
+
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	    }
+	}
+
+	private static void sleepRandom(int minMs, int maxMs) {
+	    try {
+	        int delay = minMs + (int)(Math.random() * (maxMs - minMs));
+	        Thread.sleep(delay);
+	    } catch (InterruptedException e) {
+	        Thread.currentThread().interrupt();
+	    }
+	}
+
+	private static String nvl(String s) {
+	    return s == null ? "" : s.trim();
+	}
+	
+	public static void loadBaseDataFromHtmlFile(String id, String htmlFilePath, JSONArray baseArr) {
+	    try {
+	        String body = Files.readString(Path.of(htmlFilePath), StandardCharsets.UTF_8);
+	        Document doc = Jsoup.parse(body);
+
+	        ComplexInfo info = new ComplexInfo();
+
+	        // 1순위: __next_f 내부 JSON
+	        boolean ok = fillFromNextScript(doc, info);
+
+	        // 2순위: 화면 HTML fallback
+	        if (!ok || isBlank(info.gu) || isBlank(info.dong) || isBlank(info.year) || isBlank(info.householdCount)) {
+	            fillFromHtml(doc, info);
+	        }
+
+	        JSONObject baseObj = new JSONObject();
+	        baseObj.put("id", id);
+	        baseObj.put("aptNm", info.aptNm);
+	        baseObj.put("gu", info.gu);
+	        baseObj.put("dong", info.dong);
+	        baseObj.put("year", info.year);
+	        baseObj.put("sd", info.householdCount);
+	        baseObj.put("mCnt", info.dealCount);
+	        baseObj.put("jCnt", info.leaseCount);
+
+	        baseArr.put(baseObj);
+
+	        System.out.println("파일 HTML 파싱 완료: " + baseObj.toString());
+
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	    }
+	}
+	
+	private static boolean fillFromNextScript(Document doc, ComplexInfo info) {
+	    Elements scripts = doc.select("script");
+
+	    for (Element script : scripts) {
+	        String raw = script.html();
+	        if (isBlank(raw)) continue;
+
+	        String text = raw
+	                .replace("\\\\\"", "\"")
+	                .replace("\\\"", "\"")
+	                .replace("\\\\/", "/");
+
+	        if (text.contains("GET /complex")) {
+	            int idx = text.indexOf("GET /complex");
+	            String near = text.substring(idx, Math.min(text.length(), idx + 5000));
+
+	            info.aptNm = firstGroup(near, "\"result\":\\{\"name\":\"([^\"]+)\"");
+	            if (isBlank(info.aptNm)) {
+	                info.aptNm = firstGroup(near, "\"name\":\"([^\"]+)\"");
+	            }
+
+	            info.gu = firstGroup(near, "\"division\":\"([^\"]+)\"");
+	            info.dong = firstGroup(near, "\"sector\":\"([^\"]+)\"");
+	            info.householdCount = firstGroup(near, "\"totalHouseholdNumber\":(\\d+)");
+	            String useApprovalDate = firstGroup(near, "\"useApprovalDate\":\"(\\d{8})\"");
+	            if (!isBlank(useApprovalDate) && useApprovalDate.length() >= 4) {
+	                info.year = useApprovalDate.substring(0, 4);
+	            }
+	        }
+
+	        if (text.contains("GET /complex/article/count")) {
+	            int idx = text.indexOf("GET /complex/article/count");
+	            String near = text.substring(idx, Math.min(text.length(), idx + 2000));
+
+	            info.dealCount = firstGroup(near, "\"dealCount\":(\\d+)");
+	            info.leaseCount = firstGroup(near, "\"leaseDepositCount\":(\\d+)");
+	        }
+	    }
+
+	    return !isBlank(info.aptNm) || !isBlank(info.dealCount) || !isBlank(info.leaseCount);
+	}
+
+	private static void fillFromHtml(Document doc, ComplexInfo info) {
+	    if (isBlank(info.aptNm)) {
+	        Element nameEl = doc.selectFirst("span[class*=ComplexSummary_name]");
+	        if (nameEl != null) {
+	            info.aptNm = clean(nameEl.text());
+	        }
+	    }
+
+	    if (isBlank(info.aptNm)) {
+	        info.aptNm = clean(doc.title());
+	    }
+
+	    Element addrEl = doc.selectFirst("a[class*=HeaderBrandDepth-module_sub-name]");
+	    if (addrEl != null) {
+	        String addr = clean(addrEl.text());
+	        String[] parts = addr.split("\\s+");
+	        if (parts.length >= 2) {
+	            if (isBlank(info.gu)) info.gu = parts[0];
+	            if (isBlank(info.dong)) info.dong = parts[1];
+	        }
+	    }
+
+	    Elements summaryLis = doc.select("li[class*=ComplexSummary_item-detail-summary]");
+	    for (Element li : summaryLis) {
+	        String txt = li.text().trim();
+
+	        if (isBlank(info.householdCount) && txt.contains("세대")) {
+	            info.householdCount = txt.replaceAll("[^0-9]", "");
+	        }
+
+	        if (isBlank(info.year)) {
+	            Matcher m = Pattern.compile("^(\\d{4})\\.").matcher(txt);
+	            if (m.find()) {
+	                info.year = m.group(1);
+	            }
+	        }
+	    }
+
+	    Elements tabTexts = doc.select("span[class*=ComplexSummary_text-tab]");
+	    for (Element el : tabTexts) {
+	        String txt = el.text().replaceAll("\\s+", "");
+	        if (txt.startsWith("매매") && isBlank(info.dealCount)) {
+	            info.dealCount = txt.replaceAll("[^0-9]", "");
+	        }
+	        if (txt.startsWith("전세") && isBlank(info.leaseCount)) {
+	            info.leaseCount = txt.replaceAll("[^0-9]", "");
+	        }
+	    }
+	}
+
+	private static void fillFromFrontApi(String complexId, ComplexInfo info) {
+	    try {
+	        String apiUrl = "https://fin.land.naver.com/front-api/v1/complex?complexNumber=" + complexId;
+
+	        HttpRequest apiReq = HttpRequest.newBuilder(URI.create(apiUrl))
+	                .timeout(Duration.ofSeconds(30))
+	                .header("User-Agent", UA)
+	                .header("Accept", "application/json, text/plain, */*")
+	                .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+	                .header("Referer", "https://fin.land.naver.com/complexes/" + complexId + "?tab=article")
+	                .header("Origin", "https://fin.land.naver.com")
+	                .header("X-Requested-With", "XMLHttpRequest")
+	                .GET()
+	                .build();
+
+	        HttpResponse<String> apiRes = client.send(apiReq, HttpResponse.BodyHandlers.ofString());
+	        if (apiRes.statusCode() != 200) {
+	            return;
+	        }
+
+	        JSONObject root = new JSONObject(apiRes.body());
+	        JSONObject result = root.optJSONObject("result");
+	        if (result == null) {
+	            return;
+	        }
+
+	        if (isBlank(info.aptNm)) {
+	            info.aptNm = clean(result.optString("name", ""));
+	        }
+
+	        JSONObject address = result.optJSONObject("address");
+	        if (address != null) {
+	            if (isBlank(info.gu)) info.gu = clean(address.optString("division", ""));
+	            if (isBlank(info.dong)) info.dong = clean(address.optString("sector", ""));
+	        }
+
+	        if (isBlank(info.householdCount)) {
+	            int totalHouseholdNumber = result.optInt("totalHouseholdNumber", 0);
+	            if (totalHouseholdNumber > 0) {
+	                info.householdCount = String.valueOf(totalHouseholdNumber);
+	            }
+	        }
+
+	        if (isBlank(info.year)) {
+	            String useApprovalDate = result.optString("useApprovalDate", "");
+	            if (useApprovalDate.length() >= 4) {
+	                info.year = useApprovalDate.substring(0, 4);
+	            }
+	        }
+
+	        // 기사건수 API 별도 호출
+	        String countUrl = "https://fin.land.naver.com/front-api/v1/complex/article/count?complexNumber=" + complexId;
+
+	        HttpRequest countReq = HttpRequest.newBuilder(URI.create(countUrl))
+	                .timeout(Duration.ofSeconds(30))
+	                .header("User-Agent", UA)
+	                .header("Accept", "application/json, text/plain, */*")
+	                .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+	                .header("Referer", "https://fin.land.naver.com/complexes/" + complexId + "?tab=article")
+	                .header("Origin", "https://fin.land.naver.com")
+	                .header("X-Requested-With", "XMLHttpRequest")
+	                .GET()
+	                .build();
+
+	        HttpResponse<String> countRes = client.send(countReq, HttpResponse.BodyHandlers.ofString());
+	        if (countRes.statusCode() == 200) {
+	            JSONObject countRoot = new JSONObject(countRes.body());
+	            JSONObject countResult = countRoot.optJSONObject("result");
+
+	            if (countResult != null) {
+	                if (isBlank(info.dealCount)) {
+	                    info.dealCount = String.valueOf(countResult.optInt("dealCount", 0));
+	                }
+	                if (isBlank(info.leaseCount)) {
+	                    info.leaseCount = String.valueOf(countResult.optInt("leaseDepositCount", 0));
+	                }
+	            }
+	        }
+
+	    } catch (Exception ignored) {
+	    }
+	}
+
+    private static String firstGroup(String text, String regex) {
+        try {
+            Matcher m = Pattern.compile(regex).matcher(text);
+            if (m.find()) {
+                return clean(m.group(1));
+            }
+        } catch (Exception ignored) {
+        }
+        return "";
+    }
+
+    private static String clean(String s) {
+        return s == null ? "" : s.trim();
+    }
+
+    private static boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
+    }
+	
+	private static String extractKoreanValue(String content, String key) {
+	    try {
+	        String patternString = "\\\\?\"" + key + "\\\\?\":\\s*\\\\?\"?([^\\\\\",}]+)\\\\?\"?";
+	        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(patternString);
+	        java.util.regex.Matcher matcher = pattern.matcher(content);
+	        
+	        while (matcher.find()) {
+	            String val = matcher.group(1).trim();
+	            val = val.replace("\\\"", "").replace("\"", "");
+	            
+	            // 한글이 한 글자라도 포함되어 있는지 확인 (시스템 예약어 필터링)
+	            if (val.matches(".*[ㄱ-ㅎㅏ-ㅣ가-힣].*")) {
+	                return val;
+	            }
+	        }
+	    } catch (Exception e) {}
+	    return "";
+	}
+
+	/**
+	 * 일반 숫자/영문 데이터 추출 메서드
+	 */
+	private static String extractTargetValue(String content, String key) {
+	    try {
+	        String patternString = "\\\\?\"" + key + "\\\\?\":\\s*\\\\?\"?([^\\\\\",}]+)\\\\?\"?";
+	        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile(patternString);
+	        java.util.regex.Matcher matcher = pattern.matcher(content);
+	        if (matcher.find()) {
+	            return matcher.group(1).replace("\\\"", "").replace("\"", "").trim();
+	        }
+	    } catch (Exception e) {}
+	    return "";
+	}
+
+	// 3.방 리스트 정보
+	public static void loadPyeongList(String id, JSONArray baseArr) {
+		try {
+			warmup();
+
+			// 3) 타깃 페이지: 반드시 Referer를 같은 도메인으로
+			String url = "https://fin.land.naver.com/front-api/v1/complex/building/pyeongList?complexNumber=" + id;
+
+			HttpRequest req = base(url).header("Referer", "https://fin.land.naver.com/complexes/" + id + "?tab=article")
+					.GET().build();
+
+			HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
+//			System.out.println("status=" + res.statusCode());
+			if (res.statusCode() != 200) {
+				// 원인 파악용으로 응답 일부 출력
+				System.out.println(res.body().substring(0, Math.min(800, res.body().length())));
+			} else {
+				String body = res.body(); // <-- 실제 JSON 문자열
+
+				JSONObject root = new JSONObject(body);
+				JSONObject result = root.getJSONObject("result"); // JS에서 Object.keys(res.result) 쓰던 그 부분
+
+				JSONArray subArr = new JSONArray();
+
+				// 평 리스트 가져오기
+				for (String key : result.keySet()) { // "1","2","3", ...
+
+//			    	System.out.println(key);
+					loadPyeongDetailinfo(id, key, subArr);
+				}
+
+				JSONObject obj = pickOneById(baseArr, id);
+				if (obj != null) {
+					obj.put("subInfo", subArr); // ✅ 이걸로 끝
+				} else {
+					// 혹시 기본정보가 없을 때만 새로 추가
+					JSONObject newObj = new JSONObject().put("id", id).put("subInfo", subArr);
+					baseArr.put(newObj);
+				}
+
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	// 4.방 상세정보
+	public static void loadPyeongDetailinfo(String id, String key, JSONArray subArr) {
+
+		JSONObject pObj = new JSONObject();
+
+		try {
+			warmup();
+
+			// 3) 타깃 페이지: 반드시 Referer를 같은 도메인으로
+			String url = "https://fin.land.naver.com/front-api/v1/complex/pyeong?complexNumber=" + id
+					+ "&pyeongTypeNumber=" + key;
+
+			HttpRequest req = base(url).header("Referer", "https://fin.land.naver.com/complexes/" + id + "?tab=article")
+					.GET().build();
+
+			HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
+//			System.out.println("status=" + res.statusCode());
+			if (res.statusCode() != 200) {
+				// 원인 파악용으로 응답 일부 출력
+				System.out.println(res.body().substring(0, Math.min(800, res.body().length())));
+			} else {
+				String body = res.body(); // <-- 실제 JSON 문자열
+//			    System.out.println(body);               // 형태 확인하고 싶으면 출력
+
+				JSONObject root = new JSONObject(body);
+				JSONObject result = root.getJSONObject("result"); // JS에서 Object.keys(res.result) 쓰던 그 부분
+
+				// 방상세정보
+				String type = result.getString("name");
+				String roomCnt = result.get("roomCount").toString();
+				String batchRoom = result.get("bathRoomCount").toString();
+				String entranceType = getEntranceName(result.get("entranceType").toString()); // 10:계 20:복 30:복합
+				
+				double exclusiveArea = result.getDouble("exclusiveArea");
+				int intExclusiveArea = (int) exclusiveArea;
+
+//			    System.out.println(entranceType +"|"+ roomCnt+"|"+batchRoom);
+
+				String info = String.format("%s|%s|%s", entranceType, roomCnt, batchRoom);
+
+				pObj.put("key", key);
+				pObj.put("type", type);
+				pObj.put("space", Integer.toString(intExclusiveArea));
+				pObj.put("info", info);
+
+				subArr.put(pObj);
+
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	// 5 매/전가 조회
+	public static void getPriceData(String id, JSONArray baseArr, int ignoredStartPage) {
+	    JSONObject mObj = new JSONObject(); // 매매
+	    JSONObject jObj = new JSONObject(); // 전세
+
+	    try {
+	        // 세션 워밍업 (쿠키/세션 확보)
+	        warmup();
+
+	        final String endpoint = "https://fin.land.naver.com/front-api/v1/complex/article/list";
+	        final int size = 30;                    // 한 번에 받아올 개수
+	        final String sortType = "RANKING_DESC"; // 혹은 "PRICE_ASC" 등 화면과 일치시키세요.
+	        JSONArray lastInfo = new JSONArray();   // 서버 응답에서 반환되는 lastInfo를 이어서 사용
+	        boolean hasNext = true;                 // 다음 페이지 존재 여부(안 오면 size로 추정)
+
+	        while (hasNext) {
+	            // 1) 페이로드 구성 (브라우저 페이로드 스키마와 일치)
+	            JSONObject payload = new JSONObject()
+	                    .put("complexNumber", id)
+	                    .put("tradeTypes", new JSONArray())      // 필요하면 ["A1"] 등으로
+	                    .put("pyeongTypes", new JSONArray())     // 필요하면 ["84"] 등으로
+	                    .put("dongNumbers", new JSONArray())     // 필요하면 ["101"] 등으로
+	                    .put("userChannelType", "PC")
+	                    .put("articleSortType", sortType)
+	                    .put("seed", "")
+	                    .put("lastInfo", lastInfo)               // 첫 호출은 빈 배열, 이후 응답값 주입
+	                    .put("size", size);
+
+	            HttpRequest req = HttpRequest.newBuilder(URI.create(endpoint))
+	                    .timeout(Duration.ofSeconds(30))
+	                    .header("User-Agent", UA)
+	                    .header("Accept", "application/json, text/plain, */*")
+	                    .header("Accept-Language", "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7")
+	                    .header("Origin", "https://fin.land.naver.com")
+	                    .header("Referer", "https://fin.land.naver.com/complexes/" + id + "?tab=article")
+	                    .header("X-Requested-With", "XMLHttpRequest")
+	                    .header("Sec-Fetch-Site", "same-origin")
+	                    .header("Sec-Fetch-Mode", "cors")
+	                    .header("Sec-Fetch-Dest", "empty")
+	                    .header("Content-Type", "application/json;charset=UTF-8")
+	                    .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
+	                    .build();
+
+	            HttpResponse<String> res = sendWithRetry429(req, 4); // 429/5xx 재시도
+	            if (res.statusCode() != 200) {
+	                System.out.println("[getPriceData:POST] HTTP " + res.statusCode()
+	                        + " body preview: " + res.body().substring(0, Math.min(800, res.body().length())));
+	                break;
+	            }
+	            
+	            
+
+	            JSONObject root = new JSONObject(res.body());
+	            JSONObject result = root.getJSONObject("result");
+	            JSONArray list = result.optJSONArray("list");
+	            
+//	            log.debug("{}",result);
+
+	            if (list == null || list.length() == 0) {
+	                break;
+	            }
+
+	            for (int i = 0; i < list.length(); i++) {
+	                JSONObject item = list.getJSONObject(i);
+	                JSONObject info = item.getJSONObject("representativeArticleInfo");
+
+	                String dongName = info.optString("dongName", "");
+	                JSONObject detail = info.optJSONObject("articleDetail");
+	                JSONObject space = info.optJSONObject("spaceInfo");
+	                JSONObject price = info.optJSONObject("priceInfo");
+
+	                String desc = (detail != null) ? detail.optString("articleFeatureDescription", "") : "";
+	                String tradeType = info.optString("tradeType", ""); // A1(매매) / B1(전세)
+	                String supplyType = (space != null) ? space.optString("supplySpaceName", "") : "";
+	                String spaceType = (space != null) ? space.optString("exclusiveSpaceName", "") : "";
+	                String floorInfo = (detail != null) ? detail.optString("floorInfo", "") : "";
+
+	                String dealPrice = formatToEok((price != null) ? price.opt("dealPrice") : null);
+	                String rentPrice = formatToEok((price != null) ? price.opt("warrantyPrice") : null);
+
+	                if (chkFloor(floorInfo)) {
+	                    String floor = dongName + "(" + floorInfo + ")";
+	                    if ("A1".equals(tradeType)) {
+	                        createObj(mObj, dealPrice, supplyType, spaceType, floor, desc);
+	                    } else if ("B1".equals(tradeType)) {
+	                        createObj(jObj, rentPrice, supplyType, spaceType, floor, desc);
+	                    }
+	                }
+	            }
+
+	            // 2) 다음 페이징 준비
+	            // 서버가 hasNextPage를 주면 그대로 사용, 아니면 list 길이로 추정
+	            hasNext = result.optBoolean("hasNextPage",
+	                        list.length() >= size || result.optBoolean("hasMore", false));
+
+	            // 서버가 next를 위해 lastInfo를 내려주면 이어붙여서 다음 요청에 사용
+	            Object li = result.opt("lastInfo");
+	            if (li instanceof JSONArray) {
+	                lastInfo = (JSONArray) li;
+	            } else if (li != null) {
+	                // 혹시 객체/문자열로 내려오면 배열로 감싸서 사용
+	                lastInfo = new JSONArray().put(li);
+	            } else {
+	                // 내려오지 않으면 관성적으로 종료 조건을 size로만 판단
+	                if (list.length() < size) hasNext = false;
+	            }
+
+	            // 레이트 리밋 완화 간격
+	            Thread.sleep(1500);
+	        }
+
+	        JSONObject subObj = pickOneById(baseArr, id);
+	        if (subObj == null) {
+	            subObj = new JSONObject().put("id", id);
+	            baseArr.put(subObj);
+	        }
+	        subObj.put("dealInfo", mObj);
+	        subObj.put("rentInfo", jObj);
+
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	    }
+	}
+
+	/** 429/5xx 재시도 (Retry-After 존중 + 지수 백오프 + 지터) */
+	private static HttpResponse<String> sendWithRetry429(HttpRequest req, int maxRetry) throws Exception {
+	    long base = 1200L;
+	    for (int attempt = 0; attempt <= maxRetry; attempt++) {
+	        HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
+	        int code = res.statusCode();
+	        if (code == 200) return res;
+
+	        if (code == 429 || (code >= 500 && code < 600)) {
+	            if (attempt == maxRetry) return res;
+	            Optional<String> ra = res.headers().firstValue("Retry-After");
+	            long sleepMs;
+	            if (ra.isPresent()) {
+	                try {
+	                    sleepMs = Long.parseLong(ra.get().trim()) * 1000L;
+	                } catch (NumberFormatException nfe) {
+	                    sleepMs = base * (1L << attempt);
+	                }
+	            } else {
+	                sleepMs = base * (1L << attempt) + (long)(Math.random() * 600 + 200);
+	            }
+	            System.out.println("Retry after " + sleepMs + " ms (status " + code + ", attempt " + (attempt+1) + ")");
+	            Thread.sleep(Math.min(sleepMs, 10_000L));
+	            continue;
+	        }
+	        return res; // 그 외 코드는 그대로 반환
+	    }
+	    throw new IllegalStateException("retry exhausted");
+	}
+
+	// 가격 비교 후 삽입
+	public static void createObj(JSONObject obj, String priceInfo, String supplyType, String spaceType,
+			String floorInfo, String desc) {
+		spaceType = spaceType.trim();
+
+//		log.debug("{}", obj);
+
+		// 타입으로 이미 만들어진 오브젝트 여부 확인
+		if (!obj.has(spaceType)) {
+			// 최초 값
+			setNewInfo(obj, priceInfo, supplyType, spaceType, floorInfo, desc);
+		} else {
+
+			JSONObject subObj = obj.getJSONObject(spaceType);
+
+			String bfPrice = subObj.getString("priceInfo");
+			String afPrice = priceInfo;
+
+			if (Float.parseFloat(bfPrice) > Float.parseFloat(afPrice)) {
+				setNewInfo(obj, priceInfo, supplyType, spaceType, floorInfo, desc);
+			}
+		}
+	}
+
+	public static void setNewInfo(JSONObject obj, String priceInfo, String supplyType, String spaceType,
+			String floorInfo, String desc) {
+		JSONObject p = new JSONObject();
+
+		p.put("priceInfo", priceInfo);
+		p.put("spaceType", spaceType);
+		p.put("supplyType", supplyType);
+		p.put("floorInfo", floorInfo);
+		p.put("desc", desc);
+
+		obj.put(spaceType, p);
+
+	}
+
+	public static void export(JSONArray jArr, Path outXlsx) throws Exception {
+
+		try (Workbook wb = new XSSFWorkbook()) {
+			Sheet sheet = wb.createSheet("data");
+
+			// 헤더/서식
+			Font bold = wb.createFont();
+			bold.setBold(true);
+			CellStyle headStyle = wb.createCellStyle();
+			headStyle.setFont(bold);
+
+			DataFormat fmt = wb.createDataFormat();
+
+			CellStyle numStyle = wb.createCellStyle();
+			numStyle.setDataFormat(fmt.getFormat("0.0########"));
+
+			CellStyle pctStyle = wb.createCellStyle();
+			pctStyle.setDataFormat(fmt.getFormat("0.0%"));
+
+			// ── 컬럼 인덱스: 차액(10) → 전세가율(11) ─────────────────────
+			final int COL_ID = 0;
+			final int COL_GU = 1;
+			final int COL_DONG = 2;
+			final int COL_APTNM = 3;
+			final int COL_YEAR = 4;
+			final int COL_SD = 5;
+			final int COL_SPACE = 6;
+			final int COL_TYPE = 7;
+			final int COL_ROOM = 8; // subinfo.info
+			final int COL_DEAL = 9; // 매매가
+			final int COL_RENT = 10; // 전세가
+			final int COL_DIFF = 11; // 차액 
+			final int COL_RATE = 12; // 전세가율(%) 
+			final int COL_M = 13; // 매
+			final int COL_J = 14; // 전
+			final int COL_M_FR = 15; // 매/층
+			final int COL_J_FR = 16; // 매/층
+			final int COL_DESC = 17; // 설명
+			final int COL_KEY = 18; // 방(KEY)
+			final int COL_PREV = 19; // 전고점
+			final int COL_CHG = 20; // 변화율
+			final int COL_RAT = 21; // 수익율
+			final int COL_AMT = 22; // 수익금
+
+			// 헤더: "차액"이 "전세가율(%)"보다 먼저
+			String[] headers = { "ID", "구", "동", "단지", "연식", "세대", "타입","유형", "방", "매매가", "전세가", "차액", "전세가율(%)", "매", "전",
+					"매/층","전/층", "설명", "key","전고점","변화율","수익율","수익금" };
+
+			int r = 0;
+			Row hr = sheet.createRow(r++);
+			for (int i = 0; i < headers.length; i++) {
+				Cell c = hr.createCell(i);
+				c.setCellValue(headers[i]);
+				c.setCellStyle(headStyle);
+			}
+
+			// 본문
+			for (int i = 0; i < jArr.length(); i++) {
+				JSONObject complex = jArr.getJSONObject(i);
+
+				String id = complex.optString("id", "");
+				String gu = complex.optString("gu", "");
+				String dong = complex.optString("dong", "");
+				String aptNm = complex.optString("aptNm", "");
+				String year = complex.optString("year", "");
+				String sd = complex.optString("sd", "");
+				String mCnt = complex.optString("mCnt", "");
+				String jCnt = complex.optString("jCnt", "");
+
+				JSONArray subInfo = complex.optJSONArray("subInfo");
+				if (subInfo == null || subInfo.length() == 0)
+					continue;
+
+				JSONObject dealInfo = complex.optJSONObject("dealInfo");
+				JSONObject rentInfo = complex.optJSONObject("rentInfo");
+
+				for (int j = 0; j < subInfo.length(); j++) {
+					JSONObject s = subInfo.optJSONObject(j);
+					if (s == null)
+						continue;
+
+					String subType = s.optString("type", "");
+					String subSpace = s.optString("space", "");
+					String subInfoInfo = s.optString("info", "");
+					String subKey = s.optString("key", "");
+
+					JSONObject dealItem = findBySupplyType(dealInfo, subType);
+					JSONObject rentItem = findBySupplyType(rentInfo, subType);
+
+					String dealPriceStr = dealItem != null ? dealItem.optString("priceInfo", "") : "";
+					String rentPriceStr = rentItem != null ? rentItem.optString("priceInfo", "") : "";
+					String dealDesc = dealItem != null ? dealItem.optString("desc", "") : "";
+					String dealFrInfoStr = dealItem != null ? dealItem.optString("floorInfo", "") : "";
+					String rentFrInfoStr = rentItem != null ? rentItem.optString("floorInfo", "") : "";
+
+					BigDecimal dealBD = toBD(dealPriceStr);
+					BigDecimal rentBD = toBD(rentPriceStr);
+					BigDecimal diffBD = (dealBD != null && rentBD != null) ? dealBD.subtract(rentBD) : null;
+
+					Row row = sheet.createRow(r++);
+
+					row.createCell(COL_ID).setCellValue(id);
+					row.createCell(COL_GU).setCellValue(gu);
+					row.createCell(COL_DONG).setCellValue(dong);
+					row.createCell(COL_APTNM).setCellValue(aptNm);
+					row.createCell(COL_YEAR).setCellValue(year);
+					row.createCell(COL_SD).setCellValue(sd);
+					row.createCell(COL_SPACE).setCellValue(subSpace);
+					row.createCell(COL_TYPE).setCellValue(subType);
+					row.createCell(COL_ROOM).setCellValue(subInfoInfo);
+					row.createCell(COL_KEY).setCellValue(subKey);
+
+					if (dealBD != null) {
+						Cell dc = row.createCell(COL_DEAL);
+						dc.setCellValue(dealBD.doubleValue());
+						dc.setCellStyle(numStyle);
+					} else {
+						row.createCell(COL_DEAL).setCellValue("");
+					}
+
+					if (rentBD != null) {
+						Cell rc = row.createCell(COL_RENT);
+						rc.setCellValue(rentBD.doubleValue());
+						rc.setCellStyle(numStyle);
+					} else {
+						row.createCell(COL_RENT).setCellValue("");
+					}
+
+					// 차액 먼저
+					if (diffBD != null) {
+						Cell dif = row.createCell(COL_DIFF);
+						dif.setCellValue(diffBD.doubleValue());
+						dif.setCellStyle(numStyle);
+					} else {
+						row.createCell(COL_DIFF).setCellValue("");
+					}
+
+					// 전세가율(%) 다음 (IFERROR(전세가/매매가,0))
+					{
+						int excelRow = row.getRowNum() + 1; // 1-based
+						String dealAddr = CellReference.convertNumToColString(COL_DEAL) + excelRow;
+						String rentAddr = CellReference.convertNumToColString(COL_RENT) + excelRow;
+
+						Cell rateCell = row.createCell(COL_RATE);
+						rateCell.setCellFormula("IFERROR(" + rentAddr + "/" + dealAddr + ",0)");
+						rateCell.setCellStyle(pctStyle);
+					}
+
+					row.createCell(COL_M).setCellValue(mCnt);
+					row.createCell(COL_J).setCellValue(jCnt);
+					row.createCell(COL_M_FR).setCellValue(dealFrInfoStr);
+					row.createCell(COL_J_FR).setCellValue(rentFrInfoStr);
+					row.createCell(COL_DESC).setCellValue(dealDesc);
+					
+					// 전고점 
+					Double prevD = getPrevValue(id, subSpace);
+					if(prevD != null) {
+						Cell ph = row.createCell(COL_PREV);
+						ph.setCellValue(prevD.doubleValue());
+						ph.setCellStyle(numStyle);
+					}
+					
+					// 변화율
+					BigDecimal prev = (prevD == null) ? null : bd(prevD);
+					BigDecimal meBd = parseNullable(dealPriceStr);
+				    BigDecimal juBd = parseNullable(rentPriceStr);
+				    // 3) 변화율 chg = ((me - prev) / prev) * 100  → 소수 1자리 반올림, 음수 기호 유지
+			        String chgPct = null;
+			        if (prev != null && notZero(prev) && meBd != null) {
+			            BigDecimal chg = meBd.subtract(prev)
+			                    .divide(prev, 10, RoundingMode.HALF_UP)
+			                    .multiply(BigDecimal.valueOf(100));
+			            chgPct = toOneDecimalPercent(chg);
+			            
+			            Cell ch = row.createCell(COL_CHG);
+			            ch.setCellValue(chgPct);
+			        }else {
+			        	row.createCell(COL_CHG).setCellValue("-");
+			        }
+			        
+					// 수익률 
+			        String ratePct = null;
+			        if (prev != null && meBd != null && juBd != null) {
+			            BigDecimal denom = meBd.subtract(juBd);
+			            if (notZero(denom)) {
+			                BigDecimal rate = prev.subtract(meBd)
+			                        .divide(denom, 10, RoundingMode.HALF_UP)
+			                        .multiply(BigDecimal.valueOf(100));
+			                ratePct = toOneDecimalPercent(rate);
+			                Cell rt = row.createCell(COL_RAT);
+			                rt.setCellValue(ratePct);
+			            }
+			        }else {
+			        	row.createCell(COL_RAT).setCellValue("-");
+			        }
+					
+					// 수익금
+			        BigDecimal amt = null;
+			        if (prev != null && meBd != null) {
+			            amt = prev.subtract(meBd).setScale(2, RoundingMode.HALF_UP);
+			            Cell at = row.createCell(COL_AMT);
+			            at.setCellValue(amt.doubleValue());
+			            at.setCellStyle(numStyle);
+			        }else {
+			        	row.createCell(COL_AMT).setCellValue("-");
+			        }
+				}
+			}
+
+			// auto-size
+			for (int i = 0; i < headers.length; i++)
+				sheet.autoSizeColumn(i);
+
+			try (FileOutputStream fos = new FileOutputStream(outXlsx.toFile())) {
+				wb.write(fos);
+			}
+		}
+	}
+
+	/* ====== 유틸 ====== */
+
+	private static String formatToEok(Object price) {
+		if (price == null || price == JSONObject.NULL)
+			return "";
+		try {
+			java.math.BigDecimal bd = new java.math.BigDecimal(price.toString());
+			java.math.BigDecimal eok = bd
+					.divide(new java.math.BigDecimal("100000000"), 3, java.math.RoundingMode.HALF_UP)
+					.stripTrailingZeros();
+			return eok.toPlainString();
+		} catch (NumberFormatException e) {
+			return "";
+		}
+	}
+
+	/** 저/고층 문자열만 제외하고, 숫자는 실제 층수로 판정 (<=3층만 제외) */
+	private static boolean chkFloor(String floorInfo) {
+	    if (floorInfo == null) return false;
+	    String s = floorInfo.trim();
+	    if (s.isEmpty()) return false;
+
+	    // '저', '고' 시작은 제외
+	    if (s.startsWith("저")) return false;
+
+	    // "10/14", "2/17" 같은 형태 파싱
+	    int slash = s.indexOf('/');
+	    String first = (slash >= 0) ? s.substring(0, slash).trim() : s;
+
+	    try {
+	        // 숫자만 추출 (예: "B2" 같은 변형을 대비)
+	        String digits = first.replaceAll("[^0-9-]", "");
+	        if (digits.isEmpty()) return true; // 층수를 못 읽으면 일단 포함 처리
+	        int floor = Integer.parseInt(digits);
+	        // 1~3층만 제외하고, 4층 이상(및 10층 등)은 포함
+	        return floor >= 4;
+	    } catch (NumberFormatException e) {
+	        // 숫자 파싱 실패 시 포함
+	        return true;
+	    }
+	}
+
+
+	private static String selText(Document doc, String css) {
+		Element el = doc.selectFirst(css);
+		return el != null ? el.text().trim() : "";
+	}
+
+	private static String addrSubstr(String text) {
+		if (text == null)
+			return "";
+		String t = text.trim();
+		return (t.length() >= 2) ? t.substring(0, t.length() - 1) : t;
+	}
+
+	private static String cvrtAptSaedae(String text) {
+		if (text == null)
+			return "";
+		return text.replace("세대", "").replace(",", "").trim();
+	}
+
+	private static String cvrtAptYear(String text) {
+		if (text == null)
+			return "";
+		int dot = text.indexOf('.');
+		return (dot > 0) ? text.substring(0, dot).trim() : text.trim();
+	}
+
+	private static String clearAptNm(String aptNm) {
+		return aptNm == null ? "" : aptNm.replace("VR투어", "").trim();
+	}
+
+	private static String getEntranceName(String type) {
+		if ("10".equals(type)) {
+			return "계";
+		} else if ("20".equals(type)) {
+			return "복";
+		} else if ("30".equals(type)) {
+			return "복합";
+		} else {
+			return type;
+		}
+
+	}
+
+	/**
+	 * targetId와 일치하는 "하나의 값"만 추출 - 요소가 JSONObject면: 그 객체의 "id" 필드가 targetId와 같을 때
+	 * 해당 JSONObject 반환 - 요소가 String/Number면: 요소 자체가 targetId와 같을 때 그 값을 JSONObject로
+	 * 감싸 반환({ "id": "<값>" }) 못 찾으면 null
+	 */
+	public static JSONObject pickOneById(JSONArray arr, String targetId) {
+		if (arr == null || targetId == null)
+			return null;
+		String wanted = targetId.trim();
+
+		for (int i = 0; i < arr.length(); i++) {
+			Object node = arr.get(i);
+
+			// 케이스 1: 객체 배열 [{ "id": "610", ... }, ...]
+			if (node instanceof JSONObject) {
+				JSONObject obj = (JSONObject) node;
+				String id = obj.optString("id", null);
+				if (id != null && id.trim().equals(wanted)) {
+					return obj; // 해당 객체 그대로 반환
+				}
+				continue;
+			}
+
+			// 케이스 2: 값 배열 ["610", 123, ...]
+			String val = String.valueOf(node).trim();
+			if (val.equals(wanted)) {
+				// 값만 있으면 간단히 감싸서 반환
+				JSONObject wrapped = new JSONObject();
+				wrapped.put("id", val);
+				return wrapped;
+			}
+		}
+		return null; // 못 찾음
+	}
+
+	/**
+	 * data: 최상위 JSONArray targetId: 예) "111515" targetType: 예) "84A" return: 찾으면
+	 * "info" 문자열(예: "계|3|2"), 없으면 null
+	 */
+	public static String findInfoByIdAndType(JSONArray data, String targetId, String targetType) {
+		if (data == null || targetId == null || targetType == null)
+			return null;
+
+		String idWanted = targetId.trim();
+		String typeWanted = targetType.trim();
+
+		for (int i = 0; i < data.length(); i++) {
+			JSONObject complex = data.optJSONObject(i);
+			if (complex == null)
+				continue;
+
+			// id 매칭
+			if (!idWanted.equals(complex.optString("id")))
+				continue;
+
+			// subInfo 배열에서 type 매칭
+			JSONArray subInfo = complex.optJSONArray("subInfo");
+			if (subInfo == null)
+				return null;
+
+			for (int j = 0; j < subInfo.length(); j++) {
+				JSONObject sub = subInfo.optJSONObject(j);
+				if (sub == null)
+					continue;
+
+				if (typeWanted.equals(sub.optString("type"))) {
+					return sub.optString("info", null);
+				}
+			}
+			// 해당 id 내에서 못 찾았으면 종료
+			return null;
+		}
+		// id 자체가 없으면
+		return null;
+	}
+
+	// ====== 유틸: dealInfo / rentInfo 에서 supplyType 으로 매칭되는 첫 항목 찾기 ======
+	private static JSONObject findBySupplyType(JSONObject mapLike, String supplyType) {
+		if (mapLike == null || supplyType == null)
+			return null;
+		for (Iterator<String> it = mapLike.keys(); it.hasNext();) {
+			String k = it.next();
+			JSONObject item = mapLike.optJSONObject(k);
+			if (item == null)
+				continue;
+			if (supplyType.equals(item.optString("supplyType"))) {
+				return item;
+			}
+		}
+		return null;
+	}
+
+	// 숫자 문자열(BigDecimal). 공백/빈값/파싱실패 시 null
+	private static BigDecimal toBD(String s) {
+		if (s == null)
+			return null;
+		String t = s.trim();
+		if (t.isEmpty())
+			return null;
+		try {
+			return new BigDecimal(t);
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	
+	// 파일명 추출
+	public static String extractBaseName(String url) {
+        try {
+            String path = URI.create(url).getPath();           // /file/seong-buk-gu.xlsx
+            if (path == null || path.isEmpty()) return "";
+
+            String file = path.substring(path.lastIndexOf('/') + 1); // seong-buk-gu.xlsx
+
+            // 쿼리/프래그먼트 제거 (예방용)
+            int q = file.indexOf('?');
+            if (q >= 0) file = file.substring(0, q);
+            int h = file.indexOf('#');
+            if (h >= 0) file = file.substring(0, h);
+
+            // 확장자 제거
+            int dot = file.lastIndexOf('.');
+            return (dot >= 0) ? file.substring(0, dot) : file;
+        } catch (Exception e) {
+            return "";
+        }
+    }
+	
+	public static String getNowDate() {
+		LocalDate today = LocalDate.now();
+        // 원하는 포맷 정의 (yyyyMMdd)
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        // 포맷 적용
+        return today.format(formatter);
+        
+	}
+	
+	// 전고점 가져오기
+	public static Double getPrevValue(String id, String tp) {
+        try {
+        	
+        	if(PREV_HIGH_MAP == null) {
+        		System.out.println("Init Connection (JSON load once)::");
+	            // 1️ JSON 가져오기
+	            URL url = new URL(JSON_URL);
+	            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+	            conn.setRequestMethod("GET");
+	            conn.setRequestProperty("Accept", "application/json");
+	
+	            if (conn.getResponseCode() != 200) {
+	                throw new RuntimeException("HTTP error: " + conn.getResponseCode());
+	            }
+	
+	            // 2️ JSON 파싱
+	            try (BufferedReader br = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                    ObjectMapper mapper = new ObjectMapper();
+                    PREV_HIGH_MAP = mapper.readValue(br, new TypeReference<Map<String, Object>>() {});
+                }
+	            conn.disconnect();
+        	}
+           
+            // 3️ 해당 ID 찾기
+            Object itemObj = PREV_HIGH_MAP.get(id.trim());
+            if (!(itemObj instanceof Map)) return null;
+
+            Map<String, Object> itemMap = (Map<String, Object>) itemObj;
+            Object tpMapObj = itemMap.get("TP");
+            if (!(tpMapObj instanceof Map)) return null;
+
+            Map<String, Object> tpMap = (Map<String, Object>) tpMapObj;
+
+            // 4️ 해당 TP 키 찾기
+            Object valObj = tpMap.get(tp.trim());
+            if (valObj == null) return null;
+
+            return Double.valueOf(valObj.toString());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+	
+	private static BigDecimal bd(double v) { return BigDecimal.valueOf(v); }
+
+    private static BigDecimal parseNullable(String s) {
+        if (s == null) return null;
+        String t = s.trim();
+        if (t.isEmpty()) return null;
+        return new BigDecimal(t);
+    }
+
+    private static boolean notZero(BigDecimal v) {
+        return v != null && v.compareTo(BigDecimal.ZERO) != 0;
+    }
+
+    private static String toOneDecimalPercent(BigDecimal v) {
+        return v.setScale(1, RoundingMode.HALF_UP).toPlainString() + "%";
+    }
+    
+    static class ComplexInfo {
+        String aptNm = "";
+        String gu = "";
+        String dong = "";
+        String year = "";
+        String householdCount = "";
+        String dealCount = "";   // 매매
+        String leaseCount = "";  // 전세
+    }
+
+}
