@@ -508,9 +508,9 @@
         </div>
         <div class="btn-row" id="div_jibang">
             <b></b>
-            <button id="btn_cheongju" class="ligthseagreen_btn">청주[85만]흥덕구/청원구/상당구</button>
-            <button id="btn_jeonju" class="ligthseagreen_btn">전주[65만]덕진구/완산구</button>
-            <button id="btn_cheonan" class="ligthseagreen_btn">천안[66만]서북구/동남구</button>
+            <button id="btn_cheongju" class="ligthseagreen_btn" data-label="청주">청주[85만]흥덕구/청원구/상당구</button>
+            <button id="btn_jeonju" class="ligthseagreen_btn"data-label="전주">전주[65만]덕진구/완산구</button>
+            <button id="btn_cheonan" class="ligthseagreen_btn" data-label="천안">천안[66만]서북구/동남구</button>
             <button id="btn_pohang-si-buk-gu" class="ligthseagreen_btn">포항-북구[27만]</button>
         </div>
         <!-- ... 버튼 코드들은 그대로 두시면 됩니다 ... -->
@@ -687,13 +687,9 @@
              ************************************/
             $('#div_seoul, #div_suedo, #div_metro, #div_jibang').on('click', 'button[id^="btn_"]', function() {
             
-                // btn_gangnam-gu → gangnam-gu
                 const gu = this.id.replace(/^btn_/, '');
-            
-                // 버튼 라벨명 그대로 사용
-                // 예: 강남구, 동작구, 광명금천, 청주[85만]흥덕구/청원구/상당구
-                const label = $(this).text().trim();
-            
+                const label = $(this).data('label') || $(this).text().trim();
+           
                 $('#hdn_sel-gu').val(label);
                 beforeSearch(gu);
             });
