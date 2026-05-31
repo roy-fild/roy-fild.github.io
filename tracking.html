@@ -483,6 +483,7 @@
             <button id="btn_dongtan" class="darkslategrey_btn">동탄</button>
             <button id="btn_sujeong-jungwon-gu" class="darkslategrey_btn">수정/중원구</button>
             <button id="btn_anyang-si-dongan-gu" class="darkslategrey_btn">동안구</button>
+            <button id="btn_anyang-si-manan-gu" class="darkslategrey_btn">만안구</button>
             <button id="btn_suwon-si-yeongtong-gu" class="darkslategrey_btn">영통구</button>
             <button id="btn_bu-cheon" class="darkslategrey_btn">부천시</button>
             <button id="btn_gunpo-si" class="darkslategrey_btn">군포시</button>
@@ -830,6 +831,13 @@
             $('#btn_anyang-si-dongan-gu').on('click', function() {
                 $('#hdn_sel-gu').val('동안구');
                 let gu = "anyang-si-dongan-gu";
+                beforeSearch(gu);
+            });
+
+            // 안양시-동안구
+            $('#btn_anyang-si-manan-gu').on('click', function() {
+                $('#hdn_sel-gu').val('만안구');
+                let gu = "anyang-si-manan-gu";
                 beforeSearch(gu);
             });
 
