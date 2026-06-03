@@ -381,8 +381,10 @@
                     <select id="sigunguSelect"></select>
                 </div>
                 <div class="col">
-                    <label>구/읍/면/동 검색 (선택)</label>
-                    <input id="emdFilter" placeholder="예: 서초동 / 해운대구 / 청운효자동 등" />
+                    <label>구/읍/면/동 선택 (선택)</label>
+                    <select id="emdFilter">
+                        <option value="">(전체)</option>
+                    </select>
                 </div>
             </div>
             <div class="status" id="loadStatus"></div>
@@ -1166,6 +1168,7 @@
             var mode = getSidoGroupMode();
             if (mode) {
                 $("#sigunguSelect").prop("disabled", true).html('<option value="">(전체)</option>').val("");
+                rebuildEmdSelect();
                 return;
             }
             $("#sigunguSelect").prop("disabled", false);
@@ -1182,12 +1185,83 @@
             var $g = $("#sigunguSelect");
             var cur = $g.val();
             $g.empty().append('<option value="">(전체)</option>');
-            for (var j = 0; j < list.length; j++) $g.append('<option value="' + list[j] + '">' + list[j] + '</option>');
+            for (var j = 0; j < list.length; j++) $g.append('<option value="' + htmlEscape(list[j]) + '">' + htmlEscape(list[j]) + '</option>');
             for (var j2 = 0; j2 < list.length; j2++)
                 if (list[j2] === cur) {
                     $g.val(cur);
                     break;
                 }
+            rebuildEmdSelect();
+        }
+
+        function htmlEscape(v) {
+            return String(v === null || v === undefined ? "" : v)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function getEmdFilterValue() {
+            return String($("#emdFilter").val() || "").trim();
+        }
+
+        function rebuildEmdSelect() {
+            var $e = $("#emdFilter");
+            if (!$e.length) return;
+
+            var sido = String($("#sidoSelect").val() || "").trim();
+            var sigungu = String($("#sigunguSelect").val() || "").trim();
+            var mode = getSidoGroupMode();
+            var cur = getEmdFilterValue();
+
+            $e.empty().append('<option value="">(전체)</option>');
+
+            // 전체/그룹 상태에서는 후보가 너무 많아 기본 전체만 표시
+            if ((!sido && !sigungu) || mode) {
+                $e.val("");
+                $e.prop("disabled", true);
+                return;
+            }
+
+            var emdList = [];
+            var guMap = {};
+            for (var i = 0; i < rawRows.length; i++) {
+                var r = rawRows[i];
+                if (sido && String(r.sido || "").trim() !== sido) continue;
+                if (sigungu && String(r.sigungu || "").trim() !== sigungu) continue;
+
+                var emd = String(r.emd || "").trim();
+                if (!emd) continue;
+
+                if (/구$/.test(emd)) {
+                    if (sigungu) guMap[emd] = true;
+                    continue;
+                }
+
+                var pr = parseGuRest(emd);
+                if (pr && sigungu) {
+                    guMap[pr.gu] = true;
+                    emdList.push(pr.rest);
+                } else {
+                    emdList.push(emd);
+                }
+            }
+
+            var guList = Object.keys(guMap).sort(function(a, b) { return a.localeCompare(b, "ko"); });
+            emdList = uniq(emdList).sort(function(a, b) { return a.localeCompare(b, "ko"); });
+
+            for (var g = 0; g < guList.length; g++) {
+                $e.append('<option value="' + htmlEscape(guList[g]) + '">' + htmlEscape(guList[g]) + '</option>');
+            }
+            for (var j = 0; j < emdList.length; j++) {
+                $e.append('<option value="' + htmlEscape(emdList[j]) + '">' + htmlEscape(emdList[j]) + '</option>');
+            }
+
+            if (cur && $e.find('option').filter(function() { return $(this).val() === cur; }).length) $e.val(cur);
+            else $e.val("");
+            $e.prop("disabled", false);
         }
 
         function parseGuRest(emd) {
@@ -1204,13 +1278,13 @@
             // ✅ "시/군/구(=sigungu)"에서 '시'를 선택한 상태(값이 있음)일 때만 드릴다운 허용
             var sigungu = $("#sigunguSelect").val();
             if (!sigungu) return "";
-            var q = $.trim($("#emdFilter").val());
+            var q = getEmdFilterValue();
             return (q && /구$/.test(q)) ? q : "";
         }
 
         function emdKeyForUI(r) {
-            // ✅ 시 선택(=sigungu 선택) 시: "흥덕구 오송읍" → 기본은 "흥덕구"로 집계
-            // ✅ 검색에 "흥덕구" 입력 시: 그 구의 하위(오송읍/사직1동...)로 집계
+            // 시/군/구 선택 시 복합시(예: "흥덕구 오송읍")는 기본적으로 구 단위로 묶고,
+            // 구를 선택하면 하위 읍/면/동으로 드릴다운, 읍/면/동을 직접 선택하면 해당 읍/면/동으로 표시한다.
             var emd = String((r && r.emd) || "").trim();
             var sigungu = $("#sigunguSelect").val();
             if (!sigungu) return emd;
@@ -1218,8 +1292,10 @@
             var pr = parseGuRest(emd);
             if (!pr) return emd;
 
+            var selected = getEmdFilterValue();
             var drill = getDrillGu();
-            if (drill && pr.gu === drill) return pr.rest; // 드릴다운: 하위 동/읍/면
+            if (drill && pr.gu === drill) return pr.rest; // 구 선택: 하위 동/읍/면
+            if (selected && (selected === pr.rest || selected === emd)) return pr.rest; // 동/읍/면 직접 선택
             return pr.gu; // 기본: 구 단위
         }
 
@@ -1244,7 +1320,7 @@
             var mode = getSidoGroupMode();
             var drillGu = getDrillGu();
 
-            var q = $.trim($("#emdFilter").val());
+            var q = getEmdFilterValue();
             var qLower = q ? q.toLowerCase() : "";
             var hasQuery = !!qLower;
             var isGuSelected = !!sigungu;
@@ -1689,7 +1765,7 @@
             var mode = getSidoGroupMode();
             var drillGu = getDrillGu();
 
-            var q = $.trim($("#emdFilter").val());
+            var q = getEmdFilterValue();
             var qLower = q ? q.toLowerCase() : "";
             var hasQuery = !!qLower;
             var isGuSelected = !!sigungu;
@@ -2091,7 +2167,7 @@ function renderAdultAgeChart() {
             for (var i = 0; i < base.length; i++) {
                 var rr = base[i];
                 if (TOP_SCOPE && TOP_SCOPE.level === level && TOP_SCOPE.keys && TOP_SCOPE.keys.length) {
-                    var key = (level === "sido") ? rr.sido : (level === "sigungu") ? rr.sigungu : rr.emd;
+                    var key = (level === "sido") ? rr.sido : (level === "sigungu") ? rr.sigungu : emdKeyForUI(rr);
                     key = String(key || "").trim();
                     if (TOP_SCOPE.keys.indexOf(key) < 0) continue;
                 }
@@ -2699,7 +2775,7 @@ function renderAdultAgeChart() {
 
                 var key = (level === "sido") ? String(rr.sido || "").trim() :
                     (level === "sigungu") ? String(rr.sigungu || "").trim() :
-                    String(rr.emd || "").trim();
+                    String(emdKeyForUI(rr) || "").trim();
                 if (!key) continue;
                 if (TOP_SCOPE && TOP_SCOPE.level === level && TOP_SCOPE.keys && TOP_SCOPE.keys.length) {
                     if (TOP_SCOPE.keys.indexOf(key) < 0) continue;
@@ -3266,15 +3342,17 @@ function renderAdultAgeChart() {
 
             $("#sidoSelect").on("change", function() {
                 $("#sigunguSelect").val("");
-                $("#emdFilter").val(""); // 검색 초기화
+                $("#emdFilter").val(""); // 선택 초기화
                 $("#sigunguSelect").val(""); // 시군구 초기화(선택 해제)
                 refreshSigungu();
+                rebuildEmdSelect();
                 renderAll();
                 renderAgeChartAndTable();
             });
 
             $("#sigunguSelect").on("change", function() {
-                $("#emdFilter").val(""); // 검색 초기화
+                $("#emdFilter").val(""); // 선택 초기화
+                rebuildEmdSelect();
                 renderAll();
                 renderAgeChartAndTable();
             });
@@ -3296,12 +3374,12 @@ function renderAdultAgeChart() {
                 renderAdultAgeChart();
             });
 
-            $("#emdFilter").on("input", function() {
+            $("#emdFilter").on("change input", function() {
                 if (window.__t) clearTimeout(window.__t);
                 window.__t = setTimeout(function() {
                     renderAll();
                     renderAgeChartAndTable();
-                }, 200);
+                }, 120);
             });
 
             $("#topNInput").on("input change", function() {
