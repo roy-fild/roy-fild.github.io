@@ -75,7 +75,15 @@
             price = price - 0.1;
             price = price.toFixed(1);
         
-            contentsArr.push(rowArr);
+            // '값 없는 행 생략'이 선택된 경우, 가격을 제외한 모든 칸이 비어 있으면 행을 추가하지 않음
+            var emptyRowOption = $('input[name="emptyRowOption"]:checked').val();
+            var hasValue = rowArr.slice(1).some(function(value) {
+                return value !== null && value !== undefined && String(value).trim() !== '';
+            });
+
+            if (emptyRowOption === 'include' || hasValue) {
+                contentsArr.push(rowArr);
+            }
 
         }
 
@@ -175,11 +183,22 @@
     계단식 시세 Matrix 생성기 <br/>
     지역입력<br/>
     <textarea id="txt_region" row="3" cols="60" value=""></textarea>
+    <div style="margin: 10px 0;">
+        빈 행 출력 옵션<br/>
+        <label>
+            <input type="radio" name="emptyRowOption" value="include" checked />
+            값이 없는 행도 출력
+        </label>
+        <label style="margin-left: 12px;">
+            <input type="radio" name="emptyRowOption" value="exclude" />
+            값이 없는 행은 생략
+        </label>
+    </div>
     <div>
         동/매매가/라벨 엑셀 파일선택 <input type="file" id="excelFile" onchange="excelExport(event)" />
     </div>   
     <br/>
-    2024.12.22 version
+    2026.07.25 version
     <br/>
     
      
