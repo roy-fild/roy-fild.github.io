@@ -4,8 +4,30 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.15.5/xlsx.full.min.js"></script>
 <script>
     $(function () {
-        $('#txt_region').val('S,A,B,C');
+        $('#region_left_1').val('S');
+        $('#region_left_2').val('A');
+        $('#region_left_3').val('B');
+        $('#region_left_4').val('C');
     });
+
+    function getRegionPairs() {
+        var pairs = [];
+
+        for (var i = 1; i <= 4; i++) {
+            var left = $('#region_left_' + i).val();
+            var right = $('#region_right_' + i).val();
+
+            left = left == null ? '' : String(left).trim();
+            right = right == null ? '' : String(right).trim();
+
+            pairs.push({
+                region: left,
+                header: right !== '' ? left + '.' + right : left
+            });
+        }
+
+        return pairs;
+    }
 
     // 엑셀 자료 추출
     function excelExport(event) {
@@ -51,12 +73,12 @@
         var price = 20;    // 가격
         var contentsArr = [];
 
-        var titSplit = $('#txt_region').val().split(',');
+        var regionPairs = getRegionPairs();
         var titArr = [];
         titArr.push(' ');
 
-        for (var t = 0; t < titSplit.length; t++) {
-            titArr.push(String(titSplit[t]).trim());
+        for (var t = 0; t < regionPairs.length; t++) {
+            titArr.push(regionPairs[t].header);
         }
 
         contentsArr.push(titArr);
@@ -95,8 +117,10 @@
 
     // 고가
     function chkHighPrice(aptArr, rowArr) {
-        var region = $('#txt_region').val();
-        var sv = region.split(','); // 지역명
+        var regionPairs = getRegionPairs();
+        var sv = regionPairs.map(function(item) {
+            return item.region;
+        }); // 지역명
 
         for (var j = 0; j < sv.length; j++) {
             var label = '';
@@ -122,8 +146,10 @@
     }
 
     function chkPrice(price, aptArr, rowArr) {
-        var region = $('#txt_region').val();
-        var sv = region.split(','); // 지역명
+        var regionPairs = getRegionPairs();
+        var sv = regionPairs.map(function(item) {
+            return item.region;
+        }); // 지역명
 
         for (var j = 0; j < sv.length; j++) {
             var label = '';
@@ -251,8 +277,33 @@
 
 <body>
     계단식 시세 Matrix 생성기 <br/>
-    지역입력<br/>
-    <textarea id="txt_region" row="3" cols="60" value=""></textarea>
+    지역 및 헤더 입력<br/>
+    <div id="regionPairArea" style="margin: 8px 0 12px 0;">
+        <div style="margin-bottom: 6px;">
+            <input type="text" id="region_left_1" style="width: 70px;" />
+            <span style="margin: 0 6px;">+</span>
+            <input type="text" id="region_right_1" style="width: 140px;" placeholder="추가 헤더 값" />
+            <span style="margin-left: 8px; color: #666; font-size: 12px;">예: S + 강남 → S.강남</span>
+        </div>
+        <div style="margin-bottom: 6px;">
+            <input type="text" id="region_left_2" style="width: 70px;" />
+            <span style="margin: 0 6px;">+</span>
+            <input type="text" id="region_right_2" style="width: 140px;" placeholder="추가 헤더 값" />
+        </div>
+        <div style="margin-bottom: 6px;">
+            <input type="text" id="region_left_3" style="width: 70px;" />
+            <span style="margin: 0 6px;">+</span>
+            <input type="text" id="region_right_3" style="width: 140px;" placeholder="추가 헤더 값" />
+        </div>
+        <div style="margin-bottom: 6px;">
+            <input type="text" id="region_left_4" style="width: 70px;" />
+            <span style="margin: 0 6px;">+</span>
+            <input type="text" id="region_right_4" style="width: 140px;" placeholder="추가 헤더 값" />
+        </div>
+        <div style="color: #666; font-size: 12px;">
+            오른쪽 값이 있으면 “왼쪽.오른쪽” 형식으로 헤더가 생성되고, 없으면 왼쪽 값만 사용됩니다.
+        </div>
+    </div>
     <div style="margin: 10px 0;">
         빈 행 출력 옵션<br/>
         <label>
