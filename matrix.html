@@ -31,8 +31,13 @@
                     var price = rows[key][subKeys[1]];  // 가격
                     var label = rows[key][subKeys[2]];  // 라벨
 
-                    var txt = region + "|" + price + "|" + label;
-                    aptArr.push(txt);
+                    // 문자열을 "|"로 합치지 않고 객체로 보관
+                    // 라벨 안에 "|"가 포함되어도 값이 잘리지 않도록 처리
+                    aptArr.push({
+                        region: region,
+                        price: price,
+                        label: label
+                    });
                 }
 
                 convertAptInfo(aptArr, fileName);
@@ -96,11 +101,11 @@
         for (var j = 0; j < sv.length; j++) {
             var label = '';
             for (var i = 0; i < aptArr.length; i++) {
-                var info = aptArr[i].split('|');
+                var info = aptArr[i];
 
-                var r = info[0]; // 지역명
-                var p = info[1]; // 가격
-                var l = info[2]; // 라벨
+                var r = info.region; // 지역명
+                var p = info.price;  // 가격
+                var l = info.label;  // 라벨
 
                 // 지역명 일치 가격이 높을경우
                 if (String(sv[j]).trim() == String(r).trim() && Number(p) > 19.9) {
@@ -123,11 +128,11 @@
         for (var j = 0; j < sv.length; j++) {
             var label = '';
             for (var i = 0; i < aptArr.length; i++) {
-                var info = aptArr[i].split('|');
+                var info = aptArr[i];
 
-                var r = info[0]; // 지역명
-                var p = info[1]; // 가격
-                var l = info[2]; // 라벨
+                var r = info.region; // 지역명
+                var p = info.price;  // 가격
+                var l = info.label;  // 라벨
 
                 // 지역명 일치 가격이 같을경우
                 if (String(sv[j]).trim() == String(r).trim() && Number(p).toFixed(1) == Number(price)) {
