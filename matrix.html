@@ -204,6 +204,22 @@
         return { label: '기타', bg: '#eeeeee', color: '#000000' };
     }
 
+    function getPriceBandLightStyle(price) {
+        var p = Number(price);
+
+        if (p >= 15) return { bg: '#fde8e9', color: '#222222' };
+        if (p >= 10) return { bg: '#fff0dc', color: '#222222' };
+        if (p >= 9)  return { bg: '#fff8cf', color: '#222222' };
+        if (p >= 8)  return { bg: '#e8fbe8', color: '#222222' };
+        if (p >= 7)  return { bg: '#e1f4e7', color: '#222222' };
+        if (p >= 6)  return { bg: '#e2faff', color: '#222222' };
+        if (p >= 5)  return { bg: '#e8edff', color: '#222222' };
+        if (p >= 4)  return { bg: '#e7e9f8', color: '#222222' };
+        if (p >= 3)  return { bg: '#ffe5f8', color: '#222222' };
+        if (p >= 2)  return { bg: '#f1f1f1', color: '#222222' };
+        return { bg: '#f7f7f7', color: '#222222' };
+    }
+
     function escapeHtml(value) {
         return String(value)
             .replace(/&/g, '&amp;')
@@ -244,7 +260,9 @@
                     var band = getPriceBandStyle(value);
                     html += '<td class="priceCell" style="background-color:' + band.bg + ';color:' + band.color + ';">' + toExcelCellText(value) + '</td>';
                 } else {
-                    html += '<td class="valueCell">' + toExcelCellText(value) + '</td>';
+                    var rowPrice = contentsArr[r][0];
+                    var lightBand = getPriceBandLightStyle(rowPrice);
+                    html += '<td class="valueCell" style="background-color:' + lightBand.bg + ';color:' + lightBand.color + ';">' + toExcelCellText(value) + '</td>';
                 }
             }
             html += '</tr>';
