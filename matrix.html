@@ -3,81 +3,71 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.15.5/xlsx.full.min.js"></script>
 <script>
-    $(function () {    
+    $(function () {
         $('#txt_region').val('S,A,B,C');
     });
 
-   
     // 엑셀 자료 추출
     function excelExport(event) {
-
         var aptArr = [];
         let fileName = event.target.files[0].name.split(".").shift();
         let input = event.target;
         let reader = new FileReader();
+
         reader.onload = function () {
             let data = reader.result;
             let workBook = XLSX.read(data, { type: 'binary' });
+
             workBook.SheetNames.forEach(function (sheetName) {
                 console.log('SheetName: ' + sheetName);
                 let rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
                 var keys = Object.keys(rows);
 
-                var html = "";
-
                 for (var i = 0; i < keys.length; i++) {
                     var key = keys[i];
                     var subKeys = Object.keys(rows[key]);
 
-                    var region  = rows[key][subKeys[0]];    // 지역명
-                    var price   = rows[key][subKeys[1]];    // 가격
-                    var label   = rows[key][subKeys[2]];    // 라벨
-                    
-                    
-                    //console.log(region,price,label);
+                    var region = rows[key][subKeys[0]]; // 지역명
+                    var price = rows[key][subKeys[1]];  // 가격
+                    var label = rows[key][subKeys[2]];  // 라벨
 
-                    var txt   = region + "|" + price + "|" + label;
+                    var txt = region + "|" + price + "|" + label;
                     aptArr.push(txt);
-                }                 
-                convertAptInfo(aptArr, fileName);
+                }
 
+                convertAptInfo(aptArr, fileName);
             })
         };
-       reader.readAsBinaryString(input.files[0]);
+
+        reader.readAsBinaryString(input.files[0]);
     }
 
-    function convertAptInfo(aptArr, fileName){
-       
-        var price       = 20;    // 가격
+    function convertAptInfo(aptArr, fileName) {
+        var price = 20;    // 가격
         var contentsArr = [];
 
-        var titSplit = $('#txt_region').val().split(",");
-        var titArr   = [];
-        titArr.push(" ");
-        titArr.push(titSplit[0]);
-        titArr.push(titSplit[1]);
-        titArr.push(titSplit[2]);
-        titArr.push(titSplit[3]);
+        var titSplit = $('#txt_region').val().split(',');
+        var titArr = [];
+        titArr.push(' ');
+
+        for (var t = 0; t < titSplit.length; t++) {
+            titArr.push(String(titSplit[t]).trim());
+        }
 
         contentsArr.push(titArr);
-        
-        while(price > 1.4){
 
-            var rowArr      = [];
+        while (price > 1.4) {
+            var rowArr = [];
             rowArr.push(price);
-   
-            if(price == 20){
-                rowArr = chkHighPrice(aptArr, rowArr);                 
-            }else{                                    
-                rowArr = chkPrice(price, aptArr, rowArr);
-            }   
 
-            price = price - 0.1;
-            price = price.toFixed(1);
-        
-            // '값 없는 행 생략'이 선택된 경우, 가격을 제외한 모든 칸이 비어 있으면 행을 추가하지 않음
+            if (price == 20) {
+                rowArr = chkHighPrice(aptArr, rowArr);
+            } else {
+                rowArr = chkPrice(price, aptArr, rowArr);
+            }
+
             var emptyRowOption = $('input[name="emptyRowOption"]:checked').val();
-            var hasValue = rowArr.slice(1).some(function(value) {
+            var hasValue = rowArr.slice(1).some(function (value) {
                 return value !== null && value !== undefined && String(value).trim() !== '';
             });
 
@@ -85,98 +75,173 @@
                 contentsArr.push(rowArr);
             }
 
+            price = price - 0.1;
+            price = price.toFixed(1);
         }
 
         console.log(contentsArr);
 
-        downloadCSV(contentsArr, fileName);
-
-    }
-    // 고가
-    function chkHighPrice(aptArr, rowArr){
-
-        var region  = $('#txt_region').val();
-        var sv      = region.split(',');        // 지역명
-
-        for(var j=0; j<sv.length; j++ ){
-            var label = ""; 
-            for(var i=0; i<aptArr.length; i++){            
-                var info = aptArr[i].split('|');
-
-                var r = info[0]; // 지역명
-                var p = info[1]; // 가격
-                var l = info[2]; // 라벨            
-
-                // 지역명 일치 가격이 높을경우
-                if(sv[j] == r && Number(p) > 19.9){
-                    if(label != ''){
-                        label += "\n"
-                    }
-                    label += l;
-                }
-            }
-            rowArr.push(label);
-            //rowArr.push(",");
+        if ($('input[name="emptyRowOption"]:checked').val() === 'exclude') {
+            downloadStyledExcel(contentsArr, fileName);
+        } else {
+            downloadCSV(contentsArr, fileName);
         }
-        //console.log(labelRow);
-        return rowArr;
     }
 
-    function chkPrice(price, aptArr, rowArr){
+    // 고가
+    function chkHighPrice(aptArr, rowArr) {
+        var region = $('#txt_region').val();
+        var sv = region.split(','); // 지역명
 
-        var region  = $('#txt_region').val();
-        var sv      = region.split(',');        // 지역명
-        
-        
-
-        for(var j=0; j<sv.length; j++ ){
-            var label   = "";       
-            for(var i=0; i<aptArr.length; i++){            
+        for (var j = 0; j < sv.length; j++) {
+            var label = '';
+            for (var i = 0; i < aptArr.length; i++) {
                 var info = aptArr[i].split('|');
 
                 var r = info[0]; // 지역명
                 var p = info[1]; // 가격
                 var l = info[2]; // 라벨
 
-                //console.log(r,p,l);
-
-                // 지역명 일치 가격이 같을경우
-                if(sv[j] == r && Number(p).toFixed(1) == Number(price)){
-                    if(label != ''){
-                        label += "\n"
+                // 지역명 일치 가격이 높을경우
+                if (String(sv[j]).trim() == String(r).trim() && Number(p) > 19.9) {
+                    if (label != '') {
+                        label += "\n";
                     }
                     label += l;
                 }
             }
             rowArr.push(label);
-            //rowArr.push(",");
         }
-        //.log(labelRow);
+
         return rowArr;
     }
 
+    function chkPrice(price, aptArr, rowArr) {
+        var region = $('#txt_region').val();
+        var sv = region.split(','); // 지역명
 
-    function downloadCSV(contentsArr, f){
+        for (var j = 0; j < sv.length; j++) {
+            var label = '';
+            for (var i = 0; i < aptArr.length; i++) {
+                var info = aptArr[i].split('|');
 
+                var r = info[0]; // 지역명
+                var p = info[1]; // 가격
+                var l = info[2]; // 라벨
+
+                // 지역명 일치 가격이 같을경우
+                if (String(sv[j]).trim() == String(r).trim() && Number(p).toFixed(1) == Number(price)) {
+                    if (label != '') {
+                        label += "\n";
+                    }
+                    label += l;
+                }
+            }
+            rowArr.push(label);
+        }
+
+        return rowArr;
+    }
+
+    function downloadCSV(contentsArr, f) {
         const worksheet = XLSX.utils.aoa_to_sheet(contentsArr);
 
         // CSV 생성
         const csvOutput = XLSX.utils.sheet_to_csv(worksheet);
-        const fileName = f +".csv";
-        
-        var link = document.createElement("a");
-        var blob = new Blob(["\uFEFF"+csvOutput], {type: 'text/csv; charset=utf-8'});
+        const fileName = f + '.csv';
+
+        var link = document.createElement('a');
+        var blob = new Blob(["\uFEFF" + csvOutput], { type: 'text/csv; charset=utf-8' });
         var url = URL.createObjectURL(blob);
-        $(link).attr({"download" : fileName , "href" : url});
+        $(link).attr({ "download": fileName, "href": url });
         link.click();
     }
 
+    function getPriceBandStyle(price) {
+        var p = Number(price);
 
+        if (p >= 15) return { label: '15억이상', bg: '#e31b23', color: '#ffffff' };
+        if (p >= 10) return { label: '10억대', bg: '#f49a1d', color: '#ffffff' };
+        if (p >= 9)  return { label: '9억대',  bg: '#efc31a', color: '#000000' };
+        if (p >= 8)  return { label: '8억대',  bg: '#36d437', color: '#ffffff' };
+        if (p >= 7)  return { label: '7억대',  bg: '#16a34a', color: '#ffffff' };
+        if (p >= 6)  return { label: '6억대',  bg: '#23d8ff', color: '#000000' };
+        if (p >= 5)  return { label: '5억대',  bg: '#1d4fff', color: '#ffffff' };
+        if (p >= 4)  return { label: '4억대',  bg: '#2436b8', color: '#ffffff' };
+        if (p >= 3)  return { label: '3억대',  bg: '#ff40d8', color: '#ffffff' };
+        if (p >= 2)  return { label: '2억대',  bg: '#d9d9d9', color: '#000000' };
+        return { label: '기타', bg: '#eeeeee', color: '#000000' };
+    }
 
+    function escapeHtml(value) {
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function toExcelCellText(value) {
+        if (value === null || value === undefined) return '';
+        return escapeHtml(String(value)).replace(/\n/g, '<br style="mso-data-placement:same-cell;"/>');
+    }
+
+    function downloadStyledExcel(contentsArr, f) {
+        var html = '';
+        html += '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+        html += '<head>';
+        html += '<meta charset="UTF-8">';
+        html += '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Matrix</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->';
+        html += '<style>';
+        html += 'table { border-collapse: collapse; }';
+        html += 'td, th { border: 1px solid #999; padding: 6px; vertical-align: top; }';
+        html += '.header { background: #f2f2f2; font-weight: bold; text-align: center; }';
+        html += '.priceCell { font-weight: bold; text-align: center; }';
+        html += '.valueCell { white-space: pre-wrap; }';
+        html += '</style>';
+        html += '</head><body><table>';
+
+        for (var r = 0; r < contentsArr.length; r++) {
+            html += '<tr>';
+            for (var c = 0; c < contentsArr[r].length; c++) {
+                var value = contentsArr[r][c];
+
+                if (r === 0) {
+                    html += '<th class="header">' + toExcelCellText(value) + '</th>';
+                } else if (c === 0) {
+                    var band = getPriceBandStyle(value);
+                    html += '<td class="priceCell" style="background-color:' + band.bg + ';color:' + band.color + ';">' + toExcelCellText(value) + '</td>';
+                } else {
+                    html += '<td class="valueCell">' + toExcelCellText(value) + '</td>';
+                }
+            }
+            html += '</tr>';
+        }
+
+        html += '</table>';
+        html += '<br/>';
+        html += '<table>';
+        html += '<tr>';
+        var legendPrices = [15, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1.9];
+        for (var i = 0; i < legendPrices.length; i++) {
+            var legend = getPriceBandStyle(legendPrices[i]);
+            html += '<td class="priceCell" style="background-color:' + legend.bg + ';color:' + legend.color + '; min-width: 64px;">' + legend.label + '</td>';
+        }
+        html += '</tr>';
+        html += '</table>';
+        html += '</body></html>';
+
+        var fileName = f + '_color.xls';
+        var blob = new Blob(['\uFEFF', html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement('a');
+        $(link).attr({ 'download': fileName, 'href': url });
+        link.click();
+    }
 </script>
 
 <head>
-
 </head>
 
 <body>
@@ -187,21 +252,21 @@
         빈 행 출력 옵션<br/>
         <label>
             <input type="radio" name="emptyRowOption" value="include" checked />
-            값이 없는 행도 출력
+            값이 없는 행도 출력 (CSV)
         </label>
         <label style="margin-left: 12px;">
             <input type="radio" name="emptyRowOption" value="exclude" />
-            값이 없는 행은 생략
+            값이 없는 행은 생략 + 금액대 색상 적용 (Excel)
         </label>
+        <div style="margin-top: 6px; color: #666; font-size: 12px;">
+            ※ 셀 색상은 CSV에 저장되지 않아, 색상 적용 옵션 선택 시 Excel 형식(.xls)으로 다운로드됩니다.
+        </div>
     </div>
     <div>
         동/매매가/라벨 엑셀 파일선택 <input type="file" id="excelFile" onchange="excelExport(event)" />
-    </div>   
+    </div>
     <br/>
     2026.07.25 version
     <br/>
-    
-     
 </body>
-
 </html>
