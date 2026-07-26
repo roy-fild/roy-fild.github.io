@@ -14,8 +14,8 @@
     h1{margin:0 0 6px;font-size:30px}.sub{color:var(--muted);font-size:14px}.toolbar{display:flex;gap:8px;flex-wrap:wrap}
     button,.file-label{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 12px;cursor:pointer;font-weight:700}
     button.primary{background:var(--primary);border-color:var(--primary);color:#fff}button.danger{color:var(--danger)}
-    .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}.metric{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:17px}
-    .metric span{display:block;color:var(--muted);font-size:13px}.metric strong{display:block;margin-top:7px;font-size:23px}.metric.net strong{color:var(--primary)}
+    .summary{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:20px 0}.metric{position:relative;min-height:112px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:17px 17px 28px}
+    .metric span{display:block;color:var(--muted);font-size:13px}.metric strong{display:block;margin-top:7px;font-size:22px}.metric.net strong{color:var(--primary)}.metric.liquid strong{color:var(--good)}.metric-word{position:absolute;right:14px;bottom:9px;max-width:calc(100% - 28px);color:#7b8495;font-size:11px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.metric-help{cursor:help;border-bottom:1px dotted #9aa3b2}
     .card{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:14px 0;overflow:hidden}.card-head{padding:15px 17px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px}
     .card-head h2{margin:0;font-size:19px}.card-body{padding:16px;overflow:auto}.hint{font-size:12px;color:var(--muted)}
     table{width:100%;border-collapse:collapse;min-width:980px}th,td{border-bottom:1px solid #edf0f5;padding:8px 6px;text-align:left;font-size:13px;vertical-align:middle}
@@ -44,10 +44,11 @@
   </div>
 
   <div class="summary">
-    <div class="metric"><span>총자산</span><strong id="totalAssets">0원</strong></div>
-    <div class="metric"><span>총부채</span><strong id="totalDebt">0원</strong></div>
-    <div class="metric net"><span>순자산</span><strong id="netWorth">0원</strong></div>
-    <div class="metric"><span>부채비율</span><strong id="debtRatio">0.0%</strong></div>
+    <div class="metric"><span>총자산</span><strong id="totalAssets">0원</strong><div class="metric-word" id="totalAssetsKorean">0원</div></div>
+    <div class="metric"><span>총부채</span><strong id="totalDebt">0원</strong><div class="metric-word" id="totalDebtKorean">0원</div></div>
+    <div class="metric net"><span>순자산</span><strong id="netWorth">0원</strong><div class="metric-word" id="netWorthKorean">0원</div></div>
+    <div class="metric liquid"><span class="metric-help" title="부동산·임차보증금·연금·보험·자동차 등은 제외하고, 금융자산과 투자자산의 현재가치를 합산합니다.">즉시 가용 비용 ⓘ</span><strong id="liquidAssets">0원</strong><div class="metric-word" id="liquidAssetsKorean">0원</div></div>
+    <div class="metric"><span>부채비율</span><strong id="debtRatio">0.0%</strong><div class="metric-word">총부채 ÷ 총자산</div></div>
   </div>
 
   <section class="card">
@@ -113,7 +114,7 @@
       <b>주의:</b> 본 계산기의 상위 비율은 공식 순위가 아닌 경계값 기반 추정치이며, 표본조사 오차·가구구성·지역·자가 여부 등을 반영하지 않습니다.
     </div>
   </div></section>
-  <div class="footer">금액 입력은 모두 만원 단위입니다. 실거주 보증금은 임차 거주 보증금일 때만 입력하고, 자가 주택 현재가와 동시에 입력하면 중복 집계될 수 있습니다.<br>입력 데이터는 서버로 전송되지 않고 현재 브라우저의 localStorage에만 저장됩니다. CDN 연결이 차단되면 jQuery와 차트가 동작하지 않을 수 있습니다.</div>
+  <div class="footer">금액 입력은 모두 만원 단위입니다. 즉시 가용 비용은 금융자산과 투자자산의 현재가치를 합산하며, 부동산·임차보증금·연금·보험·자동차 등은 제외합니다. 실거주 보증금은 임차 거주 보증금일 때만 입력하고, 자가 주택 현재가와 동시에 입력하면 중복 집계될 수 있습니다.<br>입력 데이터는 서버로 전송되지 않고 현재 브라우저의 localStorage에만 저장됩니다. CDN 연결이 차단되면 jQuery와 차트가 동작하지 않을 수 있습니다.</div>
 </div>
 
 <script>
@@ -132,6 +133,26 @@ const percentileBounds=[
 let chart;
 
 const money=v=>new Intl.NumberFormat('ko-KR',{style:'currency',currency:'KRW',maximumFractionDigits:0}).format(Number(v)||0);
+function koreanMoney(v){
+  const n=Math.round(Number(v)||0);
+  if(n===0)return '0원';
+  const sign=n<0?'마이너스 ':'';
+  let x=Math.abs(n);
+  const eok=Math.floor(x/100000000); x%=100000000;
+  const man=Math.floor(x/10000); const wonPart=x%10000;
+  const smallGroup=(g)=>{
+    const units=['천','백','십',''];
+    const divs=[1000,100,10,1];
+    const parts=[];
+    divs.forEach((d,i)=>{const q=Math.floor(g/d)%10;if(q)parts.push((q===1&&i<3?'':q)+units[i]);});
+    return parts.join(' ');
+  };
+  const parts=[];
+  if(eok)parts.push(eok.toLocaleString('ko-KR')+'억');
+  if(man)parts.push(smallGroup(man)+'만');
+  if(wonPart)parts.push(smallGroup(wonPart));
+  return sign+parts.join(' ')+'원';
+}
 const won=v=>num(v)*10000; // 모든 금액 입력값은 만원 단위
 const num=v=>Number(String(v??'').replace(/,/g,''))||0;
 const pct=v=>(Number.isFinite(v)?v:0).toFixed(2)+'%';
@@ -181,9 +202,10 @@ function calculate(){
   $('#investmentBody tr').each(function(){const q=num($(this).find('.qty').val()),b=won($(this).find('.buyPrice').val()),c=won($(this).find('.currentPrice').val()),fx=num($(this).find('.fx').val())||1;const val=q*c*fx,g=q*(c-b)*fx,r=b?((c-b)/b*100):0;inv+=val;$(this).find('.valuation').text(money(val));$(this).find('.gain').text(money(g));$(this).find('.rate').text(pct(r));paint($(this),g,r)});
   $('#otherBody tr').each(function(){const p=won($(this).find('.principal').val()),c=won($(this).find('.current').val()),g=c-p;other+=c;$(this).find('.gain').text(money(g));paint($(this),g,0)});
   $('#debtBody tr').each(function(){debt+=won($(this).find('.balance').val())});
-  const assets=real+fin+inv+other,net=assets-debt;
-  $('#totalAssets').text(money(assets));$('#totalDebt').text(money(debt));$('#netWorth').text(money(net));$('#debtRatio').text(pct(assets?debt/assets*100:0));
-  updateCompare(net); updateChart([real,fin,inv,other]); return {assets,debt,net};
+  const assets=real+fin+inv+other,net=assets-debt,liquid=fin+inv;
+  $('#totalAssets').text(money(assets));$('#totalDebt').text(money(debt));$('#netWorth').text(money(net));$('#liquidAssets').text(money(liquid));$('#debtRatio').text(pct(assets?debt/assets*100:0));
+  $('#totalAssetsKorean').text(koreanMoney(assets));$('#totalDebtKorean').text(koreanMoney(debt));$('#netWorthKorean').text(koreanMoney(net));$('#liquidAssetsKorean').text(koreanMoney(liquid));
+  updateCompare(net); updateChart([real,fin,inv,other]); return {assets,debt,net,liquid};
 }
 function paint(row,gain){row.find('.gain,.rate').removeClass('positive negative').addClass(gain>0?'positive':gain<0?'negative':'')}
 function estimatePercentile(v){
@@ -214,7 +236,8 @@ function exportExcel(){
   add(['순자산 계산 결과']);
   add(['기준일',new Date().toLocaleDateString('ko-KR'),'출력일시',new Date().toLocaleString('ko-KR')]);
   add([]);
-  add(['총자산(만원)',result.assets/10000,'총부채(만원)',result.debt/10000,'순자산(만원)',result.net/10000,'부채비율',result.assets?result.debt/result.assets:0]);
+  add(['총자산(만원)',result.assets/10000,'총부채(만원)',result.debt/10000,'순자산(만원)',result.net/10000,'즉시 가용 비용(만원)',result.liquid/10000,'부채비율',result.assets?result.debt/result.assets:0]);
+  add(['',koreanMoney(result.assets),'',koreanMoney(result.debt),'',koreanMoney(result.net),'',koreanMoney(result.liquid),'','']);
   add([]);
 
   function addSection(title,headers,selector,mapper,moneyIndexes=[]){
@@ -300,11 +323,12 @@ function exportExcel(){
   const percentStyle={...cellStyle,numFmt:'0.00%',alignment:{horizontal:'right',vertical:'center'}};
 
   ws['A1'].s=titleStyle;
-  ws['!rows']=[{hpt:34},{hpt:22},{hpt:8},{hpt:30}];
+  ws['!rows']=[{hpt:34},{hpt:22},{hpt:8},{hpt:30},{hpt:20},{hpt:8}];
 
   // 상단 요약 카드
-  ['A4','C4','E4','G4'].forEach(a=>{ws[a].s={font:{name:'맑은 고딕',bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'5B9BD5'}},alignment:{horizontal:'center',vertical:'center'},border}});
-  ['B4','D4','F4','H4'].forEach((a,i)=>{ws[a].s={font:{name:'맑은 고딕',sz:12,bold:true,color:{rgb:i===2?'C00000':'1F2937'}},fill:{fgColor:{rgb:i===2?'FFF2CC':'EAF2F8'}},alignment:{horizontal:'right',vertical:'center'},border,numFmt:i===3?'0.00%':'#,##0;[Red]-#,##0'}});
+  ['A4','C4','E4','G4','I4'].forEach(a=>{ws[a].s={font:{name:'맑은 고딕',bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'5B9BD5'}},alignment:{horizontal:'center',vertical:'center'},border}});
+  ['B4','D4','F4','H4','J4'].forEach((a,i)=>{ws[a].s={font:{name:'맑은 고딕',sz:12,bold:true,color:{rgb:i===2?'C00000':i===3?'008060':'1F2937'}},fill:{fgColor:{rgb:i===2?'FFF2CC':i===3?'E2F0D9':'EAF2F8'}},alignment:{horizontal:'right',vertical:'center'},border,numFmt:i===4?'0.00%':'#,##0;[Red]-#,##0'}});
+  ['B5','D5','F5','H5'].forEach(a=>{if(ws[a])ws[a].s={font:{name:'맑은 고딕',sz:9,color:{rgb:'6B7280'}},alignment:{horizontal:'right',vertical:'center'},border,fill:{fgColor:{rgb:'F8FAFC'}}};});
 
   sectionRanges.forEach(x=>{const a=XLSX.utils.encode_cell({r:x.row-1,c:0});ws[a].s=sectionStyle;ws['!rows'][x.row-1]={hpt:24}});
   headerRows.forEach(h=>{for(let c=0;c<h.cols;c++){const a=XLSX.utils.encode_cell({r:h.row-1,c});if(ws[a])ws[a].s=headerStyle;}ws['!rows'][h.row-1]={hpt:30}});
@@ -332,8 +356,8 @@ function exportExcel(){
   ws['!cols']=[
     {wch:22},{wch:18},{wch:16},{wch:18},{wch:18},{wch:18},{wch:18},{wch:20},{wch:18},{wch:16},{wch:18},{wch:14}
   ];
-  ws['!freeze']={xSplit:0,ySplit:4,topLeftCell:'A5',activePane:'bottomLeft',state:'frozen'};
-  ws['!autofilter']={ref:'A6:L6'};
+  ws['!freeze']={xSplit:0,ySplit:6,topLeftCell:'A7',activePane:'bottomLeft',state:'frozen'};
+  if(headerRows.length)ws['!autofilter']={ref:`A${headerRows[0].row}:L${headerRows[0].row}`};
   ws['!margins']={left:0.3,right:0.3,top:0.5,bottom:0.5,header:0.2,footer:0.2};
   ws['!pageSetup']={orientation:'landscape',fitToWidth:1,fitToHeight:0,paperSize:9};
   ws['!sheetPr']={pageSetUpPr:{fitToPage:true}};
