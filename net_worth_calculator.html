@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>순자산 계산기</title>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+  <style>
+    :root{--bg:#f5f7fb;--card:#fff;--line:#dfe5ef;--text:#172033;--muted:#697386;--primary:#315efb;--danger:#d14343;--good:#087f5b}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,"Noto Sans KR",sans-serif}
+    .wrap{max-width:1500px;margin:0 auto;padding:22px}.top{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;flex-wrap:wrap}
+    h1{margin:0 0 6px;font-size:30px}.sub{color:var(--muted);font-size:14px}.toolbar{display:flex;gap:8px;flex-wrap:wrap}
+    button,.file-label{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 12px;cursor:pointer;font-weight:700}
+    button.primary{background:var(--primary);border-color:var(--primary);color:#fff}button.danger{color:var(--danger)}
+    .summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}.metric{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:17px}
+    .metric span{display:block;color:var(--muted);font-size:13px}.metric strong{display:block;margin-top:7px;font-size:23px}.metric.net strong{color:var(--primary)}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:14px 0;overflow:hidden}.card-head{padding:15px 17px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .card-head h2{margin:0;font-size:19px}.card-body{padding:16px;overflow:auto}.hint{font-size:12px;color:var(--muted)}
+    table{width:100%;border-collapse:collapse;min-width:980px}th,td{border-bottom:1px solid #edf0f5;padding:8px 6px;text-align:left;font-size:13px;vertical-align:middle}
+    th{color:#586174;background:#fafbfc;white-space:nowrap}input,select{width:100%;min-width:100px;border:1px solid #ccd4e0;border-radius:7px;padding:8px;background:#fff}
+    input.money{text-align:right}.row-actions{white-space:nowrap}.row-actions button{padding:6px 8px}.positive{color:var(--good)}.negative{color:var(--danger)}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.compare-box{padding:18px;background:#f8faff;border:1px solid #dce5ff;border-radius:12px}
+    .compare-result{font-size:22px;font-weight:800;margin:10px 0}.source{font-size:12px;line-height:1.7;color:#596274;background:#fafafa;border:1px solid var(--line);padding:12px;border-radius:10px}
+    canvas{max-height:320px}.footer{font-size:12px;color:var(--muted);padding:10px 0 30px}
+    @media(max-width:900px){.summary{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}} @media(max-width:560px){.summary{grid-template-columns:1fr}.wrap{padding:12px}}
+    @media print{.toolbar,.add-btn,.row-actions{display:none!important}.card{break-inside:avoid}body{background:#fff}.wrap{max-width:none}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>순자산 계산기</h1><div class="sub">부동산·예금·적금·주식·연금·기타자산·부채를 자유롭게 추가하고 삭제할 수 있습니다.</div></div>
+    <div class="toolbar">
+      <button id="saveBtn" class="primary">브라우저 저장</button>
+      <button id="sampleBtn">샘플 입력</button>
+      <button id="excelBtn">엑셀 한 장 출력</button>
+      <button id="exportBtn">JSON 백업</button>
+      <label class="file-label">JSON 복원<input id="importFile" type="file" accept=".json" hidden></label>
+      <button onclick="window.print()">인쇄</button>
+      <button id="resetBtn" class="danger">전체 초기화</button>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="metric"><span>총자산</span><strong id="totalAssets">0원</strong></div>
+    <div class="metric"><span>총부채</span><strong id="totalDebt">0원</strong></div>
+    <div class="metric net"><span>순자산</span><strong id="netWorth">0원</strong></div>
+    <div class="metric"><span>부채비율</span><strong id="debtRatio">0.0%</strong></div>
+  </div>
+
+  <section class="card">
+    <div class="card-head"><div><h2>1. 부동산</h2><div class="hint">금액은 모두 <b>만원 단위</b>입니다. 예: 7억 2,500만원 → <b>72500</b>. 실거주 보증금은 자산, 임대 중 받은 보증금은 반환 부채로 반영됩니다.<br><b>취득비용</b>: 취득세, 중개보수, 법무사·등기비, 인지대 등 부동산을 살 때 매수가 외에 실제로 들어간 비용입니다.</div></div><button class="add-btn" data-section="realestate">+ 부동산 추가</button></div>
+    <div class="card-body"><table><thead><tr>
+      <th>명칭</th><th>종류</th><th>지분율(%)</th><th>매수가(만원)</th><th>취득비용(만원)</th><th>현재가(만원)</th><th>대출잔액(만원)</th><th>거주·임대형태</th><th>보증금(만원)</th><th>월세(만원)</th><th>평가차익</th><th>변화율</th><th></th>
+    </tr></thead><tbody id="realestateBody"></tbody></table></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><div><h2>2. 금융자산</h2><div class="hint">예금·적금·CMA·청약·외화예금 등을 입력합니다.</div></div><button class="add-btn" data-section="financial">+ 금융자산 추가</button></div>
+    <div class="card-body"><table><thead><tr>
+      <th>명칭</th><th>종류</th><th>금융기관</th><th>납입원금(만원)</th><th>현재잔액(만원)</th><th>금리(%)</th><th>만기일</th><th>손익</th><th>수익률</th><th></th>
+    </tr></thead><tbody id="financialBody"></tbody></table></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><div><h2>3. 투자자산</h2><div class="hint">국내·해외주식, ETF, 펀드, 채권, 가상자산 등을 입력합니다.</div></div><button class="add-btn" data-section="investment">+ 투자자산 추가</button></div>
+    <div class="card-body"><table><thead><tr>
+      <th>종목명</th><th>종류</th><th>보유수량</th><th>평균매입단가(만원)</th><th>현재가(만원)</th><th>환율</th><th>평가금액</th><th>평가손익</th><th>수익률</th><th></th>
+    </tr></thead><tbody id="investmentBody"></tbody></table></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><div><h2>4. 연금·보험·기타자산</h2><div class="hint">연금은 현재 평가액, 보험은 해약환급금처럼 현재 현금화 가능한 금액을 입력합니다.</div></div><button class="add-btn" data-section="other">+ 기타자산 추가</button></div>
+    <div class="card-body"><table><thead><tr>
+      <th>명칭</th><th>종류</th><th>납입원금/취득가(만원)</th><th>현재가치(만원)</th><th>메모</th><th>손익</th><th></th>
+    </tr></thead><tbody id="otherBody"></tbody></table></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><div><h2>5. 부채</h2><div class="hint">부동산 표의 대출·임차보증금 외에 신용대출, 카드대금, 자동차할부 등을 입력합니다.</div></div><button class="add-btn" data-section="debt">+ 부채 추가</button></div>
+    <div class="card-body"><table><thead><tr>
+      <th>명칭</th><th>종류</th><th>최초금액(만원)</th><th>현재잔액(만원)</th><th>금리(%)</th><th>월상환액(만원)</th><th>만기일</th><th></th>
+    </tr></thead><tbody id="debtBody"></tbody></table></div>
+  </section>
+
+  <div class="grid2">
+    <section class="card"><div class="card-head"><h2>자산 구성</h2></div><div class="card-body"><canvas id="assetChart"></canvas></div></section>
+    <section class="card"><div class="card-head"><h2>연령대 비교</h2></div><div class="card-body">
+      <div class="compare-box">
+        <label>비교 기준</label>
+        <select id="ageGroup">
+          <option value="under29">가구주 29세 이하</option><option value="30s">가구주 30~39세</option>
+          <option value="40s">가구주 40~49세</option><option value="50s">가구주 50~59세</option><option value="60plus">가구주 60세 이상</option>
+        </select>
+        <div class="compare-result" id="percentileText">입력 후 자동 계산</div>
+        <div id="ageStats" class="hint"></div>
+      </div>
+      <p class="hint">백분위는 전체 가구 순자산 P10~P90 경계값을 선형 보간한 추정치입니다. 연령대별로는 공식 평균·중앙값을 함께 보여주며, 연령대별 정확한 백분위로 단정하지 않습니다.</p>
+    </div></section>
+  </div>
+
+  <section class="card"><div class="card-head"><h2>통계 자료 출처 및 기준일</h2></div><div class="card-body">
+    <div class="source">
+      <b>자료명:</b> 2025년 가계금융복지조사 결과 및 부록 통계표<br>
+      <b>작성기관:</b> 국가데이터처(구 통계청), 한국은행, 금융감독원 공동 조사<br>
+      <b>자산·부채 기준일:</b> 2025년 3월 말<br>
+      <b>게시일:</b> 2025년 12월 4일<br>
+      <b>비교 단위:</b> 개인이 아니라 ‘가구’, 연령은 ‘가구주 연령’ 기준<br>
+      <b>공식 보도자료:</b> <a target="_blank" rel="noopener" href="https://mods.go.kr/board.es?act=view&bid=215&list_no=439535&mid=a10301010000">국가데이터처 2025년 가계금융복지조사</a><br>
+      <b>사용 통계:</b> 전체 가구 평균 순자산 4억 7,143.7만원, 연령대별 평균·중앙값, 전체 가구 순자산 P10~P90 경계값.<br>
+      <b>주의:</b> 본 계산기의 상위 비율은 공식 순위가 아닌 경계값 기반 추정치이며, 표본조사 오차·가구구성·지역·자가 여부 등을 반영하지 않습니다.
+    </div>
+  </div></section>
+  <div class="footer">금액 입력은 모두 만원 단위입니다. 실거주 보증금은 임차 거주 보증금일 때만 입력하고, 자가 주택 현재가와 동시에 입력하면 중복 집계될 수 있습니다.<br>입력 데이터는 서버로 전송되지 않고 현재 브라우저의 localStorage에만 저장됩니다. CDN 연결이 차단되면 jQuery와 차트가 동작하지 않을 수 있습니다.</div>
+</div>
+
+<script>
+const STORAGE_KEY='netWorthCalculatorV1';
+const ageStats={
+  under29:{label:'29세 이하',avg:107963767,median:50000000},
+  '30s':{label:'30~39세',avg:250596722,median:155850000},
+  '40s':{label:'40~49세',avg:483892288,median:283840000},
+  '50s':{label:'50~59세',avg:551610424,median:316850000},
+  '60plus':{label:'60세 이상',avg:535912912,median:250000000}
+};
+const percentileBounds=[
+  {p:10,v:12100000},{p:20,v:51080000},{p:30,v:102960000},{p:40,v:164720000},
+  {p:50,v:238600000},{p:60,v:330500000},{p:70,v:461800000},{p:80,v:693800000},{p:90,v:1100200000}
+];
+let chart;
+
+const money=v=>new Intl.NumberFormat('ko-KR',{style:'currency',currency:'KRW',maximumFractionDigits:0}).format(Number(v)||0);
+const won=v=>num(v)*10000; // 모든 금액 입력값은 만원 단위
+const num=v=>Number(String(v??'').replace(/,/g,''))||0;
+const pct=v=>(Number.isFinite(v)?v:0).toFixed(2)+'%';
+const id=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const moneyInput=(cls,val='')=>`<input class="money ${cls}" inputmode="numeric" value="${val}">`;
+const removeBtn=()=>`<button class="remove-row danger">삭제</button>`;
+
+function addRow(type,d={}){
+  const rowId=d.id||id(); let html='';
+  if(type==='realestate') html=`<tr data-id="${rowId}">
+    <td><input class="name" value="${d.name||''}" placeholder="예: 관악아파트"></td>
+    <td><select class="kind">${opts(['아파트','오피스텔','빌라','단독주택','상가','토지','기타'],d.kind)}</select></td>
+    <td><input class="share" type="number" min="0" max="100" value="${d.share??100}"></td>
+    <td>${moneyInput('purchase',d.purchase||'')}</td><td>${moneyInput('cost',d.cost||'')}</td><td>${moneyInput('current',d.current||'')}</td>
+    <td>${moneyInput('loan',d.loan||'')}</td><td><select class="rentType">${opts(['실거주','전세','월세','공실'],d.rentType)}</select></td>
+    <td>${moneyInput('deposit',d.deposit||'')}</td><td>${moneyInput('monthlyRent',d.monthlyRent||'')}</td>
+    <td class="gain">0원</td><td class="rate">0.00%</td><td class="row-actions">${removeBtn()}</td></tr>`;
+  if(type==='financial') html=`<tr data-id="${rowId}">
+    <td><input class="name" value="${d.name||''}"></td><td><select class="kind">${opts(['입출금','예금','적금','CMA','청약','외화예금','기타'],d.kind)}</select></td>
+    <td><input class="institution" value="${d.institution||''}"></td><td>${moneyInput('principal',d.principal||'')}</td><td>${moneyInput('current',d.current||'')}</td>
+    <td><input class="interest" type="number" step="0.01" value="${d.interest||''}"></td><td><input class="maturity" type="date" value="${d.maturity||''}"></td>
+    <td class="gain">0원</td><td class="rate">0.00%</td><td>${removeBtn()}</td></tr>`;
+  if(type==='investment') html=`<tr data-id="${rowId}">
+    <td><input class="name" value="${d.name||''}"></td><td><select class="kind">${opts(['국내주식','해외주식','ETF','펀드','채권','리츠','가상자산','기타'],d.kind)}</select></td>
+    <td><input class="qty" type="number" step="any" value="${d.qty||''}"></td><td>${moneyInput('buyPrice',d.buyPrice||'')}</td><td>${moneyInput('currentPrice',d.currentPrice||'')}</td>
+    <td><input class="fx" type="number" step="any" value="${d.fx??1}"></td><td class="valuation">0원</td><td class="gain">0원</td><td class="rate">0.00%</td><td>${removeBtn()}</td></tr>`;
+  if(type==='other') html=`<tr data-id="${rowId}">
+    <td><input class="name" value="${d.name||''}"></td><td><select class="kind">${opts(['퇴직연금','개인연금','보험해약환급금','자동차','금·귀금속','임차보증금','받을 돈','사업체지분','기타'],d.kind)}</select></td>
+    <td>${moneyInput('principal',d.principal||'')}</td><td>${moneyInput('current',d.current||'')}</td><td><input class="memo" value="${d.memo||''}"></td><td class="gain">0원</td><td>${removeBtn()}</td></tr>`;
+  if(type==='debt') html=`<tr data-id="${rowId}">
+    <td><input class="name" value="${d.name||''}"></td><td><select class="kind">${opts(['주택담보대출','전세자금대출','신용대출','마이너스통장','자동차할부','카드대금','학자금대출','가족차입','기타'],d.kind)}</select></td>
+    <td>${moneyInput('original',d.original||'')}</td><td>${moneyInput('balance',d.balance||'')}</td><td><input class="interest" type="number" step="0.01" value="${d.interest||''}"></td>
+    <td>${moneyInput('monthly',d.monthly||'')}</td><td><input class="maturity" type="date" value="${d.maturity||''}"></td><td>${removeBtn()}</td></tr>`;
+  $('#'+type+'Body').append(html); calculate();
+}
+function opts(arr,selected){return arr.map(x=>`<option ${x===selected?'selected':''}>${x}</option>`).join('')}
+
+function calculate(){
+  let real=0,fin=0,inv=0,other=0,debt=0;
+  $('#realestateBody tr').each(function(){
+    const share=num($(this).find('.share').val())/100,purchase=won($(this).find('.purchase').val()),cost=won($(this).find('.cost').val()),current=won($(this).find('.current').val());
+    const loan=won($(this).find('.loan').val()),deposit=won($(this).find('.deposit').val()),rentType=$(this).find('.rentType').val();
+    const gain=(current-purchase-cost)*share,rate=(purchase+cost)?gain/((purchase+cost)*share)*100:0;
+    real+=current*share + (rentType==='실거주' ? deposit : 0); debt+=loan + (rentType==='실거주' ? 0 : deposit); paint($(this),gain,rate); $(this).find('.gain').text(money(gain)); $(this).find('.rate').text(pct(rate));
+  });
+  $('#financialBody tr').each(function(){const p=won($(this).find('.principal').val()),c=won($(this).find('.current').val()),g=c-p,r=p?g/p*100:0;fin+=c;$(this).find('.gain').text(money(g));$(this).find('.rate').text(pct(r));paint($(this),g,r)});
+  $('#investmentBody tr').each(function(){const q=num($(this).find('.qty').val()),b=won($(this).find('.buyPrice').val()),c=won($(this).find('.currentPrice').val()),fx=num($(this).find('.fx').val())||1;const val=q*c*fx,g=q*(c-b)*fx,r=b?((c-b)/b*100):0;inv+=val;$(this).find('.valuation').text(money(val));$(this).find('.gain').text(money(g));$(this).find('.rate').text(pct(r));paint($(this),g,r)});
+  $('#otherBody tr').each(function(){const p=won($(this).find('.principal').val()),c=won($(this).find('.current').val()),g=c-p;other+=c;$(this).find('.gain').text(money(g));paint($(this),g,0)});
+  $('#debtBody tr').each(function(){debt+=won($(this).find('.balance').val())});
+  const assets=real+fin+inv+other,net=assets-debt;
+  $('#totalAssets').text(money(assets));$('#totalDebt').text(money(debt));$('#netWorth').text(money(net));$('#debtRatio').text(pct(assets?debt/assets*100:0));
+  updateCompare(net); updateChart([real,fin,inv,other]); return {assets,debt,net};
+}
+function paint(row,gain){row.find('.gain,.rate').removeClass('positive negative').addClass(gain>0?'positive':gain<0?'negative':'')}
+function estimatePercentile(v){
+  if(v<=percentileBounds[0].v)return Math.max(0,10*v/percentileBounds[0].v);
+  for(let i=1;i<percentileBounds.length;i++){const a=percentileBounds[i-1],b=percentileBounds[i];if(v<=b.v)return a.p+(v-a.v)/(b.v-a.v)*(b.p-a.p)}
+  const last=percentileBounds.at(-1);return Math.min(99,last.p+(v-last.v)/last.v*9);
+}
+function updateCompare(net){
+  const p=estimatePercentile(Math.max(0,net)),top=100-p,s=ageStats[$('#ageGroup').val()];
+  $('#percentileText').text(net<=0?'순자산이 0원 이하입니다':`전체 가구 기준 추정 상위 ${top.toFixed(1)}%`);
+  $('#ageStats').html(`${s.label} 가구 평균 순자산: <b>${money(s.avg)}</b><br>중앙값: <b>${money(s.median)}</b><br>내 순자산은 연령대 평균의 <b>${s.avg?(net/s.avg*100).toFixed(1):0}%</b>, 중앙값 대비 <b>${s.median?(net/s.median*100).toFixed(1):0}%</b>`);
+}
+function updateChart(values){
+  const ctx=document.getElementById('assetChart');if(chart)chart.destroy();
+  chart=new Chart(ctx,{type:'doughnut',data:{labels:['부동산','금융자산','투자자산','연금·기타'],datasets:[{data:values}]},options:{plugins:{legend:{position:'bottom'}}}});
+}
+function exportExcel(){
+  if(typeof XLSX==='undefined'){alert('엑셀 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.');return;}
+  const result=calculate();
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet([]);
+  const rows=[];
+  const add=(row)=>{rows.push(row);return rows.length;};
+  const sectionRanges=[];
+  const headerRows=[];
+  const moneyColsByRow=[];
+
+  add(['순자산 계산 결과']);
+  add(['기준일',new Date().toLocaleDateString('ko-KR'),'출력일시',new Date().toLocaleString('ko-KR')]);
+  add([]);
+  add(['총자산(만원)',result.assets/10000,'총부채(만원)',result.debt/10000,'순자산(만원)',result.net/10000,'부채비율',result.assets?result.debt/result.assets:0]);
+  add([]);
+
+  function addSection(title,headers,selector,mapper,moneyIndexes=[]){
+    const titleRow=add([title]);
+    sectionRanges.push({row:titleRow,cols:headers.length});
+    const headerRow=add(headers);
+    headerRows.push({row:headerRow,cols:headers.length});
+    $(selector+' tr').each(function(){
+      const row=add(mapper($(this)));
+      moneyColsByRow.push({row,cols:moneyIndexes});
+    });
+    add([]);
+  }
+
+  addSection('1. 부동산',
+    ['명칭','종류','지분율(%)','매수가(만원)','취득비용(만원)','현재가(만원)','대출잔액(만원)','거주·임대형태','보증금(만원)','월세(만원)','평가차익(만원)','변화율'],
+    '#realestateBody',r=>{
+      const share=num(r.find('.share').val());
+      const purchase=num(r.find('.purchase').val()),cost=num(r.find('.cost').val()),current=num(r.find('.current').val());
+      const gain=(current-purchase-cost)*(share/100);
+      const rate=(purchase+cost)?gain/((purchase+cost)*(share/100)):0;
+      return [r.find('.name').val(),r.find('.kind').val(),share,purchase,cost,current,num(r.find('.loan').val()),r.find('.rentType').val(),num(r.find('.deposit').val()),num(r.find('.monthlyRent').val()),gain,rate];
+    },[3,4,5,6,8,9,10]);
+
+  addSection('2. 금융자산',
+    ['명칭','종류','금융기관','납입원금(만원)','현재잔액(만원)','금리(%)','만기일','손익(만원)','수익률'],
+    '#financialBody',r=>{
+      const p=num(r.find('.principal').val()),c=num(r.find('.current').val()),g=c-p;
+      return [r.find('.name').val(),r.find('.kind').val(),r.find('.institution').val(),p,c,num(r.find('.interest').val()),r.find('.maturity').val(),g,p?g/p:0];
+    },[3,4,7]);
+
+  addSection('3. 투자자산',
+    ['종목명','종류','보유수량','평균매입단가(만원)','현재가(만원)','환율','평가금액(만원)','평가손익(만원)','수익률'],
+    '#investmentBody',r=>{
+      const q=num(r.find('.qty').val()),b=num(r.find('.buyPrice').val()),c=num(r.find('.currentPrice').val()),fx=num(r.find('.fx').val())||1;
+      const val=q*c*fx,g=q*(c-b)*fx;
+      return [r.find('.name').val(),r.find('.kind').val(),q,b,c,fx,val,g,b?(c-b)/b:0];
+    },[3,4,6,7]);
+
+  addSection('4. 연금·보험·기타자산',
+    ['명칭','종류','납입원금/취득가(만원)','현재가치(만원)','메모','손익(만원)'],
+    '#otherBody',r=>{
+      const p=num(r.find('.principal').val()),c=num(r.find('.current').val());
+      return [r.find('.name').val(),r.find('.kind').val(),p,c,r.find('.memo').val(),c-p];
+    },[2,3,5]);
+
+  addSection('5. 부채',
+    ['명칭','종류','최초금액(만원)','현재잔액(만원)','금리(%)','월상환액(만원)','만기일'],
+    '#debtBody',r=>[r.find('.name').val(),r.find('.kind').val(),num(r.find('.original').val()),num(r.find('.balance').val()),num(r.find('.interest').val()),num(r.find('.monthly').val()),r.find('.maturity').val()],
+    [2,3,5]);
+
+  const s=ageStats[$('#ageGroup').val()];
+  const compareTitle=add(['연령대 비교']); sectionRanges.push({row:compareTitle,cols:8});
+  add(['비교 연령대',s.label,'연령대 평균 순자산(만원)',s.avg/10000,'연령대 중앙값(만원)',s.median/10000,'비교 결과',$('#percentileText').text()]);
+  add([]);
+  const sourceTitle=add(['자료 출처 및 산정 기준']); sectionRanges.push({row:sourceTitle,cols:8});
+  add(['자료명','2025년 가계금융복지조사 결과 및 부록 통계표']);
+  add(['작성기관','국가데이터처·한국은행·금융감독원']);
+  add(['자산·부채 기준일','2025년 3월 말']);
+  add(['게시일','2025년 12월 4일']);
+  add(['비교 단위','개인이 아닌 가구, 연령은 가구주 연령 기준']);
+  add(['주의','상위 비율은 전체 가구 순자산 분위 경계값을 이용한 추정치이며 공식 개인 순위가 아닙니다.']);
+
+  XLSX.utils.sheet_add_aoa(ws,rows,{origin:'A1'});
+  const maxCols=12;
+  ws['!merges']=[
+    {s:{r:0,c:0},e:{r:0,c:maxCols-1}},
+    ...sectionRanges.map(x=>({s:{r:x.row-1,c:0},e:{r:x.row-1,c:Math.max(x.cols-1,7)}})),
+    {s:{r:rows.length-6,c:1},e:{r:rows.length-6,c:7}},
+    {s:{r:rows.length-5,c:1},e:{r:rows.length-5,c:7}},
+    {s:{r:rows.length-4,c:1},e:{r:rows.length-4,c:7}},
+    {s:{r:rows.length-3,c:1},e:{r:rows.length-3,c:7}},
+    {s:{r:rows.length-2,c:1},e:{r:rows.length-2,c:7}},
+    {s:{r:rows.length-1,c:1},e:{r:rows.length-1,c:7}}
+  ];
+
+  const border={top:{style:'thin',color:{rgb:'B8C2D1'}},bottom:{style:'thin',color:{rgb:'B8C2D1'}},left:{style:'thin',color:{rgb:'B8C2D1'}},right:{style:'thin',color:{rgb:'B8C2D1'}}};
+  const titleStyle={font:{name:'맑은 고딕',sz:20,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1F4E78'}},alignment:{horizontal:'center',vertical:'center'}};
+  const sectionStyle={font:{name:'맑은 고딕',sz:12,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'4472C4'}},alignment:{horizontal:'left',vertical:'center'},border};
+  const headerStyle={font:{name:'맑은 고딕',sz:10,bold:true,color:{rgb:'1F2937'}},fill:{fgColor:{rgb:'D9EAF7'}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border};
+  const cellStyle={font:{name:'맑은 고딕',sz:10},alignment:{vertical:'center'},border};
+  const moneyStyle={...cellStyle,numFmt:'#,##0;[Red]-#,##0',alignment:{horizontal:'right',vertical:'center'}};
+  const percentStyle={...cellStyle,numFmt:'0.00%',alignment:{horizontal:'right',vertical:'center'}};
+
+  ws['A1'].s=titleStyle;
+  ws['!rows']=[{hpt:34},{hpt:22},{hpt:8},{hpt:30}];
+
+  // 상단 요약 카드
+  ['A4','C4','E4','G4'].forEach(a=>{ws[a].s={font:{name:'맑은 고딕',bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'5B9BD5'}},alignment:{horizontal:'center',vertical:'center'},border}});
+  ['B4','D4','F4','H4'].forEach((a,i)=>{ws[a].s={font:{name:'맑은 고딕',sz:12,bold:true,color:{rgb:i===2?'C00000':'1F2937'}},fill:{fgColor:{rgb:i===2?'FFF2CC':'EAF2F8'}},alignment:{horizontal:'right',vertical:'center'},border,numFmt:i===3?'0.00%':'#,##0;[Red]-#,##0'}});
+
+  sectionRanges.forEach(x=>{const a=XLSX.utils.encode_cell({r:x.row-1,c:0});ws[a].s=sectionStyle;ws['!rows'][x.row-1]={hpt:24}});
+  headerRows.forEach(h=>{for(let c=0;c<h.cols;c++){const a=XLSX.utils.encode_cell({r:h.row-1,c});if(ws[a])ws[a].s=headerStyle;}ws['!rows'][h.row-1]={hpt:30}});
+
+  // 전체 데이터 영역 기본 스타일
+  for(let r=0;r<rows.length;r++){
+    for(let c=0;c<maxCols;c++){
+      const a=XLSX.utils.encode_cell({r,c});
+      if(ws[a] && !ws[a].s)ws[a].s=cellStyle;
+    }
+  }
+  moneyColsByRow.forEach(x=>x.cols.forEach(c=>{const a=XLSX.utils.encode_cell({r:x.row-1,c});if(ws[a])ws[a].s=moneyStyle;}));
+
+  // 퍼센트 열
+  headerRows.forEach(h=>{
+    const headers=rows[h.row-1];
+    headers.forEach((v,c)=>{if(String(v).includes('수익률')||String(v).includes('변화율')){
+      let r=h.row; while(r<rows.length && rows[r] && rows[r].length && !String(rows[r][0]||'').match(/^\d+\.|^연령대 비교|^자료 출처/)){
+        const a=XLSX.utils.encode_cell({r,c}); if(ws[a])ws[a].s=percentStyle; r++;
+      }
+    }});
+  });
+
+  // 손익 음수 빨간색은 숫자서식으로 처리
+  ws['!cols']=[
+    {wch:22},{wch:18},{wch:16},{wch:18},{wch:18},{wch:18},{wch:18},{wch:20},{wch:18},{wch:16},{wch:18},{wch:14}
+  ];
+  ws['!freeze']={xSplit:0,ySplit:4,topLeftCell:'A5',activePane:'bottomLeft',state:'frozen'};
+  ws['!autofilter']={ref:'A6:L6'};
+  ws['!margins']={left:0.3,right:0.3,top:0.5,bottom:0.5,header:0.2,footer:0.2};
+  ws['!pageSetup']={orientation:'landscape',fitToWidth:1,fitToHeight:0,paperSize:9};
+  ws['!sheetPr']={pageSetUpPr:{fitToPage:true}};
+
+  XLSX.utils.book_append_sheet(wb,ws,'순자산 계산');
+  XLSX.writeFile(wb,'순자산_계산결과_'+new Date().toISOString().slice(0,10)+'.xlsx',{cellStyles:true});
+}
+
+function serialize(){
+  const data={ageGroup:$('#ageGroup').val(),sections:{}};
+  ['realestate','financial','investment','other','debt'].forEach(type=>{data.sections[type]=[];$('#'+type+'Body tr').each(function(){let o={id:$(this).data('id')};$(this).find('input,select').each(function(){const cls=($(this).attr('class')||'').split(' ').filter(x=>x!=='money')[0];if(cls)o[cls]=$(this).val()});data.sections[type].push(o)})});return data;
+}
+function load(data){$('.card tbody').empty();Object.entries(data.sections||{}).forEach(([t,rows])=>rows.forEach(r=>addRow(t,r)));$('#ageGroup').val(data.ageGroup||'40s');ensureRows();calculate()}
+function ensureRows(){['realestate','financial','investment','other','debt'].forEach(t=>{if(!$('#'+t+'Body tr').length)addRow(t)})}
+function sample(){load({ageGroup:'40s',sections:{
+ realestate:[{name:'아파트',kind:'아파트',share:100,purchase:39500,cost:700,current:43000,loan:0,rentType:'전세',deposit:33000,monthlyRent:0}],
+ financial:[{name:'비상금',kind:'입출금',institution:'은행',principal:1200,current:1200},{name:'정기예금',kind:'예금',institution:'은행',principal:3000,current:3060,interest:3.2}],
+ investment:[{name:'ETF',kind:'ETF',qty:100,buyPrice:5,currentPrice:5.6,fx:1}],
+ other:[{name:'퇴직연금',kind:'퇴직연금',principal:2500,current:2800,memo:'현재 평가액'}],
+ debt:[{name:'신용대출',kind:'신용대출',original:2000,balance:1200,interest:4.5,monthly:50}]
+}})}
+$(document).on('click','.add-btn',function(){addRow($(this).data('section'))});
+$(document).on('click','.remove-row',function(){$(this).closest('tr').remove();calculate()});
+$(document).on('input change','input,select',calculate);
+$('#saveBtn').on('click',()=>{localStorage.setItem(STORAGE_KEY,JSON.stringify(serialize()));alert('현재 브라우저에 저장했습니다.')});
+$('#sampleBtn').on('click',sample);
+$('#resetBtn').on('click',()=>{if(confirm('모든 입력값과 저장 데이터를 삭제할까요?')){localStorage.removeItem(STORAGE_KEY);$('.card tbody').empty();ensureRows();calculate()}});
+$('#excelBtn').on('click',exportExcel);
+$('#exportBtn').on('click',()=>{const blob=new Blob([JSON.stringify(serialize(),null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='순자산_계산기_백업.json';a.click();URL.revokeObjectURL(a.href)});
+$('#importFile').on('change',function(){const f=this.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{try{load(JSON.parse(e.target.result));alert('복원했습니다.')}catch(err){alert('올바른 JSON 백업 파일이 아닙니다.')}};r.readAsText(f);this.value=''});
+$(function(){const saved=localStorage.getItem(STORAGE_KEY);if(saved){try{load(JSON.parse(saved))}catch(e){ensureRows()}}else ensureRows();calculate()});
+</script>
+</body>
+</html>
