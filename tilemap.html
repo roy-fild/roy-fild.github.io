@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>나 어디 갔다 왔지?</title>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Noto Sans KR", Arial, sans-serif;
+      background: #eef2f6;
+      color: #1f2a35;
+    }
+    .page {
+      display: flex;
+      gap: 18px;
+      padding: 18px;
+      min-height: 100vh;
+    }
+    .panel {
+      background: #fff;
+      border: 1px solid #d9e1e8;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(31, 54, 81, 0.08);
+    }
+    .map-panel {
+      flex: 1;
+      min-width: 980px;
+      padding: 20px;
+    }
+    .side-panel {
+      width: 390px;
+      padding: 20px;
+      position: sticky;
+      top: 16px;
+      align-self: flex-start;
+      max-height: calc(100vh - 32px);
+      overflow: auto;
+    }
+    .title-row {
+      display: block;
+      margin-bottom: 16px;
+      min-height: 34px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .toolbar input {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid #cfd9e4;
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+    }
+    .toolbar input:focus {
+      border-color: #4f83f1;
+      box-shadow: 0 0 0 3px rgba(79, 131, 241, 0.12);
+    }
+    .btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #e9f0f8;
+      color: #314253;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .btn:hover { background: #dde7f1; }
+    .btn.primary {
+      background: #2f6ef5;
+      color: #fff;
+    }
+    .map-wrap {
+      overflow: auto;
+      border: 1px solid #d9e1e8;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #f8fbfe 0%, #edf3f8 100%);
+      padding: 10px;
+    }
+    .map-canvas {
+      display: grid;
+      grid-template-columns: repeat(24, 48px);
+      grid-auto-rows: minmax(52px, auto);
+      gap: 8px;
+      width: max-content;
+      min-width: 100%;
+      padding: 6px;
+      position: relative;
+    }
+
+    .province-map-label {
+      align-self: end;
+      justify-self: start;
+      padding: 4px 9px;
+      border-radius: 999px;
+      background: #26384a;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      box-shadow: 0 3px 8px rgba(31,45,61,.15);
+      z-index: 4;
+      pointer-events: none;
+    }
+    .province-map-label.gyeonggi { grid-column: 3 / span 5; grid-row: 4; }
+    .province-map-label.seoul { grid-column: 9 / span 3; grid-row: 2; }
+    .province-map-label.incheon { grid-column: 1 / span 3; grid-row: 5; }
+    .province-map-label.gangwon { grid-column: 17 / span 3; grid-row: 2; }
+    .province-map-label.chungcheong { grid-column: 7 / span 4; grid-row: 11; }
+    .province-map-label.jeolla { grid-column: 4 / span 4; grid-row: 14; }
+    .province-map-label.gyeongsang { grid-column: 15 / span 4; grid-row: 12; }
+    .province-map-label.jeju { grid-column: 9 / span 3; grid-row: 18; }
+
+    .water-label {
+      position: absolute;
+      font-size: 12px;
+      color: #8ca1b5;
+      letter-spacing: 0.04em;
+      pointer-events: none;
+    }
+    .water-west { left: 18px; top: 360px; }
+    .water-east { right: 20px; top: 330px; }
+    .water-south { left: 560px; bottom: 12px; }
+    .city-card {
+      background: #fff;
+      border: 2px solid #8fa0b0;
+      box-shadow: 0 3px 10px rgba(31, 45, 61, 0.08);
+      overflow: hidden;
+      align-self: start;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .city-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(31, 45, 61, 0.12);
+      z-index: 2;
+    }
+    .city-card.hidden { display: none; }
+    .city-card[data-all="true"] {
+      border-color: #2147d8;
+      box-shadow: 0 8px 18px rgba(47, 110, 245, 0.18);
+    }
+
+    .city-card.major-area .header::after {
+      content: "주요";
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 30px;
+      height: 18px;
+      margin-left: 4px;
+      padding: 0 5px;
+      border-radius: 999px;
+      background: #fff1bd;
+      color: #7a5700;
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    .city-card .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      font-weight: 800;
+      font-size: 14px;
+      border-bottom: 1px solid #dbe5ed;
+      background: #f8fbff;
+    }
+    .city-card[data-all="true"] .header {
+      background: #ffd24f;
+    }
+    .city-card[data-partial="true"] .header {
+      background: #ffe7a1;
+    }
+    .header .meta {
+      font-size: 11px;
+      color: #5d6e80;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .district-grid {
+      display: grid;
+      grid-template-columns: repeat(var(--chip-cols, 3), minmax(0, 1fr));
+    }
+    .district-chip {
+      min-height: 30px;
+      padding: 5px 3px;
+      border-right: 1px solid #d9e3eb;
+      border-bottom: 1px solid #d9e3eb;
+      background: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      color: #314253;
+      text-align: center;
+      line-height: 1.25;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .district-chip.special-zone { background:#fff7df; color:#8a5a00; }
+    .district-chip.special-zone.selected { background:#7a4cff; color:#fff; }
+    .district-list label.special-zone { color:#7b5200; font-weight:700; }
+    .district-chip.selected {
+      background: #2147ff;
+      color: #fff;
+    }
+    .legend {
+      margin-top: 12px;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: #5d6e80;
+    }
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .legend i {
+      width: 16px;
+      height: 16px;
+      border: 1px solid #a8b7c5;
+      display: inline-block;
+    }
+    .legend .off { background: #fff; }
+    .legend .partial { background: #ffe7a1; }
+    .legend .full { background: #2147ff; border-color: #2147ff; }
+    .side-panel h2 {
+      margin: 0 0 6px;
+      font-size: 24px;
+    }
+    .side-desc {
+      margin: 0 0 14px;
+      font-size: 13px;
+      color: #5b6977;
+      line-height: 1.55;
+    }
+    .summary {
+      border: 1px solid #dce6ee;
+      border-radius: 12px;
+      background: #f7fbff;
+      padding: 12px;
+      font-size: 13px;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+    .summary strong { color: #2147d8; }
+
+    .selection-result {
+      border: 1px solid #cfdbea;
+      border-radius: 14px;
+      background: #f8fbff;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+    .selection-result-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .selection-result-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #243447;
+    }
+    .selection-result-count {
+      font-size: 13px;
+      color: #516274;
+    }
+    .selection-result-count strong { color: #2147d8; }
+    .selection-text {
+      width: 100%;
+      min-height: 270px;
+      resize: vertical;
+      border: 1px solid #cfd9e4;
+      border-radius: 10px;
+      background: #fff;
+      padding: 12px;
+      font-family: "Noto Sans KR", Arial, sans-serif;
+      font-size: 14px;
+      line-height: 1.75;
+      color: #1f2a35;
+      white-space: pre-wrap;
+    }
+    .selection-text:focus {
+      outline: none;
+      border-color: #4f83f1;
+      box-shadow: 0 0 0 3px rgba(79, 131, 241, 0.12);
+    }
+
+    .province-block {
+      border: 1px solid #dbe4ec;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      background: #fff;
+    }
+    .province-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 12px;
+      background: #f8fbff;
+      border-bottom: 1px solid #e2ebf2;
+      cursor: pointer;
+    }
+    .province-header label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .province-header .count {
+      font-size: 12px;
+      color: #657586;
+      font-weight: 700;
+    }
+    .province-body {
+      padding: 10px 12px;
+    }
+    .city-list-block {
+      border-top: 1px solid #edf2f6;
+      padding: 10px 0;
+    }
+    .city-list-block:first-child { border-top: 0; }
+    .city-list-block.hidden { display: none; }
+    .city-list-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .city-list-head label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .city-list-head .count {
+      font-size: 12px;
+      color: #657586;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .district-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px 8px;
+    }
+    .district-list label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: #2d3c4a;
+      cursor: pointer;
+      min-width: 0;
+    }
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #2f6ef5;
+      flex: 0 0 auto;
+    }
+    .empty-note {
+      margin-top: 16px;
+      text-align: center;
+      font-size: 12px;
+      color: #98a5b3;
+    }
+    @media (max-width: 1440px) {
+      .page { flex-direction: column; }
+      .map-panel { min-width: 0; }
+      .side-panel {
+        width: 100%;
+        position: static;
+        max-height: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="panel map-panel">
+      <div class="title-row">
+        <h1>나 어디 갔다 왔지?</h1>
+      </div>
+
+      <div class="toolbar">
+        <input type="text" id="searchInput" placeholder="도시명 또는 구 이름 검색 (예: 강남, 수원, 해운대)" />
+        <button class="btn primary" id="selectVisibleBtn">현재 보이는 항목 전체 선택</button>
+        <button class="btn" id="clearAllBtn">전체 해제</button>
+        <button class="btn" id="downloadMapBtn">왼쪽 지도 PNG 저장</button>
+      </div>
+
+      <div class="map-wrap">
+        <div class="map-canvas" id="mapCanvas">
+
+          <div class="province-map-label gyeonggi">경기도</div>
+          <div class="province-map-label seoul">서울특별시</div>
+          <div class="province-map-label incheon">인천광역시</div>
+          <div class="province-map-label gangwon">강원권</div>
+          <div class="province-map-label chungcheong">충청권</div>
+          <div class="province-map-label jeolla">전라권</div>
+          <div class="province-map-label gyeongsang">경상권</div>
+          <div class="province-map-label jeju">제주</div>
+          <div class="water-label water-west">서해</div>
+          <div class="water-label water-east">동해</div>
+          <div class="water-label water-south">남해 / 제주</div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <span><i class="off"></i> 미선택</span>
+        <span><i class="partial"></i> 일부 선택</span>
+        <span><i class="full"></i> 전체 선택</span>
+      </div>
+    </section>
+
+    <aside class="panel side-panel">
+      <h2>선택 목록</h2>
+
+      <div class="selection-result">
+        <div class="selection-result-head">
+          <div class="selection-result-title">선택된 지역 정리</div>
+          <div class="selection-result-count">총 <strong id="selectedCount">0</strong>개</div>
+        </div>
+        <textarea id="selectedText" class="selection-text" readonly spellcheck="false">선택된 지역이 없습니다.</textarea>
+      </div>
+
+      <div class="toolbar">
+        <button class="btn primary" id="copySelectedTextBtn">선택 목록 복사</button>
+        <button class="btn" id="saveSelectedTextBtn">선택 목록 TXT 저장</button>
+        <button class="btn primary" id="expandAllBtn">모든 시·도 펼치기</button>
+        <button class="btn" id="collapseAllBtn">모든 시·도 접기</button>
+        <button class="btn" id="saveSelectionBtn">체크 상태 파일 저장</button>
+        <button class="btn" id="loadSelectionBtn">체크 상태 파일 불러오기</button>
+        <input type="file" id="selectionFileInput" accept="application/json,.json" hidden>
+      </div>
+
+      <div id="listContainer"></div>
+      <div class="empty-note" id="fileStatus">선택 정보는 브라우저 localStorage에 자동 저장됩니다.</div>
+    </aside>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'korea_tilemap_selected_v5_major_areas';
+
+    const cityData = [
+      { province:'경기', city:'파주',      col:7,  row:1,  span:2, chipCols:1, districts:['전체'] },
+      { province:'경기', city:'고양',      col:5,  row:2,  span:4, chipCols:3, districts:['덕양구','일산동구','일산서구'] },
+      { province:'경기', city:'의정부',    col:14, row:2,  span:2, chipCols:2, districts:['전체'] },
+      { province:'서울', city:'서울',      col:10, row:3,  span:6, chipCols:5, districts:['강남구','강동구','강북구','강서구','관악구','광진구','구로구','금천구','노원구','도봉구','동대문구','동작구','마포구','서대문구','서초구','성동구','성북구','송파구','양천구','영등포구','용산구','은평구','종로구','중구','중랑구'] },
+      { province:'경기', city:'김포',      col:4,  row:5,  span:2, chipCols:2, districts:['전체'] },
+      { province:'강원', city:'원주',      col:17, row:3,  span:2, chipCols:1, districts:['전체'] },
+      { province:'경기', city:'남양주',    col:17, row:4,  span:2, chipCols:2, districts:['전체'] },
+      { province:'인천', city:'인천',      col:1,  row:6,  span:4, chipCols:3, districts:['강화군','계양구','남동구','동구','미추홀구','부평구','서구','연수구','옹진군','중구'] },
+      { province:'경기', city:'부천',      col:5,  row:6,  span:2, chipCols:2, districts:['전체'] },
+      { province:'경기', city:'하남',      col:15, row:6,  span:2, chipCols:2, districts:['전체'] },
+      { province:'경기', city:'구리',      col:17, row:6,  span:2, chipCols:2, districts:['전체'] },
+      { province:'경기', city:'광명',      col:7,  row:7,  span:2, chipCols:2, districts:['전체'] },
+      { province:'경기', city:'안양',      col:9,  row:7,  span:3, chipCols:2, districts:['만안구','동안구'] },
+      { province:'경기', city:'과천',      col:12, row:7,  span:2, chipCols:2, districts:['전체'] },
+      { province:'경기', city:'시흥',      col:4,  row:8,  span:2, chipCols:2, districts:['전체'] },
+      { province:'경기', city:'군포',      col:8,  row:8,  span:2, chipCols:2, districts:['전체'] },
+      { province:'경기', city:'의왕',      col:10, row:8,  span:2, chipCols:2, districts:['전체'] },
+      { province:'경기', city:'성남',      col:13, row:8,  span:3, chipCols:3, districts:['수정구','중원구','분당구'] },
+      { province:'경기', city:'수원',      col:9,  row:9,  span:4, chipCols:2, districts:['장안구','권선구','팔달구','영통구'] },
+      { province:'경기', city:'광주',      col:16, row:9,  span:2, chipCols:1, districts:['전체'] },
+      { province:'경기', city:'안산',      col:4,  row:10, span:2, chipCols:2, districts:['전체'] },
+      { province:'경기', city:'용인',      col:13, row:10, span:3, chipCols:3, districts:['처인구','기흥구','수지구'] },
+      { province:'경북', city:'포항',      col:18, row:11, span:2, chipCols:2, districts:['남구','북구'] },
+      { province:'경기', city:'화성',      col:7,  row:11, span:3, chipCols:2, districts:['전체'] },
+      { province:'충남', city:'아산',      col:4,  row:12, span:2, chipCols:1, districts:['전체'] },
+      { province:'충남', city:'천안',      col:6,  row:12, span:3, chipCols:2, districts:['동남구','서북구'] },
+      { province:'충북', city:'청주',      col:11, row:12, span:4, chipCols:2, districts:['상당구','서원구','흥덕구','청원구'] },
+      { province:'경기', city:'평택',      col:8,  row:13, span:2, chipCols:2, districts:['전체'] },
+      { province:'세종', city:'세종',      col:10, row:13, span:3, chipCols:2, districts:['전체'] },
+      { province:'경북', city:'구미',      col:15, row:13, span:2, chipCols:1, districts:['전체'] },
+      { province:'울산', city:'울산',      col:20, row:13, span:3, chipCols:3, districts:['중구','남구','동구','북구','울주군'] },
+      { province:'대전', city:'대전',      col:11, row:14, span:4, chipCols:3, districts:['동구','중구','서구','유성구','대덕구'] },
+      { province:'대구', city:'대구',      col:16, row:14, span:4, chipCols:4, districts:['중구','동구','서구','남구','북구','수성구','달서구','달성군'] },
+      { province:'전북', city:'전주',      col:8,  row:15, span:3, chipCols:2, districts:['완산구','덕진구'] },
+      { province:'경남', city:'양산',      col:20, row:15, span:2, chipCols:1, districts:['전체'] },
+      { province:'광주', city:'광주',      col:4,  row:16, span:4, chipCols:3, districts:['동구','서구','남구','북구','광산구'] },
+      { province:'경남', city:'진주',      col:13, row:16, span:2, chipCols:1, districts:['전체'] },
+      { province:'경남', city:'김해',      col:18, row:16, span:2, chipCols:1, districts:['전체'] },
+      { province:'경남', city:'창원',      col:14, row:17, span:4, chipCols:2, districts:['의창구','성산구','마산합포구','마산회원구','진해구'] },
+      { province:'부산', city:'부산',      col:19, row:17, span:4, chipCols:4, districts:['중구','서구','동구','영도구','부산진구','동래구','남구','북구','해운대구','사하구','금정구','강서구','연제구','수영구','사상구','기장군'] },
+      { province:'제주', city:'제주',      col:10, row:19, span:2, chipCols:1, districts:['전체'] }
+    ];
+
+    const provinceOrder = ['서울','인천','경기','강원','충북','충남','세종','대전','전북','광주','경북','대구','울산','경남','부산','제주'];
+
+    const data = cityData.map(item => ({
+      ...item,
+      id: `${item.province}|${item.city}`,
+      keys: item.districts.map(d => `${item.province}|${item.city}|${d}`)
+    }));
+
+    const selection = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
+
+    function provinceMap() {
+      const map = {};
+      provinceOrder.forEach(p => map[p] = []);
+      data.forEach(city => {
+        if (!map[city.province]) map[city.province] = [];
+        map[city.province].push(city);
+      });
+      return map;
+    }
+
+    function saveSelection() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(selection)));
+    }
+
+    function getSearchWord() {
+      return ($('#searchInput').val() || '').trim().toLowerCase();
+    }
+
+    function cityMatches(city, word) {
+      if (!word) return true;
+      const searchable = [city.province, city.city, ...city.districts].join(' ').toLowerCase();
+      return searchable.includes(word);
+    }
+
+    function cityState(city) {
+      const total = city.keys.length;
+      const checked = city.keys.filter(key => selection.has(key)).length;
+      return {
+        total,
+        checked,
+        all: total > 0 && checked === total,
+        partial: checked > 0 && checked < total
+      };
+    }
+
+    function provinceState(cities) {
+      let total = 0;
+      let checked = 0;
+      cities.forEach(city => {
+        const st = cityState(city);
+        total += st.total;
+        checked += st.checked;
+      });
+      return {
+        total,
+        checked,
+        all: total > 0 && checked === total,
+        partial: checked > 0 && checked < total
+      };
+    }
+
+    function createMap() {
+      const $canvas = $('#mapCanvas');
+      data.forEach(city => {
+        const $card = $('<div class="city-card"></div>')
+          .attr('data-city-id', city.id)
+          .toggleClass('major-area', ['과천','의왕','구리','하남','광명','성남','용인','안양'].includes(city.city))
+          .css({
+            gridColumn: `${city.col} / span ${city.span}`,
+            gridRow: String(city.row)
+          });
+
+        const $header = $('<div class="header"></div>')
+          .append(`<span>${city.city}</span>`)
+          .append(`<span class="meta">0/${city.keys.length}</span>`);
+
+        const $grid = $('<div class="district-grid"></div>').css('--chip-cols', city.chipCols || 3);
+        city.districts.forEach(district => {
+          const key = `${city.province}|${city.city}|${district}`;
+          const $chip = $('<div class="district-chip"></div>')
+            .attr('data-key', key)
+            .toggleClass('special-zone', district.startsWith('★'))
+            .text(district)
+            .on('click', function() { toggleKey(key); });
+          $grid.append($chip);
+        });
+
+        $card.append($header).append($grid);
+        $canvas.append($card);
+      });
+    }
+
+    function createList() {
+      const grouped = provinceMap();
+      const $container = $('#listContainer');
+
+      provinceOrder.forEach(province => {
+        const cities = grouped[province] || [];
+        if (!cities.length) return;
+
+        const $block = $('<div class="province-block"></div>').attr('data-province', province);
+        const $header = $('<div class="province-header"></div>');
+        const $pLabel = $('<label></label>')
+          .append($('<input type="checkbox" class="province-checkbox">').attr('data-province', province))
+          .append(`<span>${province}</span>`);
+        const $pCount = $('<div class="count province-count"></div>');
+        $header.append($pLabel).append($pCount);
+
+        const $body = $('<div class="province-body"></div>');
+        cities.forEach(city => {
+          const $cityBlock = $('<div class="city-list-block"></div>').attr('data-city-id', city.id);
+          const $cityHead = $('<div class="city-list-head"></div>');
+          const $cLabel = $('<label></label>')
+            .append($('<input type="checkbox" class="city-checkbox">').attr('data-city-id', city.id))
+            .append(`<span>${city.city}</span>`);
+          const $cCount = $('<div class="count city-count"></div>');
+          $cityHead.append($cLabel).append($cCount);
+
+          const $districtList = $('<div class="district-list"></div>');
+          city.districts.forEach(district => {
+            const key = `${city.province}|${city.city}|${district}`;
+            const $label = $('<label></label>').toggleClass('special-zone', district.startsWith('★'))
+              .append($('<input type="checkbox" class="district-checkbox">').attr('data-key', key))
+              .append(`<span>${district}</span>`);
+            $districtList.append($label);
+          });
+
+          $cityBlock.append($cityHead).append($districtList);
+          $body.append($cityBlock);
+        });
+
+        $block.append($header).append($body);
+        $container.append($block);
+      });
+    }
+
+    function toggleKey(key) {
+      if (selection.has(key)) selection.delete(key);
+      else selection.add(key);
+      saveSelection();
+      renderAll();
+    }
+
+    function setKeys(keys, checked) {
+      keys.forEach(key => {
+        if (checked) selection.add(key);
+        else selection.delete(key);
+      });
+      saveSelection();
+      renderAll();
+    }
+
+    const summaryCategoryOrder = ['서울', '수도권', '광역시', '중소도시'];
+
+    function getSummaryCategory(province) {
+      if (province === '서울') return '서울';
+      if (province === '경기' || province === '인천') return '수도권';
+      if (['부산', '대구', '광주', '대전', '울산', '세종'].includes(province)) return '광역시';
+      return '중소도시';
+    }
+
+    function provinceDisplayName(province) {
+      const names = {
+        서울: '서울', 경기: '경기', 인천: '인천', 강원: '강원', 충북: '충북', 충남: '충남',
+        세종: '세종', 대전: '대전', 전북: '전북', 광주: '광주', 경북: '경북', 대구: '대구',
+        울산: '울산', 경남: '경남', 부산: '부산', 제주: '제주'
+      };
+      return names[province] || province;
+    }
+
+    function cityDisplayName(city) {
+      return /[시군구]$/.test(city) ? city : city + '시';
+    }
+
+    function formatSelectedItem(key) {
+      const [province, city, district] = key.split('|');
+      const provinceName = provinceDisplayName(province);
+
+      if (district === '전체') {
+        return `${provinceName}, ${cityDisplayName(city)}`;
+      }
+
+      // 특별·광역시는 구 이름만 적어도 도시가 명확하므로 간결하게 표시한다.
+      if (['서울', '인천', '부산', '대구', '광주', '대전', '울산'].includes(province)) {
+        return `${provinceName}, ${district}`;
+      }
+
+      return `${provinceName}, ${cityDisplayName(city)} ${district}`;
+    }
+
+    function buildSelectedText() {
+      const grouped = Object.fromEntries(summaryCategoryOrder.map(category => [category, []]));
+
+      Array.from(selection).forEach(key => {
+        const [province] = key.split('|');
+        grouped[getSummaryCategory(province)].push(formatSelectedItem(key));
+      });
+
+      const sections = [];
+      summaryCategoryOrder.forEach(category => {
+        const items = grouped[category].sort((a, b) => a.localeCompare(b, 'ko'));
+        if (!items.length) return;
+        sections.push(`[${category}]\n${items.join('\n')}`);
+      });
+
+      return sections.length ? sections.join('\n\n') : '선택된 지역이 없습니다.';
+    }
+
+    function renderSummary() {
+      $('#selectedCount').text(selection.size);
+      $('#selectedText').val(buildSelectedText());
+    }
+
+    function copySelectedText() {
+      const textarea = document.getElementById('selectedText');
+      textarea.focus();
+      textarea.select();
+      textarea.setSelectionRange(0, textarea.value.length);
+
+      let copied = false;
+      try {
+        copied = document.execCommand('copy');
+      } catch (error) {
+        copied = false;
+      }
+
+      if (copied) {
+        $('#fileStatus').text('분류된 선택 목록을 클립보드에 복사했습니다.');
+      } else {
+        $('#fileStatus').text('텍스트가 선택되었습니다. Ctrl+C를 눌러 복사해 주세요.');
+      }
+    }
+
+    function saveSelectedTextFile() {
+      const text = buildSelectedText();
+      const blob = new Blob(['\ufeff' + text], { type: 'text/plain;charset=utf-8' });
+      downloadBlob(blob, `부동산_선택지역목록_${dateStamp()}.txt`);
+      $('#fileStatus').text('분류된 선택 목록을 TXT 파일로 저장했습니다.');
+    }
+
+    function renderAll() {
+      const word = getSearchWord();
+      const grouped = provinceMap();
+
+      data.forEach(city => {
+        const state = cityState(city);
+        const visible = cityMatches(city, word);
+
+        const $card = $(`.city-card[data-city-id="${city.id}"]`);
+        $card.toggleClass('hidden', !visible);
+        $card.attr('data-all', state.all ? 'true' : 'false');
+        $card.attr('data-partial', state.partial ? 'true' : 'false');
+        $card.find('.meta').text(`${state.checked}/${state.total}`);
+
+        city.districts.forEach(district => {
+          const key = `${city.province}|${city.city}|${district}`;
+          $card.find(`.district-chip[data-key="${key}"]`).toggleClass('selected', selection.has(key));
+        });
+
+        const $cityBlock = $(`.city-list-block[data-city-id="${city.id}"]`);
+        $cityBlock.toggleClass('hidden', !visible);
+        const cityCheckbox = $cityBlock.find('.city-checkbox').get(0);
+        if (cityCheckbox) {
+          cityCheckbox.checked = state.all;
+          cityCheckbox.indeterminate = state.partial;
+        }
+        $cityBlock.find('.city-count').text(`${state.checked}/${state.total} 선택`);
+
+        city.districts.forEach(district => {
+          const key = `${city.province}|${city.city}|${district}`;
+          const checkbox = $cityBlock.find(`.district-checkbox[data-key="${key}"]`).get(0);
+          if (checkbox) checkbox.checked = selection.has(key);
+        });
+      });
+
+      provinceOrder.forEach(province => {
+        const cities = grouped[province] || [];
+        if (!cities.length) return;
+        const state = provinceState(cities);
+        const hasVisible = cities.some(city => cityMatches(city, word));
+        const $block = $(`.province-block[data-province="${province}"]`);
+        $block.toggle(hasVisible);
+
+        const checkbox = $block.find('.province-checkbox').get(0);
+        if (checkbox) {
+          checkbox.checked = state.all;
+          checkbox.indeterminate = state.partial;
+        }
+        $block.find('.province-count').text(`${state.checked}/${state.total} 선택`);
+      });
+
+      renderSummary();
+    }
+
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function dateStamp() {
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+    }
+
+    async function downloadMapAsPng() {
+      const button = document.getElementById('downloadMapBtn');
+      const mapCanvas = document.getElementById('mapCanvas');
+      const originalText = button.textContent;
+
+      if (typeof html2canvas !== 'function') {
+        alert('이미지 저장 모듈을 불러오지 못했습니다. 인터넷 연결 후 다시 실행해 주세요.');
+        return;
+      }
+
+      try {
+        button.disabled = true;
+        button.textContent = '이미지 만드는 중...';
+        $('#fileStatus').text('왼쪽 지도를 고화질 PNG로 만들고 있습니다.');
+
+        if (document.fonts && document.fonts.ready) {
+          await document.fonts.ready;
+        }
+
+        const canvas = await html2canvas(mapCanvas, {
+          backgroundColor: '#eef3f8',
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          width: mapCanvas.scrollWidth,
+          height: mapCanvas.scrollHeight,
+          windowWidth: mapCanvas.scrollWidth,
+          windowHeight: mapCanvas.scrollHeight
+        });
+
+        canvas.toBlob(blob => {
+          if (!blob) {
+            alert('PNG 파일 생성에 실패했습니다.');
+            return;
+          }
+          downloadBlob(blob, `부동산_지역선택지도_${dateStamp()}.png`);
+          $('#fileStatus').text('왼쪽 지도 PNG 저장이 완료되었습니다.');
+        }, 'image/png');
+      } catch (error) {
+        console.error(error);
+        alert('지도 이미지 저장 중 오류가 발생했습니다.');
+        $('#fileStatus').text('지도 이미지 저장에 실패했습니다.');
+      } finally {
+        button.disabled = false;
+        button.textContent = originalText;
+      }
+    }
+
+    function saveSelectionFile() {
+      const payload = {
+        type: 'korea-real-estate-region-selection',
+        version: 1,
+        savedAt: new Date().toISOString(),
+        selected: Array.from(selection),
+        selectedCount: selection.size
+      };
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: 'application/json;charset=utf-8'
+      });
+      downloadBlob(blob, `부동산_지역체크상태_${dateStamp()}.json`);
+      $('#fileStatus').text(`체크 상태 ${selection.size}개를 파일로 저장했습니다.`);
+    }
+
+    async function loadSelectionFile(file) {
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const payload = JSON.parse(text);
+        const loaded = Array.isArray(payload) ? payload : payload.selected;
+
+        if (!Array.isArray(loaded)) {
+          throw new Error('selected 배열이 없습니다.');
+        }
+
+        const validKeys = new Set(data.flatMap(city => city.keys));
+        const validLoaded = loaded.filter(key => typeof key === 'string' && validKeys.has(key));
+        const ignoredCount = loaded.length - validLoaded.length;
+
+        selection.clear();
+        validLoaded.forEach(key => selection.add(key));
+        saveSelection();
+        renderAll();
+
+        const ignoredText = ignoredCount ? `, 현재 목록에 없는 항목 ${ignoredCount}개 제외` : '';
+        $('#fileStatus').text(`체크 상태 ${validLoaded.length}개를 불러왔습니다${ignoredText}.`);
+      } catch (error) {
+        console.error(error);
+        alert('올바른 체크 상태 JSON 파일이 아닙니다.');
+        $('#fileStatus').text('체크 상태 파일을 불러오지 못했습니다.');
+      } finally {
+        document.getElementById('selectionFileInput').value = '';
+      }
+    }
+
+    function bindEvents() {
+      $(document).on('change', '.district-checkbox', function() {
+        const key = $(this).data('key');
+        if (this.checked) selection.add(key);
+        else selection.delete(key);
+        saveSelection();
+        renderAll();
+      });
+
+      $(document).on('change', '.city-checkbox', function(e) {
+        const cityId = $(this).data('city-id');
+        const city = data.find(item => item.id === cityId);
+        if (!city) return;
+        setKeys(city.keys, this.checked);
+        e.stopPropagation();
+      });
+
+      $(document).on('change', '.province-checkbox', function(e) {
+        const province = $(this).data('province');
+        const keys = data.filter(item => item.province === province).flatMap(item => item.keys);
+        setKeys(keys, this.checked);
+        e.stopPropagation();
+      });
+
+      $('#copySelectedTextBtn').on('click', copySelectedText);
+
+      $('#saveSelectedTextBtn').on('click', saveSelectedTextFile);
+
+      $('#searchInput').on('input', function() {
+        renderAll();
+      });
+
+      $('#clearAllBtn').on('click', function() {
+        selection.clear();
+        saveSelection();
+        renderAll();
+      });
+
+      $('#selectVisibleBtn').on('click', function() {
+        const word = getSearchWord();
+        data.filter(city => cityMatches(city, word)).forEach(city => city.keys.forEach(key => selection.add(key)));
+        saveSelection();
+        renderAll();
+      });
+
+      $('#expandAllBtn').on('click', function() {
+        $('.province-body').show();
+      });
+
+      $('#collapseAllBtn').on('click', function() {
+        $('.province-body').hide();
+      });
+
+      $('#downloadMapBtn').on('click', function() {
+        downloadMapAsPng();
+      });
+
+      $('#saveSelectionBtn').on('click', function() {
+        saveSelectionFile();
+      });
+
+      $('#loadSelectionBtn').on('click', function() {
+        $('#selectionFileInput').trigger('click');
+      });
+
+      $('#selectionFileInput').on('change', function() {
+        loadSelectionFile(this.files && this.files[0]);
+      });
+
+      $(document).on('click', '.province-header', function(e) {
+        if ($(e.target).is('input') || $(e.target).closest('label').length) return;
+        $(this).siblings('.province-body').slideToggle(140);
+      });
+    }
+
+    $(function() {
+      createMap();
+      createList();
+      bindEvents();
+      renderAll();
+    });
+  </script>
+</body>
+</html>
