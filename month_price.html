@@ -477,37 +477,50 @@
             }
 
             async function resolveLatestCsv() {
-                try {
-                    const res = await fetch(GH_API, {
-                        cache: "no-store"
-                    });
-                    if (!res.ok) throw new Error("GitHub API 응답 오류");
-                    const list = await res.json();
 
-                    const candidates = (Array.isArray(list) ? list : [])
-                        .map(x => (x && x.name) ? x.name : "")
-                        .filter(name => /^month_price_\d{8}\.csv$/i.test(name))
-                        .map(name => ({
-                            name: name,
-                            yyyymmdd: name.match(/month_price_(\d{8})\.csv/i)[1]
-                        }))
-                        .sort((a, b) => a.yyyymmdd.localeCompare(b.yyyymmdd));
+    // 오늘부터 과거 방향으로 최신 CSV 탐색
+    const today = new Date();
 
-                    if (!candidates.length) throw new Error("CSV 후보 없음");
+    // 최대 365일 전까지 탐색
+    for (let i = 0; i < 365; i++) {
 
-                    const latest = candidates[candidates.length - 1];
-                    return {
-                        url: PAGES_BASE + latest.name,
-                        yyyymmdd: latest.yyyymmdd
-                    };
-                } catch (e) {
-                    const fallback = "20260128";
-                    return {
-                        url: PAGES_BASE + "month_price_" + fallback + ".csv",
-                        yyyymmdd: fallback
-                    };
-                }
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+
+        const yyyymmdd = `${yyyy}${mm}${dd}`;
+
+        const url =
+            PAGES_BASE +
+            `month_price_${yyyymmdd}.csv?t=${Date.now()}`;
+
+        try {
+
+            const res = await fetch(url, {
+                method: "GET",
+                cache: "no-store"
+            });
+
+            if (res.ok) {
+
+                console.log("최신 CSV 발견:", yyyymmdd);
+
+                return {
+                    url: url,
+                    yyyymmdd: yyyymmdd
+                };
             }
+
+        } catch (e) {
+            // 파일 없으면 다음 날짜 확인
+        }
+    }
+
+    throw new Error("최근 365일 내 CSV 파일을 찾지 못했습니다.");
+}
 
             async function fetchTextWithKorean(url) {
                 const buf = await fetch(url, {
