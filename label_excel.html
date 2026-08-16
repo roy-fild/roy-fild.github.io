@@ -291,42 +291,332 @@ html, body {
   transform: none !important;
 }
 
+
+    /* PPT 복사 크기 선택 */
+    .sizebox{
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 8px 12px;
+        box-shadow: 0 1px 0 rgba(15,23,42,0.04);
+        display:flex;
+        align-items:center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .sizebox .size-title{
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .size-options{
+        display:flex;
+        align-items:center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .size-options label{
+        display:inline-flex;
+        align-items:center;
+        gap: 4px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text);
+        cursor:pointer;
+        white-space: nowrap;
+    }
+
+    .size-options input[type="radio"]{
+        margin: 0;
+        cursor:pointer;
+        accent-color: #4f46e5;
+    }
+
 </style>
     <script>
         $(function() {});
-        // 동적으로 생성된 table 클릭 시 이미지로 변환 후 클립보드 복사
-        $(document).on("click", "#apt_tables table", function() {
-            let tableElement = this;
+        // ============================================================
+        // PPT 고해상도 + 작은 표시 크기 복사 (V4)
+        //
+        // 핵심:
+        // 1. 라벨은 6배 고해상도로 캡처한다.
+        // 2. 캡처한 PNG 자체의 픽셀은 줄이지 않는다.
+        // 3. 클립보드에는 HTML <img> 형태로 넣으면서
+        //    PPT에서 표시할 width / height를 별도로 지정한다.
+        //
+        // PowerPoint가 HTML 클립보드를 지원하는 환경에서는
+        // 작은 크기로 붙으면서도 원본 PNG는 고해상도로 유지된다.
+        //
+        // 만약 HTML 복사가 지원되지 않는 브라우저라면
+        // 최종 크기에 맞춰 리사이즈한 PNG 방식으로 자동 fallback 한다.
+        // ============================================================
 
-            // 1) 캡처 전에 기존 표시 제거 (다음 캡처에 표시선이 찍히지 않도록)
-            $("#apt_tables table.clicked-outline").removeClass("clicked-outline");
+        const CAPTURE_SCALE = 6;
 
-            // 2) 캡처 진행
-            html2canvas(tableElement).then(canvas => {
+        function canvasToBlob(canvas) {
+            return new Promise((resolve, reject) => {
                 canvas.toBlob(blob => {
-                    if (navigator.clipboard && navigator.clipboard.write) {
-                        navigator.clipboard.write([
-                            new ClipboardItem({
-                                "image/png": blob
-                            })
-                        ]).then(() => {
-                            showToast("테이블 이미지가 클립보드에 복사되었습니다 ✅");
-                            console.log("복사성공");
-                        }).catch(err => {
-                            console.error("클립보드 복사 실패:", err);
-                            showToast("클립보드 복사 실패 ❌");
-                        }).finally(() => {
-                            // 3) 캡처가 끝난 뒤에 표시선 적용 (이미지에는 안 찍힘)
-                            $(tableElement).addClass("clicked-outline");
-                        });
+                    if (blob) {
+                        resolve(blob);
                     } else {
-                        showToast("이 브라우저에서는 클립보드 복사를 지원하지 않습니다 ⚠️");
-                        // 브라우저 미지원이어도 클릭 표시 자체는 보여주기
-                        $(tableElement).addClass("clicked-outline");
+                        reject(new Error("PNG Blob 생성 실패"));
                     }
-                });
+                }, "image/png");
             });
-        });
+        }
+
+        function blobToDataUrl(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        // HTML 클립보드 복사
+        // 고해상도 PNG를 그대로 넣되 width/height만 원하는 PPT 표시 크기로 지정
+        async function copyAsSizedHtmlImage(
+            pngBlob,
+            displayWidth,
+            displayHeight
+        ) {
+            const dataUrl = await blobToDataUrl(pngBlob);
+
+            const htmlContent =
+                '<img src="' + dataUrl + '"' +
+                ' width="' + displayWidth + '"' +
+                ' height="' + displayHeight + '"' +
+                ' style="' +
+                    'width:' + displayWidth + 'px;' +
+                    'height:' + displayHeight + 'px;' +
+                    'display:block;' +
+                    'border:0;' +
+                    'margin:0;' +
+                    'padding:0;' +
+                '" />';
+
+            if (
+                navigator.clipboard &&
+                navigator.clipboard.write &&
+                typeof ClipboardItem !== "undefined"
+            ) {
+                const htmlBlob = new Blob(
+                    [htmlContent],
+                    { type: "text/html" }
+                );
+
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        "text/html": htmlBlob
+                    })
+                ]);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        // fallback:
+        // HTML 형식 복사가 안 되는 경우에는 최종 표시 픽셀 크기로 PNG를 만들어 복사한다.
+        // 이 방식은 크기는 정확하지만 HTML 방식보다는 화질이 낮을 수 있다.
+        async function copyAsResizedPng(
+            sourceCanvas,
+            displayWidth,
+            displayHeight
+        ) {
+            const resizedCanvas =
+                document.createElement("canvas");
+
+            resizedCanvas.width =
+                Math.max(1, Math.round(displayWidth));
+
+            resizedCanvas.height =
+                Math.max(1, Math.round(displayHeight));
+
+            const ctx =
+                resizedCanvas.getContext("2d");
+
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+
+            // 흰색/투명 배경 모두 자연스럽게 유지
+            ctx.clearRect(
+                0,
+                0,
+                resizedCanvas.width,
+                resizedCanvas.height
+            );
+
+            ctx.drawImage(
+                sourceCanvas,
+                0,
+                0,
+                resizedCanvas.width,
+                resizedCanvas.height
+            );
+
+            const blob =
+                await canvasToBlob(resizedCanvas);
+
+            if (
+                navigator.clipboard &&
+                navigator.clipboard.write
+            ) {
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        "image/png": blob
+                    })
+                ]);
+
+                return true;
+            }
+
+            return false;
+        }
+
+
+        // 동적으로 생성된 table 클릭 시 이미지로 변환 후 클립보드 복사
+        $(document).on(
+            "click",
+            "#apt_tables table",
+            async function() {
+
+                const tableElement = this;
+
+                // 캡처 전에 기존 빨간 선택 표시 제거
+                $("#apt_tables table.clicked-outline")
+                    .removeClass("clicked-outline");
+
+                const copyScale = Number(
+                    $('input[name="copySize"]:checked')
+                        .val() || 0.5
+                );
+
+                const sizeText =
+                    $('input[name="copySize"]:checked')
+                        .data("label") || "기본";
+
+                try {
+                    // 화면에서 실제 라벨의 CSS 크기
+                    const rect =
+                        tableElement.getBoundingClientRect();
+
+                    // PPT에서 붙을 목표 표시 크기
+                    const displayWidth =
+                        Math.max(
+                            1,
+                            Math.round(rect.width * copyScale)
+                        );
+
+                    const displayHeight =
+                        Math.max(
+                            1,
+                            Math.round(rect.height * copyScale)
+                        );
+
+                    // 6배 고해상도 캡처
+                    const canvas =
+                        await html2canvas(
+                            tableElement,
+                            {
+                                scale: CAPTURE_SCALE,
+                                backgroundColor: null,
+                                useCORS: true,
+                                logging: false
+                            }
+                        );
+
+                    const highResBlob =
+                        await canvasToBlob(canvas);
+
+                    let copied = false;
+                    let copyMode = "";
+
+                    // 1순위:
+                    // 고해상도 PNG + HTML 표시 크기
+                    try {
+                        copied =
+                            await copyAsSizedHtmlImage(
+                                highResBlob,
+                                displayWidth,
+                                displayHeight
+                            );
+
+                        if (copied) {
+                            copyMode =
+                                "고해상도 HTML";
+                        }
+                    } catch (htmlErr) {
+                        console.warn(
+                            "HTML 클립보드 복사 실패. PNG fallback 사용:",
+                            htmlErr
+                        );
+                    }
+
+                    // 2순위 fallback:
+                    // 실제 작은 PNG로 복사
+                    if (!copied) {
+                        copied =
+                            await copyAsResizedPng(
+                                canvas,
+                                displayWidth,
+                                displayHeight
+                            );
+
+                        if (copied) {
+                            copyMode =
+                                "PNG fallback";
+                        }
+                    }
+
+                    if (!copied) {
+                        throw new Error(
+                            "클립보드 복사를 지원하지 않습니다."
+                        );
+                    }
+
+                    showToast(
+                        "복사 완료 ✅ (" +
+                        sizeText +
+                        ")"
+                    );
+
+                    console.log(
+                        "PPT 복사 성공",
+                        {
+                            mode: copyMode,
+                            copyScale: copyScale,
+                            displayWidth: displayWidth,
+                            displayHeight: displayHeight,
+                            capturedWidth: canvas.width,
+                            capturedHeight: canvas.height
+                        }
+                    );
+
+                } catch (err) {
+                    console.error(
+                        "PPT 복사 실패:",
+                        err
+                    );
+
+                    showToast(
+                        "클립보드 복사 실패 ❌"
+                    );
+                } finally {
+                    $(tableElement)
+                        .addClass(
+                            "clicked-outline"
+                        );
+                }
+            }
+        );
+
 
         function getYearBgColor(year) {
             if (isNaN(year)) return ""; // 숫자 아니면 색 안 줌
@@ -535,6 +825,28 @@ html, body {
           <label>엑셀 파일</label>
           <input type="file" id="excelFile" onchange="excelExport(event)" />
         </div>
+
+        <div class="sizebox">
+          <span class="size-title">PPT 복사 크기</span>
+          <div class="size-options">
+            <label>
+              <input type="radio" name="copySize" value="0.5" data-label="기본 50%" checked />
+              기본
+            </label>
+            <label>
+              <input type="radio" name="copySize" value="0.38" data-label="작게 38%" />
+              작게
+            </label>
+            <label>
+              <input type="radio" name="copySize" value="0.27" data-label="더 작게 27%" />
+              더 작게
+            </label>
+            <label>
+              <input type="radio" name="copySize" value="0.18" data-label="아주 작게 18%" />
+              아주 작게
+            </label>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -552,7 +864,7 @@ html, body {
       <span class="legend-item"><span class="dot" style="background:#ffffff"></span>기타</span>
     </div>
 
-    <div class="hint">생성된 라벨을 클릭하면 클립보드에 복사됩니다. <b>[Ctrl + V]</b>로 PPT에 이미지처럼 붙여넣을 수 있어요.</div>
+    <div class="hint">PPT 복사 크기를 선택한 뒤 라벨을 클릭하세요. <b>고해상도로 캡처하면서 선택한 작은 크기로 붙도록</b> 처리됩니다. <b>[Ctrl + V]</b>로 PPT에 붙여넣을 수 있어요.</div>
 
     <div id="apt_cnt"></div>
 
