@@ -340,22 +340,22 @@ html, body {
     <script>
         $(function() {});
         // ============================================================
-        // PPT 고해상도 + 작은 표시 크기 복사 (V4)
+        // PPT 고해상도 + 작은 표시 크기 복사 (V5)
         //
         // 핵심:
         // 1. 라벨은 6배 고해상도로 캡처한다.
-        // 2. 캡처한 PNG 자체의 픽셀은 줄이지 않는다.
-        // 3. 클립보드에는 HTML <img> 형태로 넣으면서
-        //    PPT에서 표시할 width / height를 별도로 지정한다.
+        // 2. 캡처한 PNG 픽셀은 절대로 작은 크기로 리사이즈하지 않는다.
+        // 3. HTML 클립보드에는 원하는 PPT 표시 크기(width/height)를 별도로 지정한다.
+        // 4. PNG 자체에도 목표 표시 크기에 맞는 DPI(pHYs) 정보를 넣는다.
+        // 5. HTML 복사가 실패해도 저해상도 PNG로 떨어지지 않고 고해상도 PNG를 그대로 복사한다.
         //
-        // PowerPoint가 HTML 클립보드를 지원하는 환경에서는
-        // 작은 크기로 붙으면서도 원본 PNG는 고해상도로 유지된다.
-        //
-        // 만약 HTML 복사가 지원되지 않는 브라우저라면
-        // 최종 크기에 맞춰 리사이즈한 PNG 방식으로 자동 fallback 한다.
+        // ※ PowerPoint의 [파일 > 옵션 > 고급 > 이미지 크기 및 품질]에서
+        //    "파일의 이미지 압축 안 함" + "기본 해상도: 고화질"도 함께 설정하면
+        //    저장 후 화질 저하를 가장 확실하게 막을 수 있다.
         // ============================================================
 
         const CAPTURE_SCALE = 6;
+        const PPT_BASE_DPI = 96;
 
         function canvasToBlob(canvas) {
             return new Promise((resolve, reject) => {
@@ -378,16 +378,131 @@ html, body {
             });
         }
 
-        // HTML 클립보드 복사
-        // 고해상도 PNG를 그대로 넣되 width/height만 원하는 PPT 표시 크기로 지정
-        async function copyAsSizedHtmlImage(
-            pngBlob,
-            displayWidth,
-            displayHeight
-        ) {
-            const dataUrl = await blobToDataUrl(pngBlob);
+        // ------------------------------------------------------------
+        // PNG pHYs(DPI) 메타데이터 처리
+        // PowerPoint가 PNG의 물리 크기 정보를 읽는 환경에서는
+        // 고해상도 픽셀을 유지하면서도 선택한 작은 크기로 붙도록 도와준다.
+        // ------------------------------------------------------------
+        let crcTable = null;
 
-            const htmlContent =
+        function getCrcTable() {
+            if (crcTable) return crcTable;
+
+            crcTable = new Uint32Array(256);
+            for (let n = 0; n < 256; n++) {
+                let c = n;
+                for (let k = 0; k < 8; k++) {
+                    c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+                }
+                crcTable[n] = c >>> 0;
+            }
+            return crcTable;
+        }
+
+        function crc32(bytes) {
+            const table = getCrcTable();
+            let c = 0xFFFFFFFF;
+
+            for (let i = 0; i < bytes.length; i++) {
+                c = table[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+            }
+
+            return (c ^ 0xFFFFFFFF) >>> 0;
+        }
+
+        function readUint32BE(bytes, offset) {
+            return (
+                ((bytes[offset] << 24) >>> 0) |
+                (bytes[offset + 1] << 16) |
+                (bytes[offset + 2] << 8) |
+                bytes[offset + 3]
+            ) >>> 0;
+        }
+
+        function writeUint32BE(bytes, offset, value) {
+            bytes[offset] = (value >>> 24) & 0xFF;
+            bytes[offset + 1] = (value >>> 16) & 0xFF;
+            bytes[offset + 2] = (value >>> 8) & 0xFF;
+            bytes[offset + 3] = value & 0xFF;
+        }
+
+        async function addPngDpiMetadata(pngBlob, dpi) {
+            const source = new Uint8Array(await pngBlob.arrayBuffer());
+
+            // PNG signature 확인
+            const signature = [137, 80, 78, 71, 13, 10, 26, 10];
+            for (let i = 0; i < signature.length; i++) {
+                if (source[i] !== signature[i]) {
+                    return pngBlob;
+                }
+            }
+
+            const pixelsPerMeter = Math.max(
+                1,
+                Math.round(dpi / 0.0254)
+            );
+
+            // pHYs chunk: length(4) + type(4) + data(9) + crc(4) = 21 bytes
+            const physChunk = new Uint8Array(21);
+            writeUint32BE(physChunk, 0, 9);
+            physChunk.set([112, 72, 89, 115], 4); // "pHYs"
+            writeUint32BE(physChunk, 8, pixelsPerMeter);
+            writeUint32BE(physChunk, 12, pixelsPerMeter);
+            physChunk[16] = 1; // unit = meter
+
+            const crcInput = physChunk.slice(4, 17);
+            writeUint32BE(physChunk, 17, crc32(crcInput));
+
+            const chunks = [];
+            chunks.push(source.slice(0, 8));
+
+            let offset = 8;
+            let inserted = false;
+
+            while (offset + 12 <= source.length) {
+                const length = readUint32BE(source, offset);
+                const chunkEnd = offset + 12 + length;
+                if (chunkEnd > source.length) break;
+
+                const type = String.fromCharCode(
+                    source[offset + 4],
+                    source[offset + 5],
+                    source[offset + 6],
+                    source[offset + 7]
+                );
+
+                // 기존 pHYs는 제거하고 새 값으로 교체
+                if (type !== "pHYs") {
+                    chunks.push(source.slice(offset, chunkEnd));
+                }
+
+                // IHDR 직후에 pHYs 삽입
+                if (type === "IHDR" && !inserted) {
+                    chunks.push(physChunk);
+                    inserted = true;
+                }
+
+                offset = chunkEnd;
+            }
+
+            if (!inserted) {
+                return pngBlob;
+            }
+
+            const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+            const output = new Uint8Array(totalLength);
+            let writeOffset = 0;
+
+            chunks.forEach(chunk => {
+                output.set(chunk, writeOffset);
+                writeOffset += chunk.length;
+            });
+
+            return new Blob([output], { type: "image/png" });
+        }
+
+        function makeSizedHtmlImage(dataUrl, displayWidth, displayHeight) {
+            return (
                 '<img src="' + dataUrl + '"' +
                 ' width="' + displayWidth + '"' +
                 ' height="' + displayHeight + '"' +
@@ -398,88 +513,77 @@ html, body {
                     'border:0;' +
                     'margin:0;' +
                     'padding:0;' +
-                '" />';
+                '" />'
+            );
+        }
 
+        // ------------------------------------------------------------
+        // 가장 좋은 방식:
+        // 한 번의 ClipboardItem에 고해상도 PNG + 크기 지정 HTML을 같이 넣는다.
+        // PowerPoint가 HTML을 선택하면 작은 표시 크기를 유지하고,
+        // PNG를 참조할 수 있는 환경에서는 원본 고해상도 데이터도 함께 존재한다.
+        // ------------------------------------------------------------
+        async function copyHighResWithSizedHtml(
+            pngBlob,
+            displayWidth,
+            displayHeight
+        ) {
             if (
-                navigator.clipboard &&
-                navigator.clipboard.write &&
-                typeof ClipboardItem !== "undefined"
+                !navigator.clipboard ||
+                !navigator.clipboard.write ||
+                typeof ClipboardItem === "undefined"
             ) {
-                const htmlBlob = new Blob(
-                    [htmlContent],
-                    { type: "text/html" }
-                );
+                return false;
+            }
 
+            const dataUrl = await blobToDataUrl(pngBlob);
+            const htmlContent = makeSizedHtmlImage(
+                dataUrl,
+                displayWidth,
+                displayHeight
+            );
+            const htmlBlob = new Blob([htmlContent], { type: "text/html" });
+
+            // 1차: PNG + HTML 동시 제공
+            try {
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        "image/png": pngBlob,
+                        "text/html": htmlBlob
+                    })
+                ]);
+                return "PNG+HTML";
+            } catch (multiErr) {
+                console.warn("PNG+HTML 동시 복사 실패:", multiErr);
+            }
+
+            // 2차: HTML만 제공 (표시 크기 우선)
+            try {
                 await navigator.clipboard.write([
                     new ClipboardItem({
                         "text/html": htmlBlob
                     })
                 ]);
-
-                return true;
+                return "HTML";
+            } catch (htmlErr) {
+                console.warn("HTML 복사 실패:", htmlErr);
             }
 
-            return false;
-        }
-
-        // fallback:
-        // HTML 형식 복사가 안 되는 경우에는 최종 표시 픽셀 크기로 PNG를 만들어 복사한다.
-        // 이 방식은 크기는 정확하지만 HTML 방식보다는 화질이 낮을 수 있다.
-        async function copyAsResizedPng(
-            sourceCanvas,
-            displayWidth,
-            displayHeight
-        ) {
-            const resizedCanvas =
-                document.createElement("canvas");
-
-            resizedCanvas.width =
-                Math.max(1, Math.round(displayWidth));
-
-            resizedCanvas.height =
-                Math.max(1, Math.round(displayHeight));
-
-            const ctx =
-                resizedCanvas.getContext("2d");
-
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = "high";
-
-            // 흰색/투명 배경 모두 자연스럽게 유지
-            ctx.clearRect(
-                0,
-                0,
-                resizedCanvas.width,
-                resizedCanvas.height
-            );
-
-            ctx.drawImage(
-                sourceCanvas,
-                0,
-                0,
-                resizedCanvas.width,
-                resizedCanvas.height
-            );
-
-            const blob =
-                await canvasToBlob(resizedCanvas);
-
-            if (
-                navigator.clipboard &&
-                navigator.clipboard.write
-            ) {
+            // 3차: 고해상도 PNG 그대로 제공
+            // 절대 displayWidth/displayHeight로 리사이즈하지 않는다.
+            try {
                 await navigator.clipboard.write([
                     new ClipboardItem({
-                        "image/png": blob
+                        "image/png": pngBlob
                     })
                 ]);
-
-                return true;
+                return "PNG";
+            } catch (pngErr) {
+                console.warn("고해상도 PNG 복사 실패:", pngErr);
             }
 
             return false;
         }
-
 
         // 동적으로 생성된 table 클릭 시 이미지로 변환 후 클립보드 복사
         $(document).on(
@@ -528,54 +632,41 @@ html, body {
                                 scale: CAPTURE_SCALE,
                                 backgroundColor: null,
                                 useCORS: true,
-                                logging: false
+                                logging: false,
+                                imageTimeout: 0
                             }
                         );
 
-                    const highResBlob =
+                    const rawHighResBlob =
                         await canvasToBlob(canvas);
 
-                    let copied = false;
-                    let copyMode = "";
+                    // 선택한 PPT 표시 크기에 맞게 DPI를 계산한다.
+                    // 예: 아주 작게(18%)라면 픽셀은 그대로 유지하면서
+                    // 훨씬 높은 DPI 메타데이터를 넣어 작은 물리 크기를 표현한다.
+                    const targetDpi = Math.min(
+                        6000,
+                        Math.max(
+                            PPT_BASE_DPI,
+                            Math.round(
+                                PPT_BASE_DPI * CAPTURE_SCALE / copyScale
+                            )
+                        )
+                    );
 
-                    // 1순위:
-                    // 고해상도 PNG + HTML 표시 크기
-                    try {
-                        copied =
-                            await copyAsSizedHtmlImage(
-                                highResBlob,
-                                displayWidth,
-                                displayHeight
-                            );
-
-                        if (copied) {
-                            copyMode =
-                                "고해상도 HTML";
-                        }
-                    } catch (htmlErr) {
-                        console.warn(
-                            "HTML 클립보드 복사 실패. PNG fallback 사용:",
-                            htmlErr
+                    const highResBlob =
+                        await addPngDpiMetadata(
+                            rawHighResBlob,
+                            targetDpi
                         );
-                    }
 
-                    // 2순위 fallback:
-                    // 실제 작은 PNG로 복사
-                    if (!copied) {
-                        copied =
-                            await copyAsResizedPng(
-                                canvas,
-                                displayWidth,
-                                displayHeight
-                            );
+                    const copyMode =
+                        await copyHighResWithSizedHtml(
+                            highResBlob,
+                            displayWidth,
+                            displayHeight
+                        );
 
-                        if (copied) {
-                            copyMode =
-                                "PNG fallback";
-                        }
-                    }
-
-                    if (!copied) {
+                    if (!copyMode) {
                         throw new Error(
                             "클립보드 복사를 지원하지 않습니다."
                         );
@@ -584,18 +675,19 @@ html, body {
                     showToast(
                         "복사 완료 ✅ (" +
                         sizeText +
-                        ")"
+                        " / 고해상도)"
                     );
 
                     console.log(
-                        "PPT 복사 성공",
+                        "PPT 고해상도 복사 성공",
                         {
                             mode: copyMode,
                             copyScale: copyScale,
                             displayWidth: displayWidth,
                             displayHeight: displayHeight,
                             capturedWidth: canvas.width,
-                            capturedHeight: canvas.height
+                            capturedHeight: canvas.height,
+                            targetDpi: targetDpi
                         }
                     );
 
@@ -830,7 +922,7 @@ html, body {
           <span class="size-title">PPT 복사 크기</span>
           <div class="size-options">
             <label>
-              <input type="radio" name="copySize" value="0.5" data-label="기본 50%" checked />
+              <input type="radio" name="copySize" value="0.5" data-label="기본 50%" />
               기본
             </label>
             <label>
@@ -842,7 +934,7 @@ html, body {
               더 작게
             </label>
             <label>
-              <input type="radio" name="copySize" value="0.18" data-label="아주 작게 18%" />
+              <input type="radio" name="copySize" value="0.18" data-label="아주 작게 18%" checked />
               아주 작게
             </label>
           </div>
@@ -864,7 +956,7 @@ html, body {
       <span class="legend-item"><span class="dot" style="background:#ffffff"></span>기타</span>
     </div>
 
-    <div class="hint">PPT 복사 크기를 선택한 뒤 라벨을 클릭하세요. <b>고해상도로 캡처하면서 선택한 작은 크기로 붙도록</b> 처리됩니다. <b>[Ctrl + V]</b>로 PPT에 붙여넣을 수 있어요.</div>
+    <div class="hint">PPT 복사 크기를 선택한 뒤 라벨을 클릭하세요. <b>라벨은 고해상도 원본을 유지하고 PPT 표시 크기만 작게</b> 붙도록 처리됩니다. <b>[Ctrl + V]</b>로 PPT에 붙여넣을 수 있어요. <b>PPT 옵션에서 이미지 압축 안 함 + 고화질</b>을 권장합니다.</div>
 
     <div id="apt_cnt"></div>
 
