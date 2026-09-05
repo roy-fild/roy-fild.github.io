@@ -476,50 +476,43 @@
                 render();
             }
 
-            async function resolveLatestCsv() {
+   async function resolveLatestCsv() {
 
-    // 오늘부터 과거 방향으로 최신 CSV 탐색
-    const today = new Date();
+    const res = await fetch(GH_API + `?t=${Date.now()}`, {
+        method: "GET",
+        cache: "no-store"
+    });
 
-    // 최대 365일 전까지 탐색
-    for (let i = 0; i < 365; i++) {
-
-        const d = new Date(today);
-        d.setDate(today.getDate() - i);
-
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, "0");
-        const dd = String(d.getDate()).padStart(2, "0");
-
-        const yyyymmdd = `${yyyy}${mm}${dd}`;
-
-        const url =
-            PAGES_BASE +
-            `month_price_${yyyymmdd}.csv?t=${Date.now()}`;
-
-        try {
-
-            const res = await fetch(url, {
-                method: "GET",
-                cache: "no-store"
-            });
-
-            if (res.ok) {
-
-                console.log("최신 CSV 발견:", yyyymmdd);
-
-                return {
-                    url: url,
-                    yyyymmdd: yyyymmdd
-                };
-            }
-
-        } catch (e) {
-            // 파일 없으면 다음 날짜 확인
-        }
+    if (!res.ok) {
+        throw new Error("GitHub 파일 목록 조회 실패");
     }
 
-    throw new Error("최근 365일 내 CSV 파일을 찾지 못했습니다.");
+    const files = await res.json();
+
+    const csvFiles = files
+        .filter(f => /^month_price_\d{8}\.csv$/.test(f.name))
+        .map(f => {
+            const match = f.name.match(/^month_price_(\d{8})\.csv$/);
+
+            return {
+                name: f.name,
+                yyyymmdd: match[1]
+            };
+        })
+        .sort((a, b) => b.yyyymmdd.localeCompare(a.yyyymmdd));
+
+    if (!csvFiles.length) {
+        throw new Error("CSV 파일을 찾지 못했습니다.");
+    }
+
+    const latest = csvFiles[0];
+
+    console.log("최신 CSV 발견:", latest.yyyymmdd);
+
+    return {
+        url: PAGES_BASE + latest.name + `?t=${Date.now()}`,
+        yyyymmdd: latest.yyyymmdd
+    };
 }
 
             async function fetchTextWithKorean(url) {
