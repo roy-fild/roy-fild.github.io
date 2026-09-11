@@ -89,6 +89,47 @@
         color: var(--text);
     }
 
+    /* 일반 / 고액용 모드 탭 */
+    .mode-tabs{
+        display:flex;
+        align-items:center;
+        gap: 8px;
+        margin: 6px 0 10px;
+        padding: 4px;
+        width: fit-content;
+        background: rgba(255,255,255,0.72);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: 0 1px 0 rgba(15,23,42,0.04);
+    }
+
+    .mode-tab{
+        appearance:none;
+        border:0;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 800;
+        padding: 8px 16px;
+        border-radius: 9px;
+        cursor:pointer;
+        transition: all .15s ease;
+    }
+
+    .mode-tab:hover{
+        background: rgba(15,23,42,0.05);
+        color: var(--text);
+    }
+
+    .mode-tab.active{
+        background: #111827;
+        color:#fff;
+        box-shadow: 0 4px 12px rgba(15,23,42,0.16);
+    }
+
+    .legend.hidden{ display:none; }
+
     .hint{
         background: rgba(255,255,255,0.65);
         border: 1px solid var(--border);
@@ -339,6 +380,41 @@ html, body {
 </style>
     <script>
         $(function() {});
+
+        // 라벨 모드: 일반이 기본, 고액용은 탭으로 전환
+        let currentLabelMode = "normal";
+        let lastAptArr = [];
+
+        function setLabelMode(mode) {
+            currentLabelMode = (mode === "high") ? "high" : "normal";
+
+            $(".mode-tab")
+                .removeClass("active")
+                .attr("aria-selected", "false");
+
+            $(".mode-tab[data-mode='" + currentLabelMode + "']")
+                .addClass("active")
+                .attr("aria-selected", "true");
+
+            if (currentLabelMode === "high") {
+                $("#normalLegend").addClass("hidden");
+                $("#highLegend").removeClass("hidden");
+            } else {
+                $("#highLegend").addClass("hidden");
+                $("#normalLegend").removeClass("hidden");
+            }
+
+            renderLabels();
+        }
+
+        function renderLabels() {
+            $("#apt_tables").empty();
+            $("#apt_cnt").empty();
+
+            if (lastAptArr.length > 0) {
+                labelCreate(lastAptArr);
+            }
+        }
         // ============================================================
         // PPT 고해상도 + 작은 표시 크기 복사 (V5)
         //
@@ -743,14 +819,17 @@ html, body {
             var aptArr = [];
             let input = event.target;
             let reader = new FileReader();
+
             reader.onload = function() {
                 let data = reader.result;
                 let workBook = XLSX.read(data, {
                     type: 'binary'
                 });
+
                 workBook.SheetNames.forEach(function(sheetName) {
                     let rows = XLSX.utils.sheet_to_json(workBook.Sheets[sheetName]);
                     var keys = Object.keys(rows);
+
                     for (var i = 0; i < keys.length; i++) {
                         var key = keys[i];
                         var subKeys = Object.keys(rows[key]);
@@ -760,15 +839,19 @@ html, body {
                         var aptYear = rows[key][subKeys[2]]; // 연식
                         var aptSize = rows[key][subKeys[3]]; // 세대수
                         var pyung = rows[key][subKeys[4]]; // 평
-                        var sell = rows[key][subKeys[5]]; // 매매가 
+                        var sell = rows[key][subKeys[5]]; // 매매가
                         var junse = rows[key][subKeys[6]]; // 전세가
 
                         var label = dong + "/" + aptNm + "/" + aptYear + "/" + aptSize + "/" + pyung + "/" + sell + "/" + junse;
                         aptArr.push(label);
                     }
-                    labelCreate(aptArr);
-                })
+                });
+
+                // 같은 엑셀 데이터를 탭 전환 시 다시 사용할 수 있게 보관
+                lastAptArr = aptArr.slice();
+                renderLabels();
             };
+
             reader.readAsBinaryString(input.files[0]);
         }
 
@@ -843,7 +926,9 @@ html, body {
             html += '<tbody>';
 
             for (var i = 0; i < aptCtntArr.length; i++) {
-                html += selectColor(aptCtntArr[i]);
+                html += (currentLabelMode === "high")
+                    ? selectHighPriceColor(aptCtntArr[i])
+                    : selectColor(aptCtntArr[i]);
             }
             html += '</tbody>';
             html += '</table>';
@@ -882,6 +967,41 @@ html, body {
             } else {
                 html += '<tr><td>' + aptCtntArr + '</td></tr>';
             }
+            return html;
+        }
+
+        // 고액용: 35억 이상 → 10억대까지 같은 붉은 계열로 단계적으로 옅어짐
+        // 35억 이상이 가장 진하고, 가격이 낮아질수록 밝아진다.
+        function selectHighPriceColor(aptCtntArr) {
+            var html = "";
+            var infos = aptCtntArr.split('/');
+            var price = Number(infos[1]);
+            var bgColor = "#fff7f7";
+            var textColor = "#111827";
+
+            if (price >= 35) {
+                bgColor = "#7f1d1d";
+                textColor = "#ffffff";
+            } else if (price >= 30) {
+                bgColor = "#991b1b";
+                textColor = "#ffffff";
+            } else if (price >= 25) {
+                bgColor = "#b91c1c";
+                textColor = "#ffffff";
+            } else if (price >= 20) {
+                bgColor = "#dc2626";
+                textColor = "#ffffff";
+            } else if (price >= 15) {
+                bgColor = "#f87171";
+                textColor = "#111827";
+            } else if (price >= 10) {
+                bgColor = "#fecaca";
+                textColor = "#111827";
+            }
+
+            html += '<tr><td style="background-color:' + bgColor + ';color:' + textColor + ';">'
+                + aptCtntArr + '</td></tr>';
+
             return html;
         }
 
@@ -942,7 +1062,12 @@ html, body {
       </div>
     </div>
 
-    <div class="legend" aria-label="가격 구간 색상 안내">
+    <div class="mode-tabs" role="tablist" aria-label="라벨 가격 모드">
+      <button type="button" class="mode-tab active" data-mode="normal" role="tab" aria-selected="true" onclick="setLabelMode('normal')">일반</button>
+      <button type="button" class="mode-tab" data-mode="high" role="tab" aria-selected="false" onclick="setLabelMode('high')">고액용</button>
+    </div>
+
+    <div id="normalLegend" class="legend" aria-label="일반 가격 구간 색상 안내">
       <span class="legend-item"><span class="dot" style="background:#ff0000"></span>15억 이상</span>
       <span class="legend-item"><span class="dot" style="background:#ffa500"></span>10억대</span>
       <span class="legend-item"><span class="dot" style="background:#ffff00"></span>9억대</span>
@@ -954,6 +1079,16 @@ html, body {
       <span class="legend-item"><span class="dot" style="background:#ff00ff"></span>3억대</span>
       <span class="legend-item"><span class="dot" style="background:#d3d3d3"></span>2억대</span>
       <span class="legend-item"><span class="dot" style="background:#ffffff"></span>기타</span>
+    </div>
+
+    <div id="highLegend" class="legend hidden" aria-label="고액용 가격 구간 색상 안내">
+      <span class="legend-item"><span class="dot" style="background:#7f1d1d"></span>35억 이상</span>
+      <span class="legend-item"><span class="dot" style="background:#991b1b"></span>30~35억</span>
+      <span class="legend-item"><span class="dot" style="background:#b91c1c"></span>25~30억</span>
+      <span class="legend-item"><span class="dot" style="background:#dc2626"></span>20~25억</span>
+      <span class="legend-item"><span class="dot" style="background:#f87171"></span>15~20억</span>
+      <span class="legend-item"><span class="dot" style="background:#fecaca"></span>10~15억</span>
+      <span class="legend-item"><span class="dot" style="background:#fff7f7"></span>10억 미만</span>
     </div>
 
     <div class="hint">PPT 복사 크기를 선택한 뒤 라벨을 클릭하세요. <b>라벨은 고해상도 원본을 유지하고 PPT 표시 크기만 작게</b> 붙도록 처리됩니다. <b>[Ctrl + V]</b>로 PPT에 붙여넣을 수 있어요. <b>PPT 옵션에서 이미지 압축 안 함 + 고화질</b>을 권장합니다.</div>
