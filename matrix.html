@@ -3,12 +3,44 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.15.5/xlsx.full.min.js"></script>
 <script>
+    var currentMode = 'normal';
+
     $(function () {
         $('#region_left_1').val('S');
         $('#region_left_2').val('A');
         $('#region_left_3').val('B');
         $('#region_left_4').val('C');
+        setMode('normal');
     });
+
+    function setMode(mode) {
+        currentMode = mode;
+
+        $('.modeTab').removeClass('active');
+        $('#tab_' + mode).addClass('active');
+
+        if (mode === 'high') {
+            $('#modeDescription').html('<b>고액용</b> : 50억 이상은 한 행으로 묶고, 49.9억부터 10.0억까지 0.1억 단위로 생성합니다.');
+        } else {
+            $('#modeDescription').html('<b>일반용</b> : 기존 방식 그대로 20억 이상은 한 행으로 묶고, 19.9억부터 1.5억까지 0.1억 단위로 생성합니다.');
+        }
+    }
+
+    function getModeConfig() {
+        if (currentMode === 'high') {
+            return {
+                mode: 'high',
+                startPrice: 50.0,
+                endPrice: 10.0
+            };
+        }
+
+        return {
+            mode: 'normal',
+            startPrice: 20.0,
+            endPrice: 1.5
+        };
+    }
 
     function getRegionPairs() {
         var pairs = [];
@@ -70,7 +102,7 @@
     }
 
     function convertAptInfo(aptArr, fileName) {
-        var price = 20;    // 가격
+        var config = getModeConfig();
         var contentsArr = [];
 
         var regionPairs = getRegionPairs();
@@ -83,12 +115,16 @@
 
         contentsArr.push(titArr);
 
-        while (price > 1.4) {
+        var startTick = Math.round(config.startPrice * 10);
+        var endTick = Math.round(config.endPrice * 10);
+
+        for (var tick = startTick; tick >= endTick; tick--) {
+            var price = tick / 10;
             var rowArr = [];
             rowArr.push(price);
 
-            if (price == 20) {
-                rowArr = chkHighPrice(aptArr, rowArr);
+            if (tick === startTick) {
+                rowArr = chkHighPrice(aptArr, rowArr, config.startPrice);
             } else {
                 rowArr = chkPrice(price, aptArr, rowArr);
             }
@@ -101,22 +137,19 @@
             if (emptyRowOption === 'include' || hasValue) {
                 contentsArr.push(rowArr);
             }
-
-            price = price - 0.1;
-            price = price.toFixed(1);
         }
 
         console.log(contentsArr);
 
         if ($('input[name="emptyRowOption"]:checked').val() === 'exclude') {
-            downloadStyledExcel(contentsArr, fileName);
+            downloadStyledExcel(contentsArr, fileName, config.mode);
         } else {
             downloadCSV(contentsArr, fileName);
         }
     }
 
     // 고가
-    function chkHighPrice(aptArr, rowArr) {
+    function chkHighPrice(aptArr, rowArr, highPrice) {
         var regionPairs = getRegionPairs();
         var sv = regionPairs.map(function(item) {
             return item.region;
@@ -132,7 +165,7 @@
                 var l = info.label;  // 라벨
 
                 // 지역명 일치 가격이 높을경우
-                if (String(sv[j]).trim() == String(r).trim() && Number(p) > 19.9) {
+                if (String(sv[j]).trim() == String(r).trim() && Number(p) >= Number(highPrice)) {
                     if (label != '') {
                         label += "\n";
                     }
@@ -188,8 +221,16 @@
         link.click();
     }
 
-    function getPriceBandStyle(price) {
+    function getPriceBandStyle(price, mode) {
         var p = Number(price);
+
+        if (mode === 'high') {
+            if (p >= 50) return { label: '50억이상', bg: '#7f1d1d', color: '#ffffff' };
+            if (p >= 40) return { label: '40억대',   bg: '#b91c1c', color: '#ffffff' };
+            if (p >= 30) return { label: '30억대',   bg: '#e31b23', color: '#ffffff' };
+            if (p >= 20) return { label: '20억대',   bg: '#f49a1d', color: '#ffffff' };
+            return { label: '10억대', bg: '#efc31a', color: '#000000' };
+        }
 
         if (p >= 15) return { label: '15억이상', bg: '#e31b23', color: '#ffffff' };
         if (p >= 10) return { label: '10억대', bg: '#f49a1d', color: '#ffffff' };
@@ -204,8 +245,16 @@
         return { label: '기타', bg: '#eeeeee', color: '#000000' };
     }
 
-    function getPriceBandLightStyle(price) {
+    function getPriceBandLightStyle(price, mode) {
         var p = Number(price);
+
+        if (mode === 'high') {
+            if (p >= 50) return { bg: '#f8dede', color: '#222222' };
+            if (p >= 40) return { bg: '#fde4e4', color: '#222222' };
+            if (p >= 30) return { bg: '#fde8e9', color: '#222222' };
+            if (p >= 20) return { bg: '#fff0dc', color: '#222222' };
+            return { bg: '#fff8cf', color: '#222222' };
+        }
 
         if (p >= 15) return { bg: '#fde8e9', color: '#222222' };
         if (p >= 10) return { bg: '#fff0dc', color: '#222222' };
@@ -234,7 +283,7 @@
         return escapeHtml(String(value)).replace(/\n/g, '<br style="mso-data-placement:same-cell;"/>');
     }
 
-    function downloadStyledExcel(contentsArr, f) {
+    function downloadStyledExcel(contentsArr, f, mode) {
         var html = '';
         html += '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
         html += '<head>';
@@ -257,11 +306,11 @@
                 if (r === 0) {
                     html += '<th class="header">' + toExcelCellText(value) + '</th>';
                 } else if (c === 0) {
-                    var band = getPriceBandStyle(value);
+                    var band = getPriceBandStyle(value, mode);
                     html += '<td class="priceCell" style="background-color:' + band.bg + ';color:' + band.color + ';">' + toExcelCellText(value) + '</td>';
                 } else {
                     var rowPrice = contentsArr[r][0];
-                    var lightBand = getPriceBandLightStyle(rowPrice);
+                    var lightBand = getPriceBandLightStyle(rowPrice, mode);
                     html += '<td class="valueCell" style="background-color:' + lightBand.bg + ';color:' + lightBand.color + ';">' + toExcelCellText(value) + '</td>';
                 }
             }
@@ -272,9 +321,9 @@
         html += '<br/>';
         html += '<table>';
         html += '<tr>';
-        var legendPrices = [15, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1.9];
+        var legendPrices = mode === 'high' ? [50, 40, 30, 20, 10] : [15, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1.9];
         for (var i = 0; i < legendPrices.length; i++) {
-            var legend = getPriceBandStyle(legendPrices[i]);
+            var legend = getPriceBandStyle(legendPrices[i], mode);
             html += '<td class="priceCell" style="background-color:' + legend.bg + ';color:' + legend.color + '; min-width: 64px;">' + legend.label + '</td>';
         }
         html += '</tr>';
@@ -291,10 +340,33 @@
 </script>
 
 <head>
+    <meta charset="UTF-8" />
+    <title>계단식 시세 Matrix 생성기</title>
+    <style>
+        body { font-family: Arial, "Malgun Gothic", sans-serif; padding: 18px; color: #222; }
+        .modeTabs { margin: 12px 0 10px 0; border-bottom: 1px solid #ccc; }
+        .modeTab {
+            border: 1px solid #bbb; border-bottom: none; background: #f5f5f5;
+            padding: 8px 18px; margin-right: 4px; cursor: pointer; border-radius: 6px 6px 0 0;
+            font-weight: bold; color: #555;
+        }
+        .modeTab.active { background: #2f6fed; color: #fff; border-color: #2f6fed; }
+        #modeDescription {
+            margin: 8px 0 16px 0; padding: 10px 12px; background: #f7f9fc;
+            border: 1px solid #d9e1ef; border-radius: 5px; font-size: 13px; color: #444;
+        }
+    </style>
 </head>
 
 <body>
-    계단식 시세 Matrix 생성기 <br/>
+    <b style="font-size: 18px;">계단식 시세 Matrix 생성기</b><br/>
+
+    <div class="modeTabs">
+        <button type="button" id="tab_normal" class="modeTab active" onclick="setMode('normal')">일반용</button>
+        <button type="button" id="tab_high" class="modeTab" onclick="setMode('high')">고액용 (50억~10억)</button>
+    </div>
+    <div id="modeDescription"></div>
+
     지역 및 헤더 입력<br/>
     <div id="regionPairArea" style="margin: 8px 0 12px 0;">
         <div style="margin-bottom: 6px;">
@@ -340,7 +412,7 @@
         동/매매가/라벨 엑셀 파일선택 <input type="file" id="excelFile" onchange="excelExport(event)" />
     </div>
     <br/>
-    2026.07.25 version
+    2026.09.24 version
     <br/>
 </body>
 </html>
