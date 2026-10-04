@@ -8,6 +8,7 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <style>
         body {
             font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -114,6 +115,40 @@
             background-color: rgba(111, 66, 193, 0.12);
             /* 기본 연보라 */
         }
+
+
+        #tbl tbody tr { cursor: pointer; }
+        #tbl tbody tr:hover { background:#fafcff; }
+        #tbl tbody tr.selected-row { outline:2px solid #111; outline-offset:-2px; }
+
+        .segmented {
+            display:flex; border:1px solid #ccc; border-radius:9px; overflow:hidden; height:36px;
+        }
+        .segmented button {
+            border-radius:0; background:#fff; color:#333; padding:7px 14px; border-right:1px solid #ddd;
+        }
+        .segmented button:last-child { border-right:0; }
+        .segmented button.active { background:#111; color:#fff; }
+
+        .trend-drawer {
+            position:fixed; left:0; right:0; bottom:0; z-index:50;
+            background:#fff; border-top:1px solid #ddd; box-shadow:0 -10px 30px rgba(0,0,0,.14);
+            transform:translateY(105%); transition:transform .25s ease;
+            max-height:70vh; overflow:auto;
+        }
+        .trend-drawer.open { transform:translateY(0); }
+        .trend-inner { max-width:1200px; margin:0 auto; padding:16px 18px 20px; }
+        .trend-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:10px; }
+        .trend-title { font-size:18px; font-weight:750; }
+        .trend-sub { font-size:12px; color:#666; margin-top:3px; }
+        .trend-close { background:#f2f2f2; color:#222; padding:7px 10px; }
+        .trend-stats { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0 14px; }
+        .stat-card { border:1px solid #eee; border-radius:10px; padding:8px 10px; min-width:130px; }
+        .stat-label { font-size:11px; color:#777; }
+        .stat-value { font-size:15px; font-weight:700; margin-top:2px; }
+        .chart-wrap { height:300px; }
+        @media (max-width:700px) { .chart-wrap { height:250px; } }
+
     </style>
 </head>
 
@@ -125,7 +160,7 @@
     </h2>
 
     <div class="hint">
-        조회 조건: <span class="chip">region(시/도)</span> + <span class="chip">투자금 범위(59/84 투자금 기준)</span>
+        조회 조건: <span class="chip">region(시/도)</span> + <span class="chip">면적 59/84 선택</span> + <span class="chip">선택 면적 투자금 범위</span> · 행 클릭 시 과거 추이
     </div>
 
     <div class="toolbar">
@@ -135,12 +170,20 @@
         </div>
 
         <div class="field">
-            <label for="minInv">투자금 최소</label>
+            <label>투자금 기준 면적</label>
+            <div class="segmented" id="sizeSeg">
+                <button type="button" class="active" data-size="59">59</button>
+                <button type="button" data-size="84">84</button>
+            </div>
+        </div>
+
+        <div class="field">
+            <label for="minInv"><span id="minLabelSize">59</span> 투자금 최소</label>
             <input id="minInv" type="number" inputmode="numeric" placeholder="예) 30000" />
         </div>
 
         <div class="field">
-            <label for="maxInv">투자금 최대</label>
+            <label for="maxInv"><span id="maxLabelSize">59</span> 투자금 최대</label>
             <input id="maxInv" type="number" inputmode="numeric" placeholder="예) 80000" />
         </div>
 
@@ -179,6 +222,20 @@
         </table>
     </div>
 
+    <div id="trendDrawer" class="trend-drawer" aria-hidden="true">
+        <div class="trend-inner">
+            <div class="trend-head">
+                <div>
+                    <div id="trendTitle" class="trend-title">지역 투자금 추이</div>
+                    <div id="trendSub" class="trend-sub">과거 CSV 데이터를 불러오는 중…</div>
+                </div>
+                <button id="trendClose" class="trend-close" type="button">닫기 ✕</button>
+            </div>
+            <div id="trendStats" class="trend-stats"></div>
+            <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+        </div>
+    </div>
+
     <script>
         (() => {
             // GitHub Pages에 올린 CSV 파일 이름 규칙: month_price_yyyymmdd.csv
@@ -188,6 +245,10 @@
 
             let rows = [];
             let lastFiltered = [];
+            let selectedSize = "59";
+            let trendChart = null;
+            let csvFileIndex = [];
+            const historyCache = new Map();
 
             function invBgColor(val, type) {
                 if (!Number.isFinite(val) || val <= 0) {
@@ -353,15 +414,12 @@
             function passesInvRange(inv59, inv84, minV, maxV) {
                 const hasMin = Number.isFinite(minV);
                 const hasMax = Number.isFinite(maxV);
-
-                function inRange(x) {
-                    if (!Number.isFinite(x)) return false;
-                    if (hasMin && x < minV) return false;
-                    if (hasMax && x > maxV) return false;
-                    return true;
-                }
                 if (!hasMin && !hasMax) return true;
-                return inRange(inv59) || inRange(inv84);
+                const x = selectedSize === "84" ? inv84 : inv59;
+                if (!Number.isFinite(x)) return false;
+                if (hasMin && x < minV) return false;
+                if (hasMax && x > maxV) return false;
+                return true;
             }
 
             function render() {
@@ -385,10 +443,9 @@
                         return passesInvRange(r._c.inv59, r._c.inv84, minInv, maxInv);
                     })
                     .sort(function(a, b) {
-                        if (b._c.inv59 !== a._c.inv59) {
-                            return b._c.inv59 - a._c.inv59; // 59투자금 내림차순
-                        }
-                        return b._c.inv84 - a._c.inv84; // 84투자금 내림차순
+                        const av = selectedSize === "84" ? a._c.inv84 : a._c.inv59;
+                        const bv = selectedSize === "84" ? b._c.inv84 : b._c.inv59;
+                        return bv - av;
                     });
 
                 lastFiltered = filtered;
@@ -403,6 +460,12 @@
                     const js = fmt(r._c.js);
 
                     const tr = $("<tr/>");
+                    tr.attr("title", "클릭하면 투자금 추이를 봅니다");
+                    tr.on("click", function() {
+                        $("#tbl tbody tr").removeClass("selected-row");
+                        tr.addClass("selected-row");
+                        openTrend(getRegion(r), r._area);
+                    });
                     
                     tr.append($("<td class='num'/>").text(i + 1));
 
@@ -439,7 +502,7 @@
                     $tb.append(tr);
                 }
 
-                $("#status").text("총 " + filtered.length.toLocaleString("en-US") + "건 표시 중 (" + (region === "전체" ? "전체" : ("region: " + region)) + ")");
+                $("#status").text("총 " + filtered.length.toLocaleString("en-US") + "건 표시 중 (" + (region === "전체" ? "전체" : ("region: " + region)) + ", " + selectedSize + "㎡형 투자금 기준)");
             }
 
             function initUI() {
@@ -469,6 +532,13 @@
                 $("#excelBtn").prop("disabled", false);
                 $("#excelBtn").on("click", downloadExcel);
                 $("#regionSel").on("change", render);
+                $("#sizeSeg button").on("click", function() {
+                    selectedSize = $(this).data("size").toString();
+                    $("#sizeSeg button").removeClass("active");
+                    $(this).addClass("active");
+                    $("#minLabelSize,#maxLabelSize").text(selectedSize);
+                    render();
+                });
                 $("#minInv,#maxInv").on("keydown", function(e) {
                     if (e.key === "Enter") render();
                 });
@@ -505,6 +575,7 @@
         throw new Error("CSV 파일을 찾지 못했습니다.");
     }
 
+    csvFileIndex = csvFiles.slice().sort((a, b) => a.yyyymmdd.localeCompare(b.yyyymmdd));
     const latest = csvFiles[0];
 
     console.log("최신 CSV 발견:", latest.yyyymmdd);
@@ -514,6 +585,92 @@
         yyyymmdd: latest.yyyymmdd
     };
 }
+
+            function fmtDateShort(yyyymmdd) {
+                if (!yyyymmdd || yyyymmdd.length !== 8) return yyyymmdd || "";
+                return yyyymmdd.slice(2,4) + "." + yyyymmdd.slice(4,6) + "." + yyyymmdd.slice(6,8);
+            }
+
+            function statCard(label, value) {
+                return `<div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div></div>`;
+            }
+
+            async function loadCsvRows(file) {
+                if (historyCache.has(file.name)) return historyCache.get(file.name);
+                const text = await fetchTextWithKorean(PAGES_BASE + file.name + `?t=${Date.now()}`);
+                const parsed = Papa.parse(text, { header:true, skipEmptyLines:true });
+                const data = parsed.data || [];
+                historyCache.set(file.name, data);
+                return data;
+            }
+
+            async function openTrend(region, area) {
+                const $drawer = $("#trendDrawer");
+                $drawer.addClass("open").attr("aria-hidden", "false");
+                $("#trendTitle").text(region + " " + area + " 투자금 추이");
+                $("#trendSub").text("과거 CSV 데이터를 불러오는 중…");
+                $("#trendStats").empty();
+
+                try {
+                    if (!csvFileIndex.length) await resolveLatestCsv();
+
+                    const points = [];
+                    for (const file of csvFileIndex) {
+                        try {
+                            const data = await loadCsvRows(file);
+                            const row = data.find(x => getRegion(x) === region && getArea(x) === area);
+                            if (!row) continue;
+                            const c = compute(row);
+                            points.push({ date:file.yyyymmdd, inv59:c.inv59, inv84:c.inv84 });
+                        } catch (e) {
+                            console.warn("이력 CSV 로딩 실패:", file.name, e);
+                        }
+                    }
+
+                    if (!points.length) {
+                        $("#trendSub").text("이 지역의 과거 데이터를 찾지 못했습니다.");
+                        if (trendChart) { trendChart.destroy(); trendChart = null; }
+                        return;
+                    }
+
+                    const v59 = points.map(x => x.inv59).filter(Number.isFinite);
+                    const v84 = points.map(x => x.inv84).filter(Number.isFinite);
+                    const latest = points[points.length - 1];
+                    $("#trendSub").text(points.length + "개 시점 · " + fmtDateShort(points[0].date) + " ~ " + fmtDateShort(latest.date));
+                    $("#trendStats").html(
+                        statCard("59 현재", fmt(latest.inv59)) +
+                        statCard("59 최저 / 최고", fmt(Math.min(...v59)) + " / " + fmt(Math.max(...v59))) +
+                        statCard("84 현재", fmt(latest.inv84)) +
+                        statCard("84 최저 / 최고", fmt(Math.min(...v84)) + " / " + fmt(Math.max(...v84)))
+                    );
+
+                    const ctx = document.getElementById("trendChart");
+                    if (trendChart) trendChart.destroy();
+                    trendChart = new Chart(ctx, {
+                        type: "line",
+                        data: {
+                            labels: points.map(x => fmtDateShort(x.date)),
+                            datasets: [
+                                { label:"59 투자금", data:points.map(x => Math.round(x.inv59)), borderWidth:2, tension:.25, pointRadius:3 },
+                                { label:"84 투자금", data:points.map(x => Math.round(x.inv84)), borderWidth:2, tension:.25, pointRadius:3 }
+                            ]
+                        },
+                        options: {
+                            responsive:true, maintainAspectRatio:false, interaction:{ mode:"index", intersect:false },
+                            plugins:{ legend:{ position:"top" }, tooltip:{ callbacks:{ label:(ctx) => ctx.dataset.label + ": " + Number(ctx.raw).toLocaleString("en-US") } } },
+                            scales:{ y:{ ticks:{ callback:(v) => Number(v).toLocaleString("en-US") } } }
+                        }
+                    });
+                } catch (err) {
+                    console.error(err);
+                    $("#trendSub").text("과거 추이 로딩에 실패했습니다. GitHub CSV 파일을 확인해 주세요.");
+                }
+            }
+
+            $("#trendClose").on("click", function() {
+                $("#trendDrawer").removeClass("open").attr("aria-hidden", "true");
+                $("#tbl tbody tr").removeClass("selected-row");
+            });
 
             async function fetchTextWithKorean(url) {
                 const buf = await fetch(url, {
