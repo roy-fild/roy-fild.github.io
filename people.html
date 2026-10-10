@@ -3633,7 +3633,13 @@ function renderAdultAgeChart() {
         // 최신 행정동 GeoJSON은 adm_nm에 전체 행정주소를 보관합니다.
         // 법정동 EMD_KOR_NM으로 행정동을 추측하지 않고 행정동 이름만 비교합니다.
         function normalizedMapName(v){
-            return String(v||'').normalize('NFC').replace(/[\s·.\-]/g,'').trim();
+            // 주민등록 통계: 상도1동 / 행정경계: 상도제1동 처럼 '제' 표기가 다른 경우를 통일.
+            // 동작구뿐 아니라 사당·노량진·신대방 등의 동일 유형을 처리한다.
+            return String(v||'').normalize('NFC')
+                .replace(/[\s·.\-]/g,'')
+                .replace(/제(?=[0-9０-９]+동)/g,'')
+                .replace(/[０-９]/g,function(c){return String(c.charCodeAt(0)-65296);})
+                .trim();
         }
         function adminFeatureFullName(f){
             var p=f.properties||{};
@@ -3687,11 +3693,15 @@ function renderAdultAgeChart() {
                 var data=await loadAgeGeo(sg?'emd':'sig');
                 if(token!==mapRunToken) return;
                 var features=data.features.filter(function(f){return featureIsArea(f,sido,sg);});
-                // 행정동 원본과 행정동 통계를 맞춥니다. 일치하지 않으면 임의 배치하지 않습니다.
-                var selectedFeatures=[], colored=new Map();
+                // 행정동 원본과 인구 CSV의 명칭을 정규화하여 비교한다.
+                // 여러 후보가 발견되면 잘못된 위치에 임의로 배치하지 않고 누락으로 안내한다.
+                var selectedFeatures=[], colored=new Map(), ambiguous=[];
                 items.forEach(function(item){
                     var candidates=features.map(function(f){return {f:f,score:scoreAreaFeature(f,item,sg)};}).filter(function(o){return o.score>=4;});
                     if(!candidates.length){failed.push(item.name);return;}
+                    var bestScore=Math.max.apply(null,candidates.map(function(o){return o.score;}));
+                    candidates=candidates.filter(function(o){return o.score===bestScore;});
+                    if(candidates.length>1){ambiguous.push(item.name);return;}
                     candidates.forEach(function(o){selectedFeatures.push(o.f);colored.set(o.f,item);});
                     var layer=L.geoJSON({type:'FeatureCollection',features:candidates.map(function(o){return o.f;})});
                     var center=layer.getBounds().getCenter();
@@ -3718,7 +3728,10 @@ function renderAdultAgeChart() {
                     // Leaflet의 지도 탭 표시 직후 레이아웃 재계산에 대응
                     setTimeout(function(){ if(token===mapRunToken) fitAgeMapView(); }, 200);
                 }
-                ageMapStatus((sg?'2026 행정동 경계 지도: ':'시군구 경계 지도: ')+bounds.length+'개 지역 표시'+(failed.length?' · 명칭이 일치하지 않아 제외한 지역 '+failed.length+'개 ('+failed.slice(0,6).join(', ')+(failed.length>6?' 외':'')+')':'')+'. 완성형이 평균 이상이면 가족 아이콘을 우선 표시하고, 그 외 지역은 평균 이상 연령을 가로로 표시합니다. 지도는 인구의 정확한 거주 위치가 아닌 행정구역을 나타냅니다.');
+                ageMapStatus((sg?'2026 행정동 경계 지도: ':'시군구 경계 지도: ')+bounds.length+'개 지역 표시'
+                  +(failed.length?' · 경계 명칭 불일치 '+failed.length+'개: '+failed.join(', '):'')
+                  +(ambiguous.length?' · 중복 경계 후보 '+ambiguous.length+'개: '+ambiguous.join(', '):'')
+                  +'. 완성형이 평균 이상이면 가족 아이콘을 우선 표시하고, 그 외 지역은 평균 이상 연령을 가로로 표시합니다. 지도는 실제 거주 위치가 아닌 행정구역을 나타냅니다.');
             }catch(err){
                 console.error(err);
                 ageMapStatus('행정구역 데이터를 불러오지 못했습니다: '+err.message+' · GitHub Raw 접근 가능 여부를 확인해 주세요.');
