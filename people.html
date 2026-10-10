@@ -868,21 +868,17 @@
         <div class="tabPage" id="tab-map">
             <div class="panel">
                 <div style="font-weight:700;margin-bottom:6px">연령별 인구 분포 지도</div>
-                <div class="muted">지역과 연령대를 선택하고 ‘지도 표시’를 누르세요. 원본 CSV 연령 통계를 지도에 연결합니다. 핀은 행정구역의 대표 위치이며 실제 인구 밀도나 거주지 위치를 뜻하지 않습니다.</div>
+                <div class="muted">지역과 연령대를 선택하면 지도가 자동으로 갱신됩니다. 원본 CSV 연령 통계를 지도에 연결합니다. 핀은 행정구역의 대표 위치이며 실제 인구 밀도나 거주지 위치를 뜻하지 않습니다.</div>
                 <div class="row" style="margin-top:12px">
                     <div class="col"><label>시/도</label><select id="mapSido"><option value="">시/도 선택</option></select></div>
                     <div class="col"><label>시/군/구 (선택)</label><select id="mapSigungu"><option value="">(전체 시/군/구)</option></select></div>
                     <div class="col"><label>연령대</label><select id="mapAge">
-                        <option value="above" selected>평균 이상 연령대 전체 (빨간 칸)</option><option value="dominant">전체 연령대 (지역별 최다 연령)</option>
-                        <option value="a0_9">0~9세</option><option value="a10_19">10~19세</option><option value="a20">20대</option><option value="a30">30대</option><option value="a40">40대</option><option value="a50">50대</option><option value="a60p">60대 이상</option>
+                        <option value="above" selected>평균 이상 연령대 전체 (빨간 칸)</option><option value="family_only">완성형만 표시 (평균 이상)</option><option value="dominant">지역별 최다 연령 (평균 이상만)</option>
+                        <option value="a0_9">0~9세 (0~19세 평균 기준)</option><option value="a10_19">10~19세 (0~19세 평균 기준)</option><option value="a20">20대 (평균 이상)</option><option value="a30">30대 (평균 이상)</option><option value="a40">40대 (평균 이상)</option><option value="a50">50대 (평균 이상)</option><option value="a60p">60대 이상 (평균 이상)</option>
                     </select></div>
                     <div class="col" style="max-width:160px"><label>표시 지역 수</label><select id="mapLimit"><option value="10">상위 10곳</option><option value="20">상위 20곳</option><option value="30">상위 30곳</option><option value="50" selected>상위 50곳</option><option value="100">상위 100곳</option></select></div>
                 </div>
-                <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
-                    <button type="button" class="btnCopy" id="mapRenderBtn">지도 표시</button>
-                    <button type="button" class="btnCopy" id="mapCancelBtn">검색 중단</button>
-                    <span class="muted">경계 GeoJSON 다운로드가 필요합니다. 이 버전은 지역 이름 검색보다 경계선 기반 표시를 우선합니다.</span>
-                </div>
+            
                 <div class="muted" style="margin-top:10px">지도 배경 선택 · OpenFreeMap 벡터지도 실패 시 행정경계만 보기로 자동 전환됩니다.</div><select id="mapProvider" style="max-width:280px;margin:8px 0"><option value="openfreemap" selected>OpenFreeMap 도로 지도 + 행정경계</option><option value="boundaries">행정경계만 보기 (외부 지도 타일 불필요)</option></select><span class="muted" id="mapOriginHelp"></span><div id="mapStatus" class="status" aria-live="polite"></div>
                 <div id="mapLegend" class="mapLegend"></div>
                 <div id="populationMapWrap">
@@ -3576,7 +3572,35 @@ function renderAdultAgeChart() {
                 });
                 x.averages=avg;
             });
-            return items.sort(function(a,b){return selected==='above' ? b.total-a.total : b.number-a.number;}).slice(0,Number($('#mapLimit').val())||50);
+            if(selected==='family_only'){
+                items=items.filter(function(x){return x.shares.pFamily>=x.averages.pFamily;});
+                return items.sort(function(a,b){return b.shares.pFamily-a.shares.pFamily || b.total-a.total;}).slice(0,Number($('#mapLimit').val())||50);
+            }
+            // 모든 연령대 선택은 평균 기준 표의 빨간 칸만 지도에 표시한다.
+            // 0~9 / 10~19 개별 선택은 표의 ~10대 열(0~19 합계)을 공통 기준으로 쓴다.
+            var ageShareKey={a0_9:'pTeen',a10_19:'pTeen',a20:'p20',a30:'p30',a40:'p40',a50:'p50',a60p:'p60p'};
+            if(selected==='above') {
+                items=items.filter(function(x){return x.above.length>0;});
+                items.sort(function(a,b){return b.above.length-a.above.length || b.total-a.total;});
+            } else if(selected==='dominant') {
+                items.forEach(function(x){
+                    var k=ageShareKey[x.dom.key];
+                    x.activeShareKey=k;
+                    x.activeShare=x.shares[k];
+                    x.activeMean=avg[k];
+                    x.age=x.above.some(function(t){return t.key==='pFamily';})?MAP_FAMILY_RULE:x.dom;
+                });
+                items=items.filter(function(x){return x.age.key==='family' || x.activeShare>=x.activeMean;});
+                items.sort(function(a,b){return (b.age.key==='family'?b.shares.pFamily:b.activeShare)-(a.age.key==='family'?a.shares.pFamily:a.activeShare);});
+            } else {
+                var target=ageShareKey[selected];
+                if(target){
+                    items.forEach(function(x){x.activeShareKey=target;x.activeShare=x.shares[target];x.activeMean=avg[target];});
+                    items=items.filter(function(x){return x.activeShare>=x.activeMean;});
+                    items.sort(function(a,b){return b.activeShare-a.activeShare;});
+                }
+            }
+            return items.slice(0,Number($('#mapLimit').val())||50);
         }
         var geoCacheKey='people_map_geocode_v1';
         function getGeoCache(){try{return JSON.parse(localStorage.getItem(geoCacheKey)||'{}');}catch(e){return {};}}
@@ -3607,21 +3631,25 @@ function renderAdultAgeChart() {
             var selected=$('#mapAge').val();
             var age=item.age||MAP_AGES[0];
             var markerHtml='';
-            if(selected==='above'){
+            if(selected==='family_only'){
+                markerHtml='<div class="mapMultiMarker"><div class="mapMultiIcons"><span class="ageMultiIcon" style="--marker-color:#111827" title="완성형 '+item.shares.pFamily.toFixed(1)+'% (평균 '+item.averages.pFamily.toFixed(1)+'%)"><span class="ageMultiGlyph">👨‍👩‍👧</span><b>가족</b></span></div><div class="name">'+htmlEscape(item.name)+'</div></div>';
+            }else if(selected==='above'){
                 var preferred=(item.above||[]).some(function(t){return t.key==='pFamily';}) ? (item.above||[]).filter(function(t){return t.key==='pFamily';}) : (item.above||[]);
                 var chips=preferred.map(function(t){
                     return '<span class="ageMultiIcon" style="--marker-color:'+t.color+'" title="'+htmlEscape(t.label)+': '+t.value.toFixed(1)+'% (평균 '+t.mean.toFixed(1)+'%)">'
                         +'<span class="ageMultiGlyph">'+t.icon+'</span><b>'+htmlEscape(t.short)+'</b></span>';
                 }).join('');
-                if(!chips) chips='<span class="ageNoHit">평균 이상 항목 없음</span>';
+                if(!chips) return;
                 markerHtml='<div class="mapMultiMarker"><div class="mapMultiIcons">'+chips+'</div><div class="name">'+htmlEscape(item.name)+'</div></div>';
             } else {
-                var familyMini=(item.familyShare>=MAP_FAMILY_THRESHOLD && age.key!=='family')?'<div class="familyMini">가족</div>':'';
-                markerHtml='<div class="mapMarker"><div class="pin" style="--marker-color:'+age.color+'"><div class="glyph">'+(age.icon||'👤')+'</div><div class="chip">'+htmlEscape(age.short||age.label||'')+'</div>'+familyMini+'</div><div class="name">'+htmlEscape(item.name)+' · '+htmlEscape(formatMapNumber(item))+'</div></div>';
+                var familyMini='';
+                markerHtml='<div class="mapMarker"><div class="pin" style="--marker-color:'+age.color+'"><div class="glyph">'+(age.icon||'👤')+'</div><div class="chip">'+htmlEscape(age.short||age.label||'')+'</div>'+familyMini+'</div><div class="name">'+htmlEscape(item.name)+' · '+((item.age&&item.age.key==='family')?item.shares.pFamily.toFixed(1)+'%':(item.activeShare||0).toFixed(1)+'%')+'</div></div>';
             }
             var marker=L.marker(coords,{icon:L.divIcon({html:markerHtml,className:'',iconSize:[0,0],iconAnchor:[0,0]})});
             var lines='';
-            if(selected==='above'){
+            if(selected==='family_only'){
+                lines='<div style="font-weight:700;margin-bottom:6px">완성형 비율: '+item.shares.pFamily.toFixed(1)+'% (비교 평균 '+item.averages.pFamily.toFixed(1)+'%)</div><hr>';
+            }else if(selected==='above'){
                 lines='<div style="font-weight:700;margin-bottom:6px">평균 이상 항목 (표의 빨간 칸)</div>';
                 lines+=(item.above||[]).map(function(t){return '<div style="display:flex;justify-content:space-between;gap:12px"><span>'+t.icon+' '+htmlEscape(t.label)+'</span><b>'+t.value.toFixed(1)+'% / 평균 '+t.mean.toFixed(1)+'%</b></div>';}).join('')||'없음';
                 lines+='<hr>';
@@ -3686,7 +3714,6 @@ function renderAdultAgeChart() {
             var token=++mapRunToken, sg=$('#mapSigungu').val(), sido=$('#mapSido').val(), bounds=[], failed=[];
             ageMarkers.clearLayers();
             if(ageVectorLayer){ageMap.removeLayer(ageVectorLayer);ageVectorLayer=null;}
-            $('#mapRenderBtn').prop('disabled',true);
             ageMapStatus(sg?'2026년 행정동 경계 다운로드 중... (최초 약 33MB)':'시군구 경계 다운로드 중...');
             try{
                 // 읍면동 수준과 시군구 수준의 도형을 각각 이용해 위치를 찾아냅니다.
@@ -3711,7 +3738,7 @@ function renderAdultAgeChart() {
                 ageVectorLayer=L.geoJSON({type:'FeatureCollection',features:features},{
                     style:function(f){
                         var x=colored.get(f);
-                        return {color:'#56809c',weight:x?2.1:1.25,opacity:0.95,fillColor:x?($('#mapAge').val()==='above'?'#b9d5ed':x.age.color):'#c9e2ec',fillOpacity:x?0.19:0.08};
+                        return {color:'#56809c',weight:x?2.1:1.25,opacity:0.95,fillColor:x?(['above','family_only'].includes($('#mapAge').val())?'#b9d5ed':x.age.color):'#c9e2ec',fillOpacity:x?0.19:0.08};
                     },
                     onEachFeature:function(f,layer){
                         var p=f.properties||{};
@@ -3735,14 +3762,20 @@ function renderAdultAgeChart() {
             }catch(err){
                 console.error(err);
                 ageMapStatus('행정구역 데이터를 불러오지 못했습니다: '+err.message+' · GitHub Raw 접근 가능 여부를 확인해 주세요.');
-            }finally{$('#mapRenderBtn').prop('disabled',false);}
+            }finally{}
+        }
+        var ageRenderTimer = null;
+        function scheduleAgeMapRender(delay){
+            clearTimeout(ageRenderTimer);
+            ageRenderTimer = setTimeout(function(){ renderAgeMap(); }, delay || 120);
         }
         $('#mapProvider').on('change',function(){
             if(!ageMap) initAgeMap();
             setAgeBaseLayer(this.value);
             if(ageVectorLayer) ageVectorLayer.bringToFront();
+            scheduleAgeMapRender(80);
         });
-        
+    
         // 전체화면 시 지도 크기 재계산 (ESC/버튼 모두 지원)
         function resizePopulationMap(){ if(ageMap) setTimeout(function(){ageMap.invalidateSize({pan:false});fitAgeMapView();},180); }
         $('#mapFullscreenBtn').on('click',function(){
@@ -3771,9 +3804,12 @@ function renderAdultAgeChart() {
             }
         });
         $('#mapFitBtn').on('click',function(){if(ageMap && ageMapLastBounds && ageMapLastBounds.isValid()){ageMap.invalidateSize();fitAgeMapView();}});
-        $('#mapAge').on('change',function(){drawMapLegend();});
+        $('#mapAge').on('change',function(){drawMapLegend(); scheduleAgeMapRender(80);});
         
         function drawMapLegend(){
+            if($('#mapAge').val()==='family_only'){
+                $('#mapLegend').html('<strong>완성형만 표시</strong><span>👨‍👩‍👧 완성형 비율이 선택 지역 평균 이상인 동만 표시합니다.</span>');return;
+            }
             if($('#mapAge').val()==='above'){
                 $('#mapLegend').html('<strong>지도 아이콘 = 해당 지역에서 평균 이상인 모든 항목</strong><span>🧒 0~19세</span><span>🚶 20대</span><span>🧑 30대</span><span>👤 40대</span><span>👨 50대</span><span>👴 60대 이상</span><span>👨‍👩‍👧 완성형</span>');return;
             }
@@ -3784,7 +3820,7 @@ function renderAdultAgeChart() {
                     + '</span>';
             });
             items.push('<span><i class="lgIcon" style="--c:'+MAP_FAMILY_RULE.color+'">'+MAP_FAMILY_RULE.icon+'<em class="lgChip">가족</em></i><b>완성형 비율 높음</b></span>');
-            $('#mapLegend').html(items.join(''));
+            $('#mapLegend').html('<strong>선택 연령대 비율이 평균 이상인 지역만 표시 · 숫자는 비율(%)</strong>'+items.join(''));
         }
 
         $(function() {
@@ -3798,12 +3834,21 @@ function renderAdultAgeChart() {
                 $(".tabPage").removeClass("active");
                 $("#tab-" + tab).addClass("active");
                 if (tab === "custom") renderCustomCompareSection();
-                if (tab === "map") { initAgeMap(); drawMapLegend(); setTimeout(function(){if(ageMap){ageMap.invalidateSize({pan:false});fitAgeMapView();}},160); }
+                if (tab === "map") {
+                    initAgeMap();
+                    drawMapLegend();
+                    setTimeout(function(){
+                        if(ageMap){
+                            ageMap.invalidateSize({pan:false});
+                            fitAgeMapView();
+                            scheduleAgeMapRender(120);
+                        }
+                    },160);
+                }
             });
 
-            $("#mapSido").on("change",populateMapSigungu);
-            $("#mapRenderBtn").on("click",renderAgeMap);
-            $("#mapCancelBtn").on("click",function(){mapRunToken++; $("#mapRenderBtn").prop('disabled',false);ageMapStatus('검색을 중단했습니다.');});
+            $("#mapSido").on("change",function(){ populateMapSigungu(); scheduleAgeMapRender(80); });
+            $("#mapSigungu, #mapLimit").on("change",function(){ scheduleAgeMapRender(80); });
             $("#addCustomRegionBtn").on("click", function() {
                 addCurrentRegionToCustom();
             });
