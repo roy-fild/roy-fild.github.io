@@ -22,6 +22,12 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/datatables.net-dt@2.0.8/css/dataTables.dataTables.min.css">
     <script src="https://cdn.jsdelivr.net/npm/datatables.net@2.0.8/js/dataTables.min.js"></script>
 
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- API 키 없는 OpenFreeMap 벡터지도: MapLibre + Leaflet bridge -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.1/dist/maplibre-gl.css" />
+    <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-leaflet@0.1.4/leaflet-maplibre-gl.js"></script>
     <style>
         body {
             font-family: system-ui, -apple-system, "Noto Sans KR", Segoe UI, Roboto, Arial, sans-serif;
@@ -280,6 +286,46 @@
             text-align: right;
         }
 
+        #populationMap { height: max(790px, 83vh); border:1px solid #ddd; border-radius:10px; z-index:0; background:#f4f7fa; }
+        .mapMarker { display:flex; flex-direction:column; align-items:center; transform:translate(-50%,-92%); white-space:nowrap; }
+        .mapMarker .pin { position:relative; min-width:48px; height:48px; padding:0 10px; border-radius:999px; background:#fff; border:3px solid var(--marker-color,#666); box-shadow:0 4px 12px rgba(0,0,0,.20); display:flex; align-items:center; justify-content:center; }
+        .mapMarker .glyph { font-size:23px; line-height:1; }
+        .mapMarker .chip { position:absolute; right:-8px; top:-8px; background:var(--marker-color,#666); color:#fff; border:2px solid #fff; border-radius:999px; padding:2px 6px; font-size:10px; line-height:1; font-weight:800; box-shadow:0 2px 6px rgba(0,0,0,.18); }
+        .mapMarker .familyMini { position:absolute; left:-8px; bottom:-7px; background:#111827; color:#fff; border:2px solid #fff; border-radius:999px; padding:2px 6px; font-size:9px; line-height:1; font-weight:800; box-shadow:0 2px 6px rgba(0,0,0,.18); }
+        .mapMarker .name { margin-top:5px; background:#fff; border:1px solid #d9d9d9; box-shadow:0 1px 6px rgba(0,0,0,.12); border-radius:8px; padding:3px 6px; font-size:11px; font-weight:700; max-width:148px; overflow:hidden; text-overflow:ellipsis; }
+        .mapLegend { display:flex; flex-wrap:wrap; gap:8px 10px; font-size:12px; margin:10px 0; }
+        .mapLegend span { display:inline-flex; align-items:center; gap:7px; background:#fff; border:1px solid #e5e7eb; border-radius:999px; padding:4px 8px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+        .mapLegend .lgIcon { position:relative; width:22px; height:22px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; background:#fff; border:2px solid var(--c,#666); font-size:13px; line-height:1; }
+        .mapLegend .lgChip { position:absolute; right:-7px; top:-7px; background:var(--c,#666); color:#fff; border:1px solid #fff; border-radius:999px; padding:1px 4px; font-size:8px; line-height:1; font-weight:800; }
+        .mapMultiMarker {display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-92%);white-space:nowrap;}
+        .mapMultiIcons {max-width:none;display:flex;flex-wrap:nowrap;justify-content:center;gap:3px;background:rgba(255,255,255,.95);border:1px solid #ddd;border-radius:13px;padding:5px;box-shadow:0 3px 11px #0003;}
+        .ageMultiIcon {display:inline-flex;flex-direction:column;justify-content:center;align-items:center;min-width:38px;gap:1px;padding:3px;border-radius:7px;border:2px solid var(--marker-color);background:white;}
+        .ageMultiGlyph {font-size:20px;line-height:23px;}
+        .ageMultiIcon b {font-size:10px;color:#253144;}
+        .mapMultiMarker .name {margin-top:3px;font-size:11px;font-weight:800;background:#fff;border:1px solid #ddd;border-radius:6px;padding:2px 6px;box-shadow:0 1px 4px #0002;}
+        .ageNoHit {font-size:10px;color:#666;}
+
+        /* 촘촘한 지역에서 가로 아이콘의 중첩을 줄이는 컴팩트 모드 */
+        #populationMap.compactAgeMarkers .mapMultiIcons { gap:1px;padding:3px;border-radius:9px; }
+        #populationMap.compactAgeMarkers .ageMultiIcon { min-width:25px;padding:1px 2px;border-width:1px; }
+        #populationMap.compactAgeMarkers .ageMultiGlyph { font-size:15px;line-height:17px; }
+        #populationMap.compactAgeMarkers .ageMultiIcon b { font-size:8px; }
+        #populationMap.compactAgeMarkers .mapMultiMarker .name { font-size:10px;padding:1px 4px; }
+        #populationMapWrap {position:relative; background:#f4f8f5; border-radius:10px;}
+        #populationMapWrap:fullscreen, #populationMapWrap.mapFsFallback {position:fixed;inset:0;z-index:99999;background:#f4f8f5;border-radius:0;}
+        #populationMapWrap:fullscreen #populationMap, #populationMapWrap.mapFsFallback #populationMap {height:100%;width:100%;border:0;border-radius:0;}
+        .mapFloatingControls {position:absolute;z-index:1000;right:14px;top:14px;display:flex;gap:6px;}
+        .mapFloatingControls button {padding:8px 11px;background:white;border:1px solid #cbd5e1;border-radius:8px;box-shadow:0 2px 7px #0002;cursor:pointer;font-size:13px;font-weight:750;color:#14283b;width:auto;}
+        .mapFloatingControls button:hover {background:#eff6ff;}
+        .mapMultiIcons {max-width:none !important;flex-wrap:nowrap !important;white-space:nowrap;}
+        .mapMultiMarker {z-index:1;}
+        /* 지도 가장자리의 아이콘이 잘리지 않도록 지도 패널 여유 공간 확보 */
+        #populationMapWrap {overflow:visible;}
+        #populationMap .leaflet-tile-pane{filter:saturate(.76);}
+        #populationMap .leaflet-overlay-pane path{vector-effect:non-scaling-stroke;}
+        #populationMap .leaflet-container {background:#f4f8f5;}
+
+        #mapStatus { min-height:18px; margin-top:8px; }
         .tabNav {
             display: flex;
             gap: 8px;
@@ -330,6 +376,7 @@
         <div class="tabNav">
             <button type="button" class="tabBtn active" data-tab="analysis">기본 분석</button>
             <button type="button" class="tabBtn" data-tab="custom">사용자 지정 비교</button>
+            <button type="button" class="tabBtn" data-tab="map">연령별 인구 지도</button>
         </div>
 
         <div class="tabPage active" id="tab-analysis">
@@ -814,6 +861,38 @@
                     <button class="btnCopy" id="copyCustomCompareTableBtn" type="button">복사</button>
                 </div>
                 <div id="customCompareTableWrap"><table id="customCompareTable2" class="display"></table></div>
+            </div>
+        </div>
+
+
+        <div class="tabPage" id="tab-map">
+            <div class="panel">
+                <div style="font-weight:700;margin-bottom:6px">연령별 인구 분포 지도</div>
+                <div class="muted">지역과 연령대를 선택하고 ‘지도 표시’를 누르세요. 원본 CSV 연령 통계를 지도에 연결합니다. 핀은 행정구역의 대표 위치이며 실제 인구 밀도나 거주지 위치를 뜻하지 않습니다.</div>
+                <div class="row" style="margin-top:12px">
+                    <div class="col"><label>시/도</label><select id="mapSido"><option value="">시/도 선택</option></select></div>
+                    <div class="col"><label>시/군/구 (선택)</label><select id="mapSigungu"><option value="">(전체 시/군/구)</option></select></div>
+                    <div class="col"><label>연령대</label><select id="mapAge">
+                        <option value="above" selected>평균 이상 연령대 전체 (빨간 칸)</option><option value="dominant">전체 연령대 (지역별 최다 연령)</option>
+                        <option value="a0_9">0~9세</option><option value="a10_19">10~19세</option><option value="a20">20대</option><option value="a30">30대</option><option value="a40">40대</option><option value="a50">50대</option><option value="a60p">60대 이상</option>
+                    </select></div>
+                    <div class="col" style="max-width:160px"><label>표시 지역 수</label><select id="mapLimit"><option value="10">상위 10곳</option><option value="20">상위 20곳</option><option value="30">상위 30곳</option><option value="50" selected>상위 50곳</option><option value="100">상위 100곳</option></select></div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
+                    <button type="button" class="btnCopy" id="mapRenderBtn">지도 표시</button>
+                    <button type="button" class="btnCopy" id="mapCancelBtn">검색 중단</button>
+                    <span class="muted">경계 GeoJSON 다운로드가 필요합니다. 이 버전은 지역 이름 검색보다 경계선 기반 표시를 우선합니다.</span>
+                </div>
+                <div class="muted" style="margin-top:10px">지도 배경 선택 · OpenFreeMap 벡터지도 실패 시 행정경계만 보기로 자동 전환됩니다.</div><select id="mapProvider" style="max-width:280px;margin:8px 0"><option value="openfreemap" selected>OpenFreeMap 도로 지도 + 행정경계</option><option value="boundaries">행정경계만 보기 (외부 지도 타일 불필요)</option></select><span class="muted" id="mapOriginHelp"></span><div id="mapStatus" class="status" aria-live="polite"></div>
+                <div id="mapLegend" class="mapLegend"></div>
+                <div id="populationMapWrap">
+                    <div id="populationMap"></div>
+                    <div class="mapFloatingControls">
+                        <button type="button" id="mapFullscreenBtn" title="지도 전체 화면" aria-label="지도 전체 화면">⛶ <span>전체 화면</span></button>
+                        <button type="button" id="mapFitBtn" title="표시 지역 전체 보기" aria-label="표시 지역 전체 보기">⊡ <span>지역 맞춤</span></button>
+                    </div>
+                </div>
+                <div style="margin-top:10px" class="muted">행정경계 데이터 출처: 공개 GeoJSON 저장소. 일부 동명이인 지역은 좌표를 찾지 못하거나 부정확할 수 있습니다. 아이콘의 숫자는 해당 지역 연령대 인구이며, 비율은 아이콘 클릭 시 확인할 수 있습니다.</div>
             </div>
         </div>
 
@@ -2655,6 +2734,7 @@ function renderAdultAgeChart() {
 
                 return tryFetchCsvFixedByUrls(AGE_URLS).then(function(res2) {
                     rawAgeRows = normalizeAgeRows(res2.data);
+                    populateMapSidos();
                     renderAll();
                     renderAgeChartAndTable();
                     setStatus("로드 완료", true);
@@ -3306,6 +3386,398 @@ function renderAdultAgeChart() {
             }
             $e.prop('disabled', false);
         }
+
+        /* ===== 연령별 인구 분포 지도 (기존 분석 기능과 독립) ===== */
+        var ageMap = null, ageMarkers = null, mapRunToken = 0, ageBaseLayer = null, ageBaseErrors = 0;
+        // OpenFreeMap 공개 벡터 타일. 공식 OSM 래스터 타일 서버에 접근하지 않음.
+        var OPENFREE_STYLE='https://tiles.openfreemap.org/styles/liberty';
+        // GitHub에서 제공하는 공개 GeoJSON. 배경 타일 대신 행정구역 도형을 렌더링.
+        var GEO_BASE='https://raw.githubusercontent.com/KnellBalm/kr-admin-geojson/main/';
+        var ADMIN_EMD_URL='https://raw.githubusercontent.com/vuski/admdongkor/master/ver20260701/HangJeongDong_ver20260701.geojson';
+        var ageGeoCache={}, ageVectorLayer=null, geoRequest=null, ageMapLastBounds=null;
+        function ageFeatureName(f){var p=f.properties||{}; return p.adm_nm||p.HJD_NM||p.EMD_KOR_NM||p.SIG_KOR_NM||p.CTP_KOR_NM||'';}
+        function cleanAgeName(t){return String(t||'').replace(/\s+/g,'').replace(/특별자치시|특별자치도/g,'').trim();}
+        async function loadAgeGeo(level){
+            if(ageGeoCache[level]) return ageGeoCache[level];
+            if(!geoRequest || geoRequest.level!==level){
+                var promise;
+                if(level==='emd'){
+                    // 행정동 실제 경계(법정동과 별개). 예: 상계1동, 중계본동
+                    promise=fetch(ADMIN_EMD_URL).then(function(r){
+                        if(!r.ok) throw new Error('행정동 경계 HTTP '+r.status);
+                        return r.json();
+                    }).then(function(data){
+                        if(!data || !Array.isArray(data.features) || !data.features.length) throw new Error('행정동 경계 자료가 비어 있습니다');
+                        return data;
+                    });
+                }else{
+                    promise=fetch(GEO_BASE+level+'.geojson').then(function(r){
+                        if(!r.ok) throw new Error('시군구 경계 HTTP '+r.status);
+                        return r.json();
+                    });
+                }
+                geoRequest={level:level,promise:promise};
+            }
+            try{
+                var data=await geoRequest.promise;
+                ageGeoCache[level]=data;
+                return data;
+            }catch(e){
+                geoRequest=null; // 실패한 Promise를 캐시하지 않아 다시 시도 가능
+                throw e;
+            }
+        }
+        function setAgeBaseLayer(provider){
+            if(!ageMap) return;
+            if(ageBaseLayer){try{ageMap.removeLayer(ageBaseLayer);}catch(e){} ageBaseLayer=null;}
+            ageMap.getContainer().style.background='#f4f8f5';
+            if(provider!=='openfreemap') return;
+            if(!L.maplibreGL || !window.maplibregl){
+                $('#mapProvider').val('boundaries');
+                ageMapStatus('MapLibre 라이브러리를 읽지 못해 경계 지도로 표시합니다. CDN 접근을 확인해 주세요.');
+                return;
+            }
+            try{
+                var layer=L.maplibreGL({style:OPENFREE_STYLE, interactive:false, pane:'tilePane'});
+                ageBaseLayer=layer;
+                layer.addTo(ageMap);
+                var gl=layer.getMaplibreMap && layer.getMaplibreMap();
+                if(gl){
+                    gl.on('error',function(e){
+                        if(ageBaseLayer!==layer) return;
+                        var msg=(e && e.error && e.error.message)||'벡터 지도 요청 실패';
+                        console.warn('OpenFreeMap:',msg);
+                        $('#mapProvider').val('boundaries');
+                        setAgeBaseLayer('boundaries');
+                        ageMapStatus('외부 벡터지도 로딩 오류로 행정경계 전용 지도로 전환했습니다: '+msg);
+                    });
+                }
+                if(ageVectorLayer) ageVectorLayer.bringToFront();
+            }catch(e){
+                console.warn('OpenFreeMap 초기화 실패',e);
+                $('#mapProvider').val('boundaries');
+                if(ageBaseLayer){try{ageMap.removeLayer(ageBaseLayer);}catch(_){} ageBaseLayer=null;}
+                ageMapStatus('OpenFreeMap 실행 실패. 행정경계로 전환했습니다: '+e.message);
+            }
+        }
+        var MAP_FAMILY_THRESHOLD = 55; // 기존 최대 연령 모드의 보조 표시용 (평균 이상 모드는 실제 평균으로 판별)
+        var MAP_FAMILY_RULE = {key:'family', label:'가족형', short:'가족', color:'#111827', icon:'👨‍👩‍👧'};
+        var MAP_AGES = [
+            {key:'a0_9',label:'0~9세',short:'0-9',color:'#e8a431',icon:'👶'},
+            {key:'a10_19',label:'10~19세',short:'10대',color:'#e8774c',icon:'🧒'},
+            {key:'a20',label:'20대',short:'20',color:'#4b91d2',icon:'🚶'},
+            {key:'a30',label:'30대',short:'30',color:'#2a9f83',icon:'🧑'},
+            {key:'a40',label:'40대',short:'40',color:'#8b75cd',icon:'👤'},
+            {key:'a50',label:'50대',short:'50',color:'#cb6699',icon:'👨'},
+            {key:'a60p',label:'60대 이상',short:'60+',color:'#657587',icon:'👴'}
+        ];
+        function formatMapNumber(item){
+            if(item.age && item.age.key === 'family') return '완성형 ' + (item.familyShare||0).toFixed(0) + '%';
+            return fmt(item.number || 0);
+        }
+        // 화면을 표시 지역에 맞추되 위쪽에 마커 1~2줄을 위한 공간을 확보합니다.
+        function fitAgeMapView(){
+            if(!ageMap || !ageMapLastBounds || !ageMapLastBounds.isValid()) return;
+            ageMap.invalidateSize({pan:false});
+            var size=ageMap.getSize();
+            // 선택 지역 전체의 경계가 지도 화면 안에 들어오도록 균형 있게 배치합니다.
+            // 경계선뿐 아니라 가장자리에 붙은 마커를 위한 여백을 확보합니다.
+            var horizontal=Math.max(105,Math.min(240,Math.round(size.x*0.12)));
+            var vertical=Math.max(125,Math.min(200,Math.round(size.y*0.18)));
+            ageMap.fitBounds(ageMapLastBounds,{
+                paddingTopLeft:[horizontal,vertical],
+                paddingBottomRight:[horizontal,vertical],
+                maxZoom:12,
+                animate:false
+            });
+        }
+        function initAgeMap(){
+            if(ageMap || typeof L === 'undefined') return;
+            ageMap=L.map('populationMap',{maxZoom:20}).setView([36.5,127.8],7);
+            setAgeBaseLayer($('#mapProvider').val()||'openfreemap');
+            ageMarkers=L.layerGroup().addTo(ageMap);
+            function adjustMarkerSize(){
+                ageMap.getContainer().classList.toggle('compactAgeMarkers',ageMap.getZoom()<15);
+            }
+            ageMap.on('zoomend',adjustMarkerSize);
+            adjustMarkerSize();
+        }
+        function ageMapStatus(t){ $('#mapStatus').text(t); }
+        function populateMapSidos(){
+            var sidos=uniq(rawAgeRows.map(function(r){return r.sido;})).sort(function(a,b){return a.localeCompare(b,'ko');});
+            $('#mapSido').empty().append($('<option>',{value:'',text:'시/도 선택'}));
+            sidos.forEach(function(v){$('#mapSido').append($('<option>',{value:v,text:v}));});
+            if(sidos.indexOf('서울특별시')>=0) $('#mapSido').val('서울특별시');
+            populateMapSigungu();
+        }
+        function populateMapSigungu(){
+            var sido=$('#mapSido').val();
+            var sgs=uniq(rawAgeRows.filter(function(r){return r.sido===sido;}).map(function(r){return r.sigungu;})).sort(function(a,b){return a.localeCompare(b,'ko');});
+            $('#mapSigungu').empty().append($('<option>',{value:'',text:'(전체 시/군/구)'}));
+            sgs.forEach(function(v){$('#mapSigungu').append($('<option>',{value:v,text:v}));});
+        }
+        function getMapItems(){
+            var sido=$('#mapSido').val(), sg=$('#mapSigungu').val();
+            if(!sido) return [];
+            var data=rawAgeRows.filter(function(r){
+                if(r.sido!==sido) return false;
+                if(sg) return r.sigungu===sg && !!r.emd;
+                return !!r.sigungu && !r.emd;
+            });
+            // 시군구 합계가 없는 파일에 대비: 읍면동 단위 집계로 대체
+            if(!sg && !data.length) data=rawAgeRows.filter(function(r){return r.sido===sido && !!r.sigungu && !!r.emd;});
+            var byKey=new Map();
+            data.forEach(function(r){
+                var name=sg ? r.emd : r.sigungu;
+                if(!name) return;
+                var full=sg ? [sido,sg,name].join(' ') : [sido,name].join(' ');
+                if(!byKey.has(full)) byKey.set(full,{name:name,full:full,sido:sido,sg:sg,raw:{}});
+                var item=byKey.get(full);
+                var age={a0_9:r.a0_9,a10_19:r.a10_19,a20:r.a20_29,a30:r.a30_39,a40:r.a40_49,a50:r.a50_59,
+                    a60p:(r.a60_69||0)+(r.a70_79||0)+(r.a80_89||0)+(r.a90_99||0)+(r.a100p||0)};
+                MAP_AGES.forEach(function(t){item.raw[t.key]=(item.raw[t.key]||0)+(Number(age[t.key])||0);});
+            });
+            var selected=$('#mapAge').val();
+            var items=Array.from(byKey.values());
+            items.forEach(function(x){
+                x.total=MAP_AGES.reduce(function(sum,t){return sum+(x.raw[t.key]||0);},0);
+                x.familyCount=(x.raw.a0_9||0)+(x.raw.a10_19||0)+(x.raw.a30||0)+(x.raw.a40||0)+(x.raw.a50||0);
+                x.familyShare=x.total?x.familyCount/x.total*100:0;
+                x.dom=MAP_AGES.reduce(function(a,b){return (x.raw[b.key]||0)>(x.raw[a.key]||0)?b:a;},MAP_AGES[0]);
+                x.baseAge=selected==='dominant'?x.dom:MAP_AGES.find(function(t){return t.key===selected;});
+                x.age=(selected==='dominant' && x.familyShare>=MAP_FAMILY_THRESHOLD)?MAP_FAMILY_RULE:x.baseAge;
+                x.number=x.raw[(x.baseAge&&x.baseAge.key)||'a0_9']||0;
+                x.percent=x.total?x.number/x.total*100:0;
+            });
+            items=items.filter(function(x){return x.total>0;});
+            // 평균 기준 표와 동일한 무가중 산술평균과 >= 비교.
+            // 평균 모집단은 현재 선택 시/도·시/군/구에 해당하는 전체 지역이며 Top N 적용 전 계산한다.
+            var avg={};
+            ['pTeen','p20','p30','p40','p50','p60p','pFamily'].forEach(function(k){avg[k]=0;});
+            items.forEach(function(x){
+                x.shares={pTeen:100*((x.raw.a0_9||0)+(x.raw.a10_19||0))/x.total,
+                  p20:100*(x.raw.a20||0)/x.total,p30:100*(x.raw.a30||0)/x.total,
+                  p40:100*(x.raw.a40||0)/x.total,p50:100*(x.raw.a50||0)/x.total,
+                  p60p:100*(x.raw.a60p||0)/x.total,pFamily:100*x.familyCount/x.total};
+                Object.keys(avg).forEach(function(k){avg[k]+=x.shares[k];});
+            });
+            Object.keys(avg).forEach(function(k){avg[k]/=items.length||1;});
+            var types=[
+              {key:'pTeen',label:'0~19세',short:'유아·10대',color:'#e8774c',icon:'🧒'},
+              {key:'p20',label:'20대',short:'20대',color:'#4b91d2',icon:'🚶'},
+              {key:'p30',label:'30대',short:'30대',color:'#2a9f83',icon:'🧑'},
+              {key:'p40',label:'40대',short:'40대',color:'#8b75cd',icon:'👤'},
+              {key:'p50',label:'50대',short:'50대',color:'#cb6699',icon:'👨'},
+              {key:'p60p',label:'60대 이상',short:'60+',color:'#657587',icon:'👴'},
+              {key:'pFamily',label:'완성형',short:'가족',color:'#111827',icon:'👨‍👩‍👧'}];
+            items.forEach(function(x){
+                x.above=types.filter(function(t){return x.shares[t.key]>=avg[t.key];}).map(function(t){
+                    return Object.assign({},t,{value:x.shares[t.key],mean:avg[t.key]});
+                });
+                x.averages=avg;
+            });
+            return items.sort(function(a,b){return selected==='above' ? b.total-a.total : b.number-a.number;}).slice(0,Number($('#mapLimit').val())||50);
+        }
+        var geoCacheKey='people_map_geocode_v1';
+        function getGeoCache(){try{return JSON.parse(localStorage.getItem(geoCacheKey)||'{}');}catch(e){return {};}}
+        function saveGeoCache(cache){try{localStorage.setItem(geoCacheKey,JSON.stringify(cache));}catch(e){}}
+        function sleepMap(ms){return new Promise(function(resolve){setTimeout(resolve,ms);});}
+        async function geocodeRegion(item,token,cache){
+            if(Object.prototype.hasOwnProperty.call(cache,item.full)) return cache[item.full];
+            // Nominatim 공개 서버 이용 정책에 맞춰 초당 최대 1회 요청, 결과는 로컬 캐시
+            var qs=[item.full+', 대한민국'];
+            var result=null;
+            for(var k=0;k<qs.length;k++){
+                if(token!==mapRunToken) return null;
+                try{
+                    var url='https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=kr&q='+encodeURIComponent(qs[k]);
+                    var res=await fetch(url,{headers:{'Accept-Language':'ko'}});
+                    if(!res.ok) throw new Error('주소 검색 응답 '+res.status);
+                    var values=await res.json();
+                    if(values.length){result=[Number(values[0].lat),Number(values[0].lon)];break;}
+                }catch(e){ console.warn('지도 지오코딩:',e); }
+                await sleepMap(1150);
+            }
+            cache[item.full]=result;
+            saveGeoCache(cache);
+            await sleepMap(1150);
+            return result;
+        }
+        function addAgeMapMarker(item,coords){
+            var selected=$('#mapAge').val();
+            var age=item.age||MAP_AGES[0];
+            var markerHtml='';
+            if(selected==='above'){
+                var preferred=(item.above||[]).some(function(t){return t.key==='pFamily';}) ? (item.above||[]).filter(function(t){return t.key==='pFamily';}) : (item.above||[]);
+                var chips=preferred.map(function(t){
+                    return '<span class="ageMultiIcon" style="--marker-color:'+t.color+'" title="'+htmlEscape(t.label)+': '+t.value.toFixed(1)+'% (평균 '+t.mean.toFixed(1)+'%)">'
+                        +'<span class="ageMultiGlyph">'+t.icon+'</span><b>'+htmlEscape(t.short)+'</b></span>';
+                }).join('');
+                if(!chips) chips='<span class="ageNoHit">평균 이상 항목 없음</span>';
+                markerHtml='<div class="mapMultiMarker"><div class="mapMultiIcons">'+chips+'</div><div class="name">'+htmlEscape(item.name)+'</div></div>';
+            } else {
+                var familyMini=(item.familyShare>=MAP_FAMILY_THRESHOLD && age.key!=='family')?'<div class="familyMini">가족</div>':'';
+                markerHtml='<div class="mapMarker"><div class="pin" style="--marker-color:'+age.color+'"><div class="glyph">'+(age.icon||'👤')+'</div><div class="chip">'+htmlEscape(age.short||age.label||'')+'</div>'+familyMini+'</div><div class="name">'+htmlEscape(item.name)+' · '+htmlEscape(formatMapNumber(item))+'</div></div>';
+            }
+            var marker=L.marker(coords,{icon:L.divIcon({html:markerHtml,className:'',iconSize:[0,0],iconAnchor:[0,0]})});
+            var lines='';
+            if(selected==='above'){
+                lines='<div style="font-weight:700;margin-bottom:6px">평균 이상 항목 (표의 빨간 칸)</div>';
+                lines+=(item.above||[]).map(function(t){return '<div style="display:flex;justify-content:space-between;gap:12px"><span>'+t.icon+' '+htmlEscape(t.label)+'</span><b>'+t.value.toFixed(1)+'% / 평균 '+t.mean.toFixed(1)+'%</b></div>';}).join('')||'없음';
+                lines+='<hr>';
+            }
+            lines+=MAP_AGES.map(function(t){var count=item.raw[t.key]||0;return '<div style="display:flex;justify-content:space-between;gap:18px"><span>'+t.label+'</span><b>'+fmt(count)+'명 ('+(item.total?((count/item.total)*100).toFixed(1):'0.0')+'%)</b></div>';}).join('');
+            marker.bindPopup('<div style="min-width:245px"><b>'+htmlEscape(item.full)+'</b><div style="margin:5px 0">전체 '+fmt(item.total)+'명</div>'+lines+'</div>',{maxWidth:360});
+            marker.addTo(ageMarkers);
+        }
+        // 최신 행정동 GeoJSON은 adm_nm에 전체 행정주소를 보관합니다.
+        // 법정동 EMD_KOR_NM으로 행정동을 추측하지 않고 행정동 이름만 비교합니다.
+        function normalizedMapName(v){
+            return String(v||'').normalize('NFC').replace(/[\s·.\-]/g,'').trim();
+        }
+        function adminFeatureFullName(f){
+            var p=f.properties||{};
+            return normalizedMapName(p.adm_nm||p.ADM_NM||'');
+        }
+        function featureIsArea(f,sido,sg){
+            var p=f.properties||{};
+            var full=adminFeatureFullName(f);
+            if(full){
+                if(!full.includes(normalizedMapName(sido))) return false;
+                return !sg || full.includes(normalizedMapName(sg));
+            }
+            var fs=normalizedMapName(p.SIDO_NM||p.CTP_KOR_NM||p.sido_nm);
+            var fg=normalizedMapName(p.SGG_NM||p.SIG_KOR_NM||p.sgg_nm);
+            if(fs && fs!==normalizedMapName(sido)) return false;
+            if(!sg) return true;
+            var q=normalizedMapName(sg);
+            return !fg || fg===q || fg.indexOf(q)===0 || q.indexOf(fg)===0;
+        }
+        function scoreAreaFeature(f,item,sg){
+            var p=f.properties||{}, target=normalizedMapName(item.name);
+            var full=adminFeatureFullName(f);
+            if(full){
+                var expected=normalizedMapName(item.full);
+                if(full===expected) return 10;
+                if(full.endsWith(target) && full.includes(normalizedMapName(item.sido)) && (!sg || full.includes(normalizedMapName(sg)))) return 8;
+                return 0;
+            }
+            var hj=normalizedMapName(p.HJD_NM), legal=normalizedMapName(p.EMD_KOR_NM), district=normalizedMapName(p.SIG_KOR_NM);
+            if(sg){
+                if(hj===target) return 5;
+                if(legal===target) return 4;
+            }else{
+                if(district===target) return 6;
+            }
+            return 0;
+        }
+        async function renderAgeMap(){
+            if(typeof L==='undefined'){ageMapStatus('Leaflet 라이브러리를 불러오지 못했습니다.');return;}
+            if(!rawAgeRows.length){ageMapStatus('인구 CSV가 아직 로드되지 않았습니다.');return;}
+            initAgeMap(); ageMap.invalidateSize();
+            var items=getMapItems();
+            if(!items.length){ageMapStatus('해당 지역에 표시할 연령 데이터가 없습니다.');return;}
+            var token=++mapRunToken, sg=$('#mapSigungu').val(), sido=$('#mapSido').val(), bounds=[], failed=[];
+            ageMarkers.clearLayers();
+            if(ageVectorLayer){ageMap.removeLayer(ageVectorLayer);ageVectorLayer=null;}
+            $('#mapRenderBtn').prop('disabled',true);
+            ageMapStatus(sg?'2026년 행정동 경계 다운로드 중... (최초 약 33MB)':'시군구 경계 다운로드 중...');
+            try{
+                // 읍면동 수준과 시군구 수준의 도형을 각각 이용해 위치를 찾아냅니다.
+                var data=await loadAgeGeo(sg?'emd':'sig');
+                if(token!==mapRunToken) return;
+                var features=data.features.filter(function(f){return featureIsArea(f,sido,sg);});
+                // 행정동 원본과 행정동 통계를 맞춥니다. 일치하지 않으면 임의 배치하지 않습니다.
+                var selectedFeatures=[], colored=new Map();
+                items.forEach(function(item){
+                    var candidates=features.map(function(f){return {f:f,score:scoreAreaFeature(f,item,sg)};}).filter(function(o){return o.score>=4;});
+                    if(!candidates.length){failed.push(item.name);return;}
+                    candidates.forEach(function(o){selectedFeatures.push(o.f);colored.set(o.f,item);});
+                    var layer=L.geoJSON({type:'FeatureCollection',features:candidates.map(function(o){return o.f;})});
+                    var center=layer.getBounds().getCenter();
+                    addAgeMapMarker(item,[center.lat,center.lng]);
+                    bounds.push([center.lat,center.lng]);
+                });
+                ageVectorLayer=L.geoJSON({type:'FeatureCollection',features:features},{
+                    style:function(f){
+                        var x=colored.get(f);
+                        return {color:'#56809c',weight:x?2.1:1.25,opacity:0.95,fillColor:x?($('#mapAge').val()==='above'?'#b9d5ed':x.age.color):'#c9e2ec',fillOpacity:x?0.19:0.08};
+                    },
+                    onEachFeature:function(f,layer){
+                        var p=f.properties||{};
+                        var label=ageFeatureName(f);
+                        if(label) layer.bindTooltip(htmlEscape(label),{sticky:true});
+                    }
+                }).addTo(ageMap);
+                ageVectorLayer.bringToFront();
+                // 모든 표시 대상 경계의 범위를 사용합니다. 개별 마커 기준 범위는
+                // 상위/왼쪽 지도가 잘리는 문제가 있어 화면 맞춤 계산에서 제외합니다.
+                ageMapLastBounds=ageVectorLayer.getBounds();
+                if(ageMapLastBounds && ageMapLastBounds.isValid()) {
+                    fitAgeMapView();
+                    // Leaflet의 지도 탭 표시 직후 레이아웃 재계산에 대응
+                    setTimeout(function(){ if(token===mapRunToken) fitAgeMapView(); }, 200);
+                }
+                ageMapStatus((sg?'2026 행정동 경계 지도: ':'시군구 경계 지도: ')+bounds.length+'개 지역 표시'+(failed.length?' · 명칭이 일치하지 않아 제외한 지역 '+failed.length+'개 ('+failed.slice(0,6).join(', ')+(failed.length>6?' 외':'')+')':'')+'. 완성형이 평균 이상이면 가족 아이콘을 우선 표시하고, 그 외 지역은 평균 이상 연령을 가로로 표시합니다. 지도는 인구의 정확한 거주 위치가 아닌 행정구역을 나타냅니다.');
+            }catch(err){
+                console.error(err);
+                ageMapStatus('행정구역 데이터를 불러오지 못했습니다: '+err.message+' · GitHub Raw 접근 가능 여부를 확인해 주세요.');
+            }finally{$('#mapRenderBtn').prop('disabled',false);}
+        }
+        $('#mapProvider').on('change',function(){
+            if(!ageMap) initAgeMap();
+            setAgeBaseLayer(this.value);
+            if(ageVectorLayer) ageVectorLayer.bringToFront();
+        });
+        if(location.protocol==='file:'){
+            $('#mapOriginHelp').text('file:// 로 실행 중입니다. 외부 리소스 오류가 나면 GitHub Pages(https)나 로컬 HTTP 서버를 이용하세요.');
+        }else{
+            $('#mapOriginHelp').text('HTTP(S) 환경: 외부 지도 서비스 정책에 따라 결과가 달라질 수 있습니다.');
+        }
+        // 전체화면 시 지도 크기 재계산 (ESC/버튼 모두 지원)
+        function resizePopulationMap(){ if(ageMap) setTimeout(function(){ageMap.invalidateSize({pan:false});fitAgeMapView();},180); }
+        $('#mapFullscreenBtn').on('click',function(){
+            var wrap=document.getElementById('populationMapWrap');
+            if(!wrap) return;
+            if(document.fullscreenElement===wrap){ document.exitFullscreen().catch(function(){}); return; }
+            if(wrap.classList.contains('mapFsFallback')){
+                wrap.classList.remove('mapFsFallback');
+                document.body.style.overflow='';
+                $(this).html('⛶ <span>전체 화면</span>');
+                resizePopulationMap();
+                return;
+            }
+            if(wrap.requestFullscreen){
+                wrap.requestFullscreen().catch(function(){wrap.classList.add('mapFsFallback');document.body.style.overflow='hidden';resizePopulationMap();});
+            }else{wrap.classList.add('mapFsFallback');document.body.style.overflow='hidden';resizePopulationMap();}
+        });
+        document.addEventListener('fullscreenchange',function(){
+            $('#mapFullscreenBtn').html(document.fullscreenElement?'⤢ <span>전체 화면 종료</span>':'⛶ <span>전체 화면</span>');
+            resizePopulationMap();
+        });
+        document.addEventListener('keydown',function(e){
+            if(e.key==='Escape' && document.getElementById('populationMapWrap').classList.contains('mapFsFallback')){
+                document.getElementById('populationMapWrap').classList.remove('mapFsFallback');
+                document.body.style.overflow='';resizePopulationMap();
+            }
+        });
+        $('#mapFitBtn').on('click',function(){if(ageMap && ageMapLastBounds && ageMapLastBounds.isValid()){ageMap.invalidateSize();fitAgeMapView();}});
+        $('#mapAge').on('change',function(){drawMapLegend();});
+        
+        function drawMapLegend(){
+            if($('#mapAge').val()==='above'){
+                $('#mapLegend').html('<strong>지도 아이콘 = 해당 지역에서 평균 이상인 모든 항목</strong><span>🧒 0~19세</span><span>🚶 20대</span><span>🧑 30대</span><span>👤 40대</span><span>👨 50대</span><span>👴 60대 이상</span><span>👨‍👩‍👧 완성형</span>');return;
+            }
+            var items = MAP_AGES.map(function(a){
+                return '<span>'
+                    + '<i class="lgIcon" style="--c:'+a.color+'">'+(a.icon||'👤')+'<em class="lgChip">'+htmlEscape(a.short||a.label)+'</em></i>'
+                    + '<b>'+a.label+'</b>'
+                    + '</span>';
+            });
+            items.push('<span><i class="lgIcon" style="--c:'+MAP_FAMILY_RULE.color+'">'+MAP_FAMILY_RULE.icon+'<em class="lgChip">가족</em></i><b>완성형 비율 높음</b></span>');
+            $('#mapLegend').html(items.join(''));
+        }
+
         $(function() {
             loadCustomRegions();
             renderCustomRegionList();
@@ -3317,8 +3789,12 @@ function renderAdultAgeChart() {
                 $(".tabPage").removeClass("active");
                 $("#tab-" + tab).addClass("active");
                 if (tab === "custom") renderCustomCompareSection();
+                if (tab === "map") { initAgeMap(); drawMapLegend(); setTimeout(function(){if(ageMap){ageMap.invalidateSize({pan:false});fitAgeMapView();}},160); }
             });
 
+            $("#mapSido").on("change",populateMapSigungu);
+            $("#mapRenderBtn").on("click",renderAgeMap);
+            $("#mapCancelBtn").on("click",function(){mapRunToken++; $("#mapRenderBtn").prop('disabled',false);ageMapStatus('검색을 중단했습니다.');});
             $("#addCustomRegionBtn").on("click", function() {
                 addCurrentRegionToCustom();
             });
