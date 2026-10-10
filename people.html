@@ -868,7 +868,7 @@
         <div class="tabPage" id="tab-map">
             <div class="panel">
                 <div style="font-weight:700;margin-bottom:6px">연령별 인구 분포 지도</div>
-                <div class="muted">지역과 연령대를 선택하면 지도가 자동으로 갱신됩니다. 원본 CSV 연령 통계를 지도에 연결합니다. 핀은 행정구역의 대표 위치이며 실제 인구 밀도나 거주지 위치를 뜻하지 않습니다.</div>
+                
                 <div class="row" style="margin-top:12px">
                     <div class="col"><label>시/도</label><select id="mapSido"><option value="">시/도 선택</option></select></div>
                     <div class="col"><label>시/군/구 (선택)</label><select id="mapSigungu"><option value="">(전체 시/군/구)</option></select></div>
@@ -879,7 +879,7 @@
                     <div class="col" style="max-width:160px"><label>표시 지역 수</label><select id="mapLimit"><option value="10">상위 10곳</option><option value="20">상위 20곳</option><option value="30">상위 30곳</option><option value="50" selected>상위 50곳</option><option value="100">상위 100곳</option></select></div>
                 </div>
             
-                <div class="muted" style="margin-top:10px">지도 배경 선택 · OpenFreeMap 벡터지도 실패 시 행정경계만 보기로 자동 전환됩니다.</div><select id="mapProvider" style="max-width:280px;margin:8px 0"><option value="openfreemap" selected>OpenFreeMap 도로 지도 + 행정경계</option><option value="boundaries">행정경계만 보기 (외부 지도 타일 불필요)</option></select><span class="muted" id="mapOriginHelp"></span><div id="mapStatus" class="status" aria-live="polite"></div>
+                <select id="mapProvider" style="max-width:280px;margin:8px 0"><option value="openfreemap" selected>OpenFreeMap 도로 지도 + 행정경계</option><option value="boundaries">행정경계만 보기 (외부 지도 타일 불필요)</option></select><span class="muted" id="mapOriginHelp"></span><div id="mapStatus" class="status" aria-live="polite"></div>
                 <div id="mapLegend" class="mapLegend"></div>
                 <div id="populationMapWrap">
                     <div id="populationMap"></div>
@@ -888,7 +888,7 @@
                         <button type="button" id="mapFitBtn" title="표시 지역 전체 보기" aria-label="표시 지역 전체 보기">⊡ <span>지역 맞춤</span></button>
                     </div>
                 </div>
-                <div style="margin-top:10px" class="muted">행정경계 데이터 출처: 공개 GeoJSON 저장소. 일부 동명이인 지역은 좌표를 찾지 못하거나 부정확할 수 있습니다. 아이콘의 숫자는 해당 지역 연령대 인구이며, 비율은 아이콘 클릭 시 확인할 수 있습니다.</div>
+                
             </div>
         </div>
 
@@ -3693,7 +3693,8 @@ function renderAdultAgeChart() {
             if(full){
                 var expected=normalizedMapName(item.full);
                 if(full===expected) return 10;
-                if(full.endsWith(target) && full.includes(normalizedMapName(item.sido)) && (!sg || full.includes(normalizedMapName(sg)))) return 8;
+                if(/^세종/.test(item.sido) && full.endsWith(target) && full.indexOf('세종')>=0) return 9;
+                if(full.endsWith(target) && full.includes(normalizedMapName(item.sido)) && (!sg || sg==='__SEJONG_DONG__' || full.includes(normalizedMapName(sg)))) return 8;
                 return 0;
             }
             var hj=normalizedMapName(p.HJD_NM), legal=normalizedMapName(p.EMD_KOR_NM), district=normalizedMapName(p.SIG_KOR_NM);
@@ -3714,17 +3715,19 @@ function renderAdultAgeChart() {
             var token=++mapRunToken, sg=$('#mapSigungu').val(), sido=$('#mapSido').val(), bounds=[], failed=[];
             ageMarkers.clearLayers();
             if(ageVectorLayer){ageMap.removeLayer(ageVectorLayer);ageVectorLayer=null;}
-            ageMapStatus(sg?'2026년 행정동 경계 다운로드 중... (최초 약 33MB)':'시군구 경계 다운로드 중...');
+            ageMapStatus((sg || /^세종/.test(sido))?'행정동 경계 불러오는 중...':'시군구 경계 불러오는 중...');
             try{
                 // 읍면동 수준과 시군구 수준의 도형을 각각 이용해 위치를 찾아냅니다.
-                var data=await loadAgeGeo(sg?'emd':'sig');
+                var sejong = /^세종/.test(String(sido||''));
+                var dongLevel = !!sg || sejong;
+                var data=await loadAgeGeo(dongLevel?'emd':'sig');
                 if(token!==mapRunToken) return;
                 var features=data.features.filter(function(f){return featureIsArea(f,sido,sg);});
                 // 행정동 원본과 인구 CSV의 명칭을 정규화하여 비교한다.
                 // 여러 후보가 발견되면 잘못된 위치에 임의로 배치하지 않고 누락으로 안내한다.
                 var selectedFeatures=[], colored=new Map(), ambiguous=[];
                 items.forEach(function(item){
-                    var candidates=features.map(function(f){return {f:f,score:scoreAreaFeature(f,item,sg)};}).filter(function(o){return o.score>=4;});
+                    var candidates=features.map(function(f){return {f:f,score:scoreAreaFeature(f,item,sg || (sejong ? '__SEJONG_DONG__' : ''))};}).filter(function(o){return o.score>=4;});
                     if(!candidates.length){failed.push(item.name);return;}
                     var bestScore=Math.max.apply(null,candidates.map(function(o){return o.score;}));
                     candidates=candidates.filter(function(o){return o.score===bestScore;});
@@ -3755,13 +3758,13 @@ function renderAdultAgeChart() {
                     // Leaflet의 지도 탭 표시 직후 레이아웃 재계산에 대응
                     setTimeout(function(){ if(token===mapRunToken) fitAgeMapView(); }, 200);
                 }
-                ageMapStatus((sg?'2026 행정동 경계 지도: ':'시군구 경계 지도: ')+bounds.length+'개 지역 표시'
+                ageMapStatus(bounds.length+'개 지역 표시'
                   +(failed.length?' · 경계 명칭 불일치 '+failed.length+'개: '+failed.join(', '):'')
                   +(ambiguous.length?' · 중복 경계 후보 '+ambiguous.length+'개: '+ambiguous.join(', '):'')
-                  +'. 완성형이 평균 이상이면 가족 아이콘을 우선 표시하고, 그 외 지역은 평균 이상 연령을 가로로 표시합니다. 지도는 실제 거주 위치가 아닌 행정구역을 나타냅니다.');
+                  );
             }catch(err){
                 console.error(err);
-                ageMapStatus('행정구역 데이터를 불러오지 못했습니다: '+err.message+' · GitHub Raw 접근 가능 여부를 확인해 주세요.');
+                ageMapStatus('지도 데이터 오류: '+err.message);
             }finally{}
         }
         var ageRenderTimer = null;
@@ -3811,7 +3814,7 @@ function renderAdultAgeChart() {
                 $('#mapLegend').html('<strong>완성형만 표시</strong><span>👨‍👩‍👧 완성형 비율이 선택 지역 평균 이상인 동만 표시합니다.</span>');return;
             }
             if($('#mapAge').val()==='above'){
-                $('#mapLegend').html('<strong>지도 아이콘 = 해당 지역에서 평균 이상인 모든 항목</strong><span>🧒 0~19세</span><span>🚶 20대</span><span>🧑 30대</span><span>👤 40대</span><span>👨 50대</span><span>👴 60대 이상</span><span>👨‍👩‍👧 완성형</span>');return;
+                $('#mapLegend').html('<strong>평균 이상 항목</strong><span>🧒 0~19세</span><span>🚶 20대</span><span>🧑 30대</span><span>👤 40대</span><span>👨 50대</span><span>👴 60대 이상</span><span>👨‍👩‍👧 완성형</span>');return;
             }
             var items = MAP_AGES.map(function(a){
                 return '<span>'
