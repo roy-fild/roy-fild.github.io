@@ -193,10 +193,9 @@ function openAptPopup(r,moveTo){
  <div style="font-size:15px;font-weight:800;margin-bottom:7px">${safe(r[1])}</div>
  <div><b>사용승인연도</b> ${safe(r[8])}년 <span style="display:inline-block;width:11px;height:11px;background:${color(r[8])};border-radius:50%;vertical-align:middle"></span></div>
  <div><b>세대수</b> ${num(r[9])}세대</div>
- <div><b>단지코드</b> ${safe(r[0])}</div>
  <div style="margin-top:5px;font-size:12px;color:#516174"><b>도로명주소</b> ${safe(r[6])}</div>
  <div style="font-size:12px;color:#516174"><b>법정동주소</b> ${safe(r[7])}</div>
- <div style="margin-top:7px;color:#9a5b00;font-size:11px">● 지도 원형은 위치 표시이며 실제 단지 부지 경계가 아닙니다.</div></div>`;
+ </div>`;
  bubble=new kakao.maps.InfoWindow({position:pos,content,removable:true,zIndex:100});
  if(moveTo){map.panTo(pos);if(map.getLevel()>5)map.setLevel(5);}
  bubble.open(map);
