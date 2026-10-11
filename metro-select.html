@@ -739,6 +739,12 @@
         #metroRegionMap .leaflet-pane.metro-label-pane{pointer-events:none;}
         #metroRegionMap .leaflet-pane.metro-label-pane .leaflet-marker-icon{pointer-events:none;}
         #metroRegionMap.metro-label-small .metro-area-label{font-size:11px;padding:3px 6px;}
+        .metro-lines-filter{display:flex;align-items:center;flex-wrap:wrap;gap:7px 12px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;padding:10px 12px;margin:0 0 10px;font-size:12px}
+        .metro-lines-filter strong{margin-right:5px;white-space:nowrap}
+        .metro-lines-filter label{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;background:white;border:1px solid #e2e8f0;border-radius:7px;cursor:pointer;white-space:nowrap}
+        .metro-lines-filter label:has(input:not(:checked)){opacity:.55}
+        .metro-lines-filter input[type=checkbox]{accent-color:#2563eb;width:15px;height:15px;margin:0;cursor:pointer}
+        .metro-line-dot{width:11px;height:11px;border-radius:3px;display:inline-block}
         .metro-map-key{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;font-size:12px}
         .metro-map-key span{display:inline-flex;align-items:center;gap:5px;background:#f8fafc;padding:3px 7px;border:1px solid #e2e8f0;border-radius:20px}
         .metro-map-key i{display:inline-block;width:12px;height:5px;border-radius:3px}
@@ -1512,6 +1518,7 @@
                     <input type="file" id="metroLocalStationFile" accept=".json,.json5,.csv" style="width:auto;max-width:270px;font-size:11px" />
                     <span>기본은 온라인 정적 목록을 읽고, 파일을 선택하면 해당 좌표를 우선 사용합니다.</span>
                 </div>
+                <div id="metroLineCheckboxes" class="metro-lines-filter" aria-label="지도에 표시할 호선"><strong>호선 표시</strong><span>역 위치 데이터 로딩 후 자동 표시됩니다.</span></div>
                 <div id="metroMapStatus" role="status" aria-live="polite">지도를 보려면 구를 선택해 주세요.</div>
                 <div class="metro-map-wrap" id="metroMapWrap">
                     <div id="metroRegionMap"></div>
@@ -1630,6 +1637,7 @@
  let adminPromise=null,admin=[],selectedFeatures=[],map=null,backdrop=null,areaLayer=null,stationLayer=null,labelLayer=null,routeLayer=null,latestRun=0;
  let routePoints=[],routePinned=null,routeHovered=null;
  let mapVisible=false,staticStations=null,staticStationsPromise=null,manualStations=null;
+ let mapStationCache=null, mapLineChoices=[], mapCheckedLineKeys=new Set(), mapLineRegionKey='';
  const $id=id=>document.getElementById(id);
  const norm=s=>String(s??'').normalize('NFC').replace(/\([^)]*\)/g,'').replace(/역$/,'').replace(/\s+/g,'').replace(/(제)(\d+)(동)/g,'$2$3').trim();
  const fmt=n=>Number(n||0).toLocaleString('ko-KR');
@@ -1826,6 +1834,68 @@
    }else routeHovered=target;
    highlightRoute();
  }
+ function mapRegionKey(){return [activeCity,$id('metroMapSido').value,$id('metroMapGu').value,$id('metroMapDong').value,$id('metroMapMonth').value].join('|');}
+ function availableStationLines(stations){
+   const st=state(),byName=new Map();
+   for(const r of monthlyRows()){
+     const key=norm(r[st.stationField]);
+     if(!byName.has(key))byName.set(key,[]);
+     byName.get(key).push(r);
+   }
+   const found=new Map();
+   for(const x of stations){
+     if(!containedInSelected(x.lat,x.lng))continue;
+     const name=norm(x.tags['name:ko']||x.tags.name_ko||x.tags.name||'');
+     const csv=byName.get(name)||[];
+     const candidates=x.lines||[];
+     const matched=csv.filter(r=>!candidates.length||candidates.some(l=>normLineKey(l)===normLineKey(r[st.lineField])));
+     const labels=new Set([...candidates,...(matched.length?matched:(!candidates.length?csv:[])).map(r=>String(r[st.lineField]||''))]);
+     for(const label of labels){
+       if(!label)continue;
+       const key=normLineKey(label);
+       if(!key)continue;
+       // Prefer the CSV's local line designation when available.
+       if(!found.has(key)||csv.some(r=>String(r[st.lineField])===label))found.set(key,label);
+     }
+   }
+   return [...found].map(([key,label])=>({key,label,color:lineColor(label)})).sort((a,b)=>a.label.localeCompare(b.label,'ko',{numeric:true}));
+ }
+ function refreshLineCheckboxes(stations){
+   const items=availableStationLines(stations);
+   const regionKey=mapRegionKey();
+   const reset=regionKey!==mapLineRegionKey;
+   mapLineRegionKey=regionKey;
+   if(reset)mapCheckedLineKeys=new Set(items.map(x=>x.key));
+   else {
+     const available=new Set(items.map(x=>x.key));
+     for(const key of [...mapCheckedLineKeys])if(!available.has(key))mapCheckedLineKeys.delete(key);
+     // A newly discovered line starts checked.
+     const previous=new Set(mapLineChoices.map(x=>x.key));
+     for(const item of items)if(!previous.has(item.key))mapCheckedLineKeys.add(item.key);
+   }
+   mapLineChoices=items;
+   const target=$id('metroLineCheckboxes');
+   target.replaceChildren();
+   const heading=document.createElement('strong');heading.textContent='호선 표시';target.append(heading);
+   if(!items.length){const msg=document.createElement('span');msg.textContent='선택 지역에서 확인된 호선이 없습니다.';target.append(msg);return;}
+   const allLabel=document.createElement('label');
+   const all=document.createElement('input');all.type='checkbox';all.id='metroLineSelectAll';
+   all.checked=items.every(x=>mapCheckedLineKeys.has(x.key));all.indeterminate=!all.checked&&items.some(x=>mapCheckedLineKeys.has(x.key));
+   allLabel.append(all,document.createTextNode('전체 선택'));target.append(allLabel);
+   for(const item of items){
+     const label=document.createElement('label');
+     const cb=document.createElement('input');cb.type='checkbox';cb.className='metro-line-check';cb.value=item.key;cb.checked=mapCheckedLineKeys.has(item.key);
+     const dot=document.createElement('span');dot.className='metro-line-dot';dot.style.background=item.color;
+     label.append(cb,dot,document.createTextNode(item.label));target.append(label);
+   }
+ }
+ function drawCachedWithLineFilters(){
+   if(!mapVisible||!mapStationCache||!stationLayer)return;
+   const result=drawStops(mapStationCache);
+   const a=$id('metroLineSelectAll');
+   if(a){a.checked=mapLineChoices.every(x=>mapCheckedLineKeys.has(x.key));a.indeterminate=!a.checked&&mapLineChoices.some(x=>mapCheckedLineKeys.has(x.key));}
+   setStatus('선택 지역 · 표시 호선 '+mapLineChoices.filter(x=>mapCheckedLineKeys.has(x.key)).length+'/'+mapLineChoices.length+'개 · 역 '+result.found+'곳 · CSV 매칭 '+result.matched+'곳');
+ }
  function drawStops(stations){
    resetRoute();stationLayer.clearLayers();const st=state(),rows=monthlyRows(),byName=new Map();
    for(const r of rows){const k=norm(r[st.stationField]);if(!byName.has(k))byName.set(k,[]);byName.get(k).push(r);}
@@ -1842,6 +1912,8 @@
      // 공개 역 이름과 호선 표기의 차이는 지나치게 느슨하게 매칭하지 않는다.
      const mr=filtered.length?filtered:(!candidateLines.length?csvRows:[]);
      if(selectedLine && !mr.length && candidateLines.length && !candidateLines.some(l=>norm(l)===norm(selectedLine)))continue;
+     const visibilityLines=[...mr.map(r=>String(r[st.lineField]||'')),...candidateLines];
+     if(!visibilityLines.some(l=>mapCheckedLineKeys.has(normLineKey(l))))continue;
      used.add(poskey);found++;
      if(mr.length){matched++;for(const r of mr)lset.set(String(r[st.lineField]),lineColor(r[st.lineField]));}
      const line=mr.length?String(mr[0][st.lineField]):(candidateLines[0]||'');
@@ -1863,7 +1935,7 @@
    if(!admin.length){setStatus('행정동 경계 데이터 다운로드 중… (처음 한 번 약 33MB)');await getAdmin();if(token!==latestRun)return;populateSido();}
    initMap();
    const sido=$id('metroMapSido').value,gu=$id('metroMapGu').value;
-   resetRoute();stationLayer.clearLayers();areaLayer.clearLayers();labelLayer.clearLayers();
+   resetRoute();stationLayer.clearLayers();areaLayer.clearLayers();labelLayer.clearLayers();mapStationCache=null;
    selectedFeatures=selectedRegion();
    if(!selectedFeatures.length){setStatus('선택한 지역과 일치하는 행정동 경계를 찾지 못했습니다.',true);return;}
    zoomToRegion(selectedFeatures);
@@ -1871,6 +1943,8 @@
    drawRegionLabels();
    setStatus('정적 역 좌표 목록 불러오는 중… ('+sido+(gu?' '+gu:'')+')');
    let arr=await queryStations(areaLayer.getBounds().pad(.03));if(token!==latestRun)return;
+   mapStationCache=arr;
+   refreshLineCheckboxes(arr);
    let result=drawStops(arr);
    setStatus(sido+(gu?' '+gu:'')+($id('metroMapDong').value?' '+$id('metroMapDong').value:'')+' · 지도상 역 '+result.found+'곳 · CSV 매칭 '+result.matched+'곳. 원 안에 마우스를 올려 시간대별 승·하차를 확인하세요.'+(result.found&&!result.matched?' (역명 표기/데이터 범위를 확인해 주세요.)':''));
  }catch(e){console.error(e);if(token===latestRun)setStatus('지도 데이터 로딩 오류: '+e.message,true);}}
@@ -1882,7 +1956,7 @@
    const oldLine=$id('metroMapLine').value;optionList($id('metroMapLine'),lines,'전체 호선');if(lines.includes(oldLine))$id('metroMapLine').value=oldLine;
    if(mapVisible&&stationLayer){renderFromSelectors();}
  };
- window.onMetroMapCityChanged=function(){latestRun++;if(map){map.setView(CENTERS[activeCity],11);resetRoute();stationLayer.clearLayers();areaLayer.clearLayers();labelLayer.clearLayers();}if(admin.length)populateSido();updateMetroMapMonthLine();if(mapVisible)renderFromSelectors();};
+ window.onMetroMapCityChanged=function(){mapStationCache=null;mapLineRegionKey='';latestRun++;if(map){map.setView(CENTERS[activeCity],11);resetRoute();stationLayer.clearLayers();areaLayer.clearLayers();labelLayer.clearLayers();}if(admin.length)populateSido();updateMetroMapMonthLine();if(mapVisible)renderFromSelectors();};
  window.initMetroMapUI=function(){
    const showMap=()=>{mapVisible=true;document.body.classList.add('metro-map-mode');$id('metroMapView').classList.add('active');$id('metroTableView').classList.remove('active');$id('metroMapView').setAttribute('aria-selected','true');$id('metroTableView').setAttribute('aria-selected','false');updateMetroMapMonthLine();initMap();setTimeout(()=>{map.invalidateSize();redraw();},100);};
    const showTable=()=>{mapVisible=false;latestRun++;document.body.classList.remove('metro-map-mode');$id('metroMapView').classList.remove('active');$id('metroTableView').classList.add('active');$id('metroMapView').setAttribute('aria-selected','false');$id('metroTableView').setAttribute('aria-selected','true');};
@@ -1895,6 +1969,16 @@
        if(!rows.length)throw new Error('유효한 역 좌표가 없습니다.');
        manualStations=rows;setStatus('직접 선택한 역 좌표 '+rows.length+'곳을 불러왔습니다.');renderFromSelectors();
      }catch(e){setStatus('역 좌표 파일 오류: '+e.message,true);}
+   });
+   $id('metroLineCheckboxes').addEventListener('change',ev=>{
+     const input=ev.target;
+     if(!(input instanceof HTMLInputElement)||input.type!=='checkbox')return;
+     if(input.id==='metroLineSelectAll')mapCheckedLineKeys=input.checked?new Set(mapLineChoices.map(x=>x.key)):new Set();
+     else if(input.classList.contains('metro-line-check')){
+       if(input.checked)mapCheckedLineKeys.add(input.value);else mapCheckedLineKeys.delete(input.value);
+     }
+     for(const cb of $id('metroLineCheckboxes').querySelectorAll('.metro-line-check'))cb.checked=mapCheckedLineKeys.has(cb.value);
+     drawCachedWithLineFilters();
    });
    $id('metroMapSido').addEventListener('change',()=>{populateGu();renderFromSelectors();});
    $id('metroMapGu').addEventListener('change',()=>{populateDong();renderFromSelectors();});
