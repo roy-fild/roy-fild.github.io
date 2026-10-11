@@ -722,6 +722,8 @@
         .metro-map-wrap:fullscreen{background:#fff;padding:12px}
         .metro-map-wrap:fullscreen #metroRegionMap{height:calc(100vh - 24px)}
         .metro-map-expand{position:absolute;z-index:700;right:14px;top:14px;padding:8px 12px;background:#fff;border:1px solid #cbd5e1;border-radius:8px;cursor:pointer;font-weight:700;box-shadow:0 2px 7px #0002}
+        .metro-stop-symbol.metro-stop-active{transform:scale(1.32);box-shadow:0 0 0 5px rgba(255,255,255,.9),0 0 0 8px var(--line-color);}
+        .metro-stop-symbol.metro-stop-related{background:var(--line-color);color:#fff;box-shadow:0 0 0 3px white,0 2px 8px #0005;}
         .metro-stop-symbol{display:flex;align-items:center;justify-content:center;width:27px;height:27px;border:4px solid var(--line-color,#64748b);border-radius:50%;background:#fff;box-shadow:0 2px 7px #0004;font-weight:800;font-size:11px;color:#0f172a}
         .metro-stop-small{background:#fff;display:inline-block;border-radius:5px;padding:1px 4px;font-size:11px;border:1px solid #e2e8f0}
         .metro-tooltip{min-width:255px;max-width:330px;font:12px/1.5 system-ui,sans-serif}
@@ -1625,7 +1627,8 @@
    '부산 1호선':'#F06A00','부산 2호선':'#81BF48','부산 3호선':'#B6A422','부산 4호선':'#217DCB','동해선':'#0054A6','부산김해경전철':'#80499C',
    '대구 1호선':'#D93F5C','대구 2호선':'#00AA80','대구 3호선':'#FFB100','대전 1호선':'#00A6D6'
  };
- let adminPromise=null,admin=[],selectedFeatures=[],map=null,backdrop=null,areaLayer=null,stationLayer=null,labelLayer=null,latestRun=0;
+ let adminPromise=null,admin=[],selectedFeatures=[],map=null,backdrop=null,areaLayer=null,stationLayer=null,labelLayer=null,routeLayer=null,latestRun=0;
+ let routePoints=[],routePinned=null,routeHovered=null;
  let mapVisible=false,staticStations=null,staticStationsPromise=null,manualStations=null;
  const $id=id=>document.getElementById(id);
  const norm=s=>String(s??'').normalize('NFC').replace(/\([^)]*\)/g,'').replace(/역$/,'').replace(/\s+/g,'').replace(/(제)(\d+)(동)/g,'$2$3').trim();
@@ -1687,11 +1690,16 @@
    map=L.map('metroRegionMap',{maxZoom:19,minZoom:5,preferCanvas:true}).setView(CENTERS[activeCity],11);
    try{if(L.maplibreGL)backdrop=L.maplibreGL({style:'https://tiles.openfreemap.org/styles/positron'}).addTo(map);}catch(e){console.warn('OpenFreeMap 로딩:',e);}
    areaLayer=L.geoJSON(null,{style:{color:'#2563eb',weight:2.8,fillColor:'#60a5fa',fillOpacity:.10}}).addTo(map);
+   map.createPane('metroRoutePane');
+   map.getPane('metroRoutePane').style.zIndex='435';
+   map.getPane('metroRoutePane').style.pointerEvents='none';
+   routeLayer=L.layerGroup().addTo(map);
    stationLayer=L.layerGroup().addTo(map);
    map.createPane('metroLabelPane');
    map.getPane('metroLabelPane').style.zIndex='590'; // 경계 위, 지하철역 마커 아래
    labelLayer=L.layerGroup().addTo(map);
    map.on('zoomend',()=>map.getContainer().classList.toggle('metro-label-small',map.getZoom()<11));
+   map.on('click',e=>{if(!e.originalEvent?.target?.closest?.('.leaflet-marker-icon')){routePinned=null;routeHovered=null;highlightRoute();}});
  }
  function zoomToRegion(features){areaLayer.clearLayers();areaLayer.addData({type:'FeatureCollection',features});const b=areaLayer.getBounds();if(b.isValid())map.fitBounds(b.pad(.13),{maxZoom:15,animate:false});}
  function lineColor(line){let x=String(line||'').replace(/\s/g,'');let m=x.match(/(\d+)호선/);if(activeCity==='seoul'&&m)return COLORS[m[1]+'호선']||'#64748b';if(m)return COLORS[cityState[activeCity].name+' '+m[1]+'호선']||COLORS[m[1]+'호선']||'#64748b';return Object.keys(COLORS).find(k=>norm(k)===norm(line))?COLORS[Object.keys(COLORS).find(k=>norm(k)===norm(line))]:'#64748b';}
@@ -1759,8 +1767,67 @@
    }
    return staticStationsPromise;
  }
+ // CSV/정적 역 데이터에는 정식 역 순서와 선로 형상이 없으므로, 강조선은 근접 역 간 참고 연결입니다.
+ function normLineKey(v){
+   let s=norm(v).replace(/^(서울|부산|대구|대전)(광역시|도시철도)?/,'');
+   const m=s.match(/(\d+)호선/);
+   return m ? (activeCity==='seoul'?'수도권:':activeCity+':')+m[1]+'호선' : s;
+ }
+ function routeKm(a,b){
+   const d=Math.PI/180,dy=(a.lat-b.lat)*d,dx=(a.lng-b.lng)*d;
+   const x=Math.sin(dy/2)**2+Math.cos(a.lat*d)*Math.cos(b.lat*d)*Math.sin(dx/2)**2;
+   return 12742*Math.asin(Math.min(1,Math.sqrt(x)));
+ }
+ function resetRoute(){
+   routePinned=null;routeHovered=null;routePoints=[];
+   if(routeLayer)routeLayer.clearLayers();
+ }
+ function highlightRoute(){
+   if(routeLayer)routeLayer.clearLayers();
+   for(const p of routePoints){
+     const el=p.marker.getElement()?.querySelector('.metro-stop-symbol');
+     if(el)el.classList.remove('metro-stop-active','metro-stop-related');
+   }
+   const active=routePinned||routeHovered;
+   if(!active||!routeLayer)return;
+   const connected=routePoints.filter(p=>p.lines.has(active.key));
+   for(const p of connected){
+     const el=p.marker.getElement()?.querySelector('.metro-stop-symbol');
+     if(el)el.classList.add(p===active.point?'metro-stop-active':'metro-stop-related');
+   }
+   if(connected.length<2)return;
+   // 가까운 역들을 최소 거리 우선으로 연결합니다. 지나치게 먼 구간은 잇지 않습니다.
+   const visited=new Set([0]),edges=[];
+   while(visited.size<connected.length){
+     let best=null;
+     for(const i of visited)for(let j=0;j<connected.length;j++){
+       if(visited.has(j))continue;
+       const km=routeKm(connected[i],connected[j]);
+       if(!best||km<best.km)best={i,j,km};
+     }
+     if(!best)break;
+     visited.add(best.j);
+     if(best.km<=4.5)edges.push(best);
+   }
+   const color=lineColor(active.label);
+   for(const e of edges){
+     const a=connected[e.i],b=connected[e.j];
+     L.polyline([[a.lat,a.lng],[b.lat,b.lng]],{pane:'metroRoutePane',color:'#fff',weight:10,opacity:.90,interactive:false}).addTo(routeLayer);
+     L.polyline([[a.lat,a.lng],[b.lat,b.lng]],{pane:'metroRoutePane',color,weight:6,opacity:.95,interactive:false,lineCap:'round'}).addTo(routeLayer);
+   }
+ }
+ function stationRouteEvent(point,isClick){
+   if(!point.lines.size)return;
+   const label=[...point.lines.values()][0];
+   const target={point,label,key:normLineKey(label)};
+   if(isClick){
+     routePinned=(routePinned?.point===point)?null:target;
+     routeHovered=null;
+   }else routeHovered=target;
+   highlightRoute();
+ }
  function drawStops(stations){
-   stationLayer.clearLayers();const st=state(),rows=monthlyRows(),byName=new Map();
+   resetRoute();stationLayer.clearLayers();const st=state(),rows=monthlyRows(),byName=new Map();
    for(const r of rows){const k=norm(r[st.stationField]);if(!byName.has(k))byName.set(k,[]);byName.get(k).push(r);}
    let found=0,matched=0,used=new Set(),lset=new Map();
    const selectedLine=$id('metroMapLine').value;
@@ -1779,6 +1846,14 @@
      if(mr.length){matched++;for(const r of mr)lset.set(String(r[st.lineField]),lineColor(r[st.lineField]));}
      const line=mr.length?String(mr[0][st.lineField]):(candidateLines[0]||'');
      const marker=L.marker([x.lat,x.lng],{icon:L.divIcon({className:'',html:'<div class="metro-stop-symbol" style="--line-color:'+lineColor(line)+'">'+(mr.length?'●':'·')+'</div>',iconSize:[27,27],iconAnchor:[13,13]})}).addTo(stationLayer);
+     const pointLines=new Map();
+     for(const r of mr){const l=String(r[st.lineField]||'');if(l)pointLines.set(normLineKey(l),l);}
+     if(!pointLines.size)for(const l of candidateLines){if(l)pointLines.set(normLineKey(l),String(l));}
+     const point={lat:x.lat,lng:x.lng,marker,lines:pointLines};
+     routePoints.push(point);
+     marker.on('mouseover',()=>stationRouteEvent(point,false));
+     marker.on('mouseout',()=>{routeHovered=null;highlightRoute();});
+     marker.on('click',()=>stationRouteEvent(point,true));
      const detail=tooltip(x,mr);marker.bindTooltip(detail,{direction:'top',opacity:1,sticky:true,interactive:true,className:'metro-info-tooltip',offset:[0,-8]});marker.bindPopup(detail,{maxWidth:390});
    }
    $id('metroMapLegend').innerHTML=[...lset].sort((a,b)=>a[0].localeCompare(b[0],'ko')).map(([line,color])=>'<span><i style="background:'+color+'"></i>'+esc(line)+'</span>').join('');
@@ -1788,7 +1863,7 @@
    if(!admin.length){setStatus('행정동 경계 데이터 다운로드 중… (처음 한 번 약 33MB)');await getAdmin();if(token!==latestRun)return;populateSido();}
    initMap();
    const sido=$id('metroMapSido').value,gu=$id('metroMapGu').value;
-   stationLayer.clearLayers();areaLayer.clearLayers();labelLayer.clearLayers();
+   resetRoute();stationLayer.clearLayers();areaLayer.clearLayers();labelLayer.clearLayers();
    selectedFeatures=selectedRegion();
    if(!selectedFeatures.length){setStatus('선택한 지역과 일치하는 행정동 경계를 찾지 못했습니다.',true);return;}
    zoomToRegion(selectedFeatures);
@@ -1807,7 +1882,7 @@
    const oldLine=$id('metroMapLine').value;optionList($id('metroMapLine'),lines,'전체 호선');if(lines.includes(oldLine))$id('metroMapLine').value=oldLine;
    if(mapVisible&&stationLayer){renderFromSelectors();}
  };
- window.onMetroMapCityChanged=function(){latestRun++;if(map){map.setView(CENTERS[activeCity],11);stationLayer.clearLayers();areaLayer.clearLayers();labelLayer.clearLayers();}if(admin.length)populateSido();updateMetroMapMonthLine();if(mapVisible)renderFromSelectors();};
+ window.onMetroMapCityChanged=function(){latestRun++;if(map){map.setView(CENTERS[activeCity],11);resetRoute();stationLayer.clearLayers();areaLayer.clearLayers();labelLayer.clearLayers();}if(admin.length)populateSido();updateMetroMapMonthLine();if(mapVisible)renderFromSelectors();};
  window.initMetroMapUI=function(){
    const showMap=()=>{mapVisible=true;document.body.classList.add('metro-map-mode');$id('metroMapView').classList.add('active');$id('metroTableView').classList.remove('active');$id('metroMapView').setAttribute('aria-selected','true');$id('metroTableView').setAttribute('aria-selected','false');updateMetroMapMonthLine();initMap();setTimeout(()=>{map.invalidateSize();redraw();},100);};
    const showTable=()=>{mapVisible=false;latestRun++;document.body.classList.remove('metro-map-mode');$id('metroMapView').classList.remove('active');$id('metroTableView').classList.add('active');$id('metroMapView').setAttribute('aria-selected','false');$id('metroTableView').setAttribute('aria-selected','true');};
