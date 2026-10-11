@@ -6,11 +6,8 @@
     <title>지하철 시간대별 승하차 인원 조회</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.1/dist/maplibre-gl.css" />
-    <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.6.1/dist/maplibre-gl.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@maplibre/maplibre-gl-leaflet@0.1.4/leaflet-maplibre-gl.js"></script>
+    <!-- Kakao Maps SDK: GitHub Pages 도메인 등록 및 카카오맵 사용 설정이 필요합니다. -->
+    <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=eb1b44548edb9556f3a5b18aba90e5be&autoload=false"></script>
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- XLSX (엑셀 다운로드용) -->
@@ -736,8 +733,10 @@
 
         /* 행정구역 중앙 라벨: 배경 지도 및 역 아이콘과 독립된 오버레이 */
         .metro-area-label{display:inline-flex;align-items:center;justify-content:center;transform:translate(-50%,-50%);white-space:nowrap;padding:4px 8px;border:1px solid rgba(51,65,85,.23);border-radius:7px;background:rgba(255,255,255,.91);box-shadow:0 1px 4px rgba(15,23,42,.15);color:#172438;font-weight:800;font-size:12px;line-height:1.2;pointer-events:none;}
-        #metroRegionMap .leaflet-pane.metro-label-pane{pointer-events:none;}
-        #metroRegionMap .leaflet-pane.metro-label-pane .leaflet-marker-icon{pointer-events:none;}
+        #metroRegionMap .metro-area-label{pointer-events:none;}
+        #metroRegionMap .metro-info-bubble{max-width:350px;max-height:330px;overflow:auto;background:white;border:1px solid #94a3b8;border-radius:10px;padding:10px;box-shadow:0 4px 20px #0004;}
+        #metroRegionMap .metro-kakao-station{position:relative; transform:translate(-50%,-50%);cursor:pointer;}
+        #metroRegionMap .metro-kakao-station .metro-stop-symbol{pointer-events:auto;}
         #metroRegionMap.metro-label-small .metro-area-label{font-size:11px;padding:3px 6px;}
         .metro-lines-filter{display:flex;align-items:center;flex-wrap:wrap;gap:7px 12px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;padding:10px 12px;margin:0 0 10px;font-size:12px}
         .metro-lines-filter strong{margin-right:5px;white-space:nowrap}
@@ -1635,6 +1634,7 @@
    '대구 1호선':'#D93F5C','대구 2호선':'#00AA80','대구 3호선':'#FFB100','대전 1호선':'#00A6D6'
  };
  let adminPromise=null,admin=[],selectedFeatures=[],map=null,backdrop=null,areaLayer=null,stationLayer=null,labelLayer=null,routeLayer=null,latestRun=0;
+ let kakaoReadyPromise=null,activeMetroBubble=null;
  let routePoints=[],routePinned=null,routeHovered=null;
  let mapVisible=false,staticStations=null,staticStationsPromise=null,manualStations=null;
  let mapStationCache=null, mapLineChoices=[], mapCheckedLineKeys=new Set(), mapLineRegionKey='';
@@ -1672,44 +1672,57 @@
    }
    return groups;
  }
- function labelAnchor(features){
-   // 각각의 행정경계 그룹을 하나의 경계로 간주해 가운데 좌표 계산.
-   // 그룹이 여러 폴리곤이면 전체 지리적 범위의 중앙을 사용합니다.
-   const layer=L.geoJSON({type:'FeatureCollection',features});
-   const bounds=layer.getBounds();
-   return bounds.isValid()?bounds.getCenter():null;
+ // GeoJSON 좌표 → Kakao LatLngBounds; 외곽선은 원본 다각형 좌표를 그대로 사용합니다.
+ function visitCoords(g,callback){
+   if(!g)return;
+   const walk=a=>{if(Array.isArray(a)&&typeof a[0]==='number'&&typeof a[1]==='number')callback(a);else if(Array.isArray(a))a.forEach(walk)};
+   walk(g.coordinates);
  }
+ function geoBounds(features){
+   const b=new kakao.maps.LatLngBounds();let count=0;
+   for(const f of features)visitCoords(f.geometry,c=>{b.extend(new kakao.maps.LatLng(c[1],c[0]));count++;});
+   return count?b:null;
+ }
+ function geoCenter(features){const b=geoBounds(features);if(!b)return null;const sw=b.getSouthWest(),ne=b.getNorthEast();return new kakao.maps.LatLng((sw.getLat()+ne.getLat())/2,(sw.getLng()+ne.getLng())/2);}
+ function addGeoPolygon(feature, group){
+   const g=feature.geometry;if(!g)return;
+   const polys=g.type==='Polygon'?[g.coordinates]:g.type==='MultiPolygon'?g.coordinates:[];
+   for(const poly of polys){
+     const paths=poly.map(ring=>ring.map(c=>new kakao.maps.LatLng(c[1],c[0])));
+     const shape=new kakao.maps.Polygon({map, path:paths.length===1?paths[0]:paths,strokeWeight:2.5,strokeColor:'#2563eb',strokeOpacity:.9,fillColor:'#60a5fa',fillOpacity:.06,zIndex:2});
+     group.add(shape);
+   }
+ }
+ function overlayGroup(){
+   const items=[];return {add(obj){items.push(obj);return obj;},clearLayers(){for(const o of items)o.setMap(null);items.length=0;},getBounds(){return geoBounds(selectedFeatures);}};
+ }
+ function overlayHtml(pos,html,z=6,y=-12){
+   const elt=document.createElement('div');elt.innerHTML=html;
+   const overlay=new kakao.maps.CustomOverlay({map,position:pos,content:elt,xAnchor:.5,yAnchor:y<0?1:.5,zIndex:z});
+   overlay.element=elt;return overlay;
+ }
+ function hideBubble(){if(activeMetroBubble){activeMetroBubble.setMap(null);activeMetroBubble=null;}}
  function drawRegionLabels(){
    if(!labelLayer)return;
    labelLayer.clearLayers();
-   const groups=regionLabelGroups();
-   for(const [name,features] of groups){
-     const center=labelAnchor(features);
-     if(!center)continue;
-     const icon=L.divIcon({className:'',html:'<span class="metro-area-label">'+esc(name)+'</span>',iconSize:[0,0],iconAnchor:[0,0]});
-     L.marker(center,{icon,pane:'metroLabelPane',interactive:false,keyboard:false}).addTo(labelLayer);
+   const small=map.getLevel()>=8;
+   for(const [name,features] of regionLabelGroups()){
+     const center=geoCenter(features);if(!center)continue;
+     const ov=overlayHtml(center,'<span class="metro-area-label" style="font-size:'+(small?11:12)+'px;transform:none">'+esc(name)+'</span>',5,0);
+     labelLayer.add(ov);
    }
-   map.getContainer().classList.toggle('metro-label-small',map.getZoom()<11);
  }
-
  function initMap(){
    if(map)return;
-   if(!window.L)throw new Error('Leaflet 라이브러리를 로딩하지 못했습니다.');
-   map=L.map('metroRegionMap',{maxZoom:19,minZoom:5,preferCanvas:true}).setView(CENTERS[activeCity],11);
-   try{if(L.maplibreGL)backdrop=L.maplibreGL({style:'https://tiles.openfreemap.org/styles/positron'}).addTo(map);}catch(e){console.warn('OpenFreeMap 로딩:',e);}
-   areaLayer=L.geoJSON(null,{style:{color:'#2563eb',weight:2.8,fillColor:'#60a5fa',fillOpacity:.10}}).addTo(map);
-   map.createPane('metroRoutePane');
-   map.getPane('metroRoutePane').style.zIndex='435';
-   map.getPane('metroRoutePane').style.pointerEvents='none';
-   routeLayer=L.layerGroup().addTo(map);
-   stationLayer=L.layerGroup().addTo(map);
-   map.createPane('metroLabelPane');
-   map.getPane('metroLabelPane').style.zIndex='590'; // 경계 위, 지하철역 마커 아래
-   labelLayer=L.layerGroup().addTo(map);
-   map.on('zoomend',()=>map.getContainer().classList.toggle('metro-label-small',map.getZoom()<11));
-   map.on('click',e=>{if(!e.originalEvent?.target?.closest?.('.leaflet-marker-icon')){routePinned=null;routeHovered=null;highlightRoute();}});
+   if(!window.kakao?.maps?.Map)throw new Error('카카오 지도 SDK가 로딩되지 않았습니다. 카카오맵 사용 설정과 JavaScript SDK 도메인을 확인해 주세요.');
+   map=new kakao.maps.Map($id('metroRegionMap'),{center:new kakao.maps.LatLng(...CENTERS[activeCity]),level:8});
+   areaLayer=overlayGroup();routeLayer=overlayGroup();stationLayer=overlayGroup();labelLayer=overlayGroup();
+   kakao.maps.event.addListener(map,'click',()=>{routePinned=null;routeHovered=null;highlightRoute();hideBubble();});
  }
- function zoomToRegion(features){areaLayer.clearLayers();areaLayer.addData({type:'FeatureCollection',features});const b=areaLayer.getBounds();if(b.isValid())map.fitBounds(b.pad(.13),{maxZoom:15,animate:false});}
+ function zoomToRegion(features){
+   areaLayer.clearLayers();for(const f of features)addGeoPolygon(f,areaLayer);
+   const b=geoBounds(features);if(b){map.setBounds(b);}
+ }
  function lineColor(line){let x=String(line||'').replace(/\s/g,'');let m=x.match(/(\d+)호선/);if(activeCity==='seoul'&&m)return COLORS[m[1]+'호선']||'#64748b';if(m)return COLORS[cityState[activeCity].name+' '+m[1]+'호선']||COLORS[m[1]+'호선']||'#64748b';return Object.keys(COLORS).find(k=>norm(k)===norm(line))?COLORS[Object.keys(COLORS).find(k=>norm(k)===norm(line))]:'#64748b';}
  function matchStationRows(name,all){const key=norm(name);return all.filter(r=>norm(r[state().stationField])===key);}
  function monthlyRows(){const st=state(),month=$id('metroMapMonth').value,line=$id('metroMapLine').value;if(!st.loaded||!month)return [];
@@ -1792,36 +1805,22 @@
  }
  function highlightRoute(){
    if(routeLayer)routeLayer.clearLayers();
-   for(const p of routePoints){
-     const el=p.marker.getElement()?.querySelector('.metro-stop-symbol');
-     if(el)el.classList.remove('metro-stop-active','metro-stop-related');
-   }
+   for(const p of routePoints){const el=p.marker.element?.querySelector('.metro-stop-symbol');if(el)el.classList.remove('metro-stop-active','metro-stop-related');}
    const active=routePinned||routeHovered;
    if(!active||!routeLayer)return;
    const connected=routePoints.filter(p=>p.lines.has(active.key));
-   for(const p of connected){
-     const el=p.marker.getElement()?.querySelector('.metro-stop-symbol');
-     if(el)el.classList.add(p===active.point?'metro-stop-active':'metro-stop-related');
-   }
+   for(const p of connected){const el=p.marker.element?.querySelector('.metro-stop-symbol');if(el)el.classList.add(p===active.point?'metro-stop-active':'metro-stop-related');}
    if(connected.length<2)return;
-   // 가까운 역들을 최소 거리 우선으로 연결합니다. 지나치게 먼 구간은 잇지 않습니다.
    const visited=new Set([0]),edges=[];
-   while(visited.size<connected.length){
-     let best=null;
+   while(visited.size<connected.length){let best=null;
      for(const i of visited)for(let j=0;j<connected.length;j++){
-       if(visited.has(j))continue;
-       const km=routeKm(connected[i],connected[j]);
-       if(!best||km<best.km)best={i,j,km};
-     }
-     if(!best)break;
-     visited.add(best.j);
-     if(best.km<=4.5)edges.push(best);
+       if(visited.has(j))continue;const km=routeKm(connected[i],connected[j]);if(!best||km<best.km)best={i,j,km};
+     }if(!best)break;visited.add(best.j);if(best.km<=4.5)edges.push(best);
    }
    const color=lineColor(active.label);
-   for(const e of edges){
-     const a=connected[e.i],b=connected[e.j];
-     L.polyline([[a.lat,a.lng],[b.lat,b.lng]],{pane:'metroRoutePane',color:'#fff',weight:10,opacity:.90,interactive:false}).addTo(routeLayer);
-     L.polyline([[a.lat,a.lng],[b.lat,b.lng]],{pane:'metroRoutePane',color,weight:6,opacity:.95,interactive:false,lineCap:'round'}).addTo(routeLayer);
+   for(const e of edges){const a=connected[e.i],b=connected[e.j],path=[new kakao.maps.LatLng(a.lat,a.lng),new kakao.maps.LatLng(b.lat,b.lng)];
+     routeLayer.add(new kakao.maps.Polyline({map,path,strokeWeight:10,strokeColor:'#fff',strokeOpacity:.9,zIndex:3}));
+     routeLayer.add(new kakao.maps.Polyline({map,path,strokeWeight:6,strokeColor:color,strokeOpacity:.95,zIndex:4}));
    }
  }
  function stationRouteEvent(point,isClick){
@@ -1897,7 +1896,7 @@
    setStatus('선택 지역 · 표시 호선 '+mapLineChoices.filter(x=>mapCheckedLineKeys.has(x.key)).length+'/'+mapLineChoices.length+'개 · 역 '+result.found+'곳 · CSV 매칭 '+result.matched+'곳');
  }
  function drawStops(stations){
-   resetRoute();stationLayer.clearLayers();const st=state(),rows=monthlyRows(),byName=new Map();
+   resetRoute();hideBubble();stationLayer.clearLayers();const st=state(),rows=monthlyRows(),byName=new Map();
    for(const r of rows){const k=norm(r[st.stationField]);if(!byName.has(k))byName.set(k,[]);byName.get(k).push(r);}
    let found=0,matched=0,used=new Set(),lset=new Map();
    const selectedLine=$id('metroMapLine').value;
@@ -1917,16 +1916,16 @@
      used.add(poskey);found++;
      if(mr.length){matched++;for(const r of mr)lset.set(String(r[st.lineField]),lineColor(r[st.lineField]));}
      const line=mr.length?String(mr[0][st.lineField]):(candidateLines[0]||'');
-     const marker=L.marker([x.lat,x.lng],{icon:L.divIcon({className:'',html:'<div class="metro-stop-symbol" style="--line-color:'+lineColor(line)+'">'+(mr.length?'●':'·')+'</div>',iconSize:[27,27],iconAnchor:[13,13]})}).addTo(stationLayer);
+     const pos=new kakao.maps.LatLng(x.lat,x.lng);
+     const marker=overlayHtml(pos,'<div class="metro-kakao-station"><div class="metro-stop-symbol" style="--line-color:'+lineColor(line)+'">'+(mr.length?'●':'·')+'</div></div>',9,0);
+     stationLayer.add(marker);
      const pointLines=new Map();
      for(const r of mr){const l=String(r[st.lineField]||'');if(l)pointLines.set(normLineKey(l),l);}
      if(!pointLines.size)for(const l of candidateLines){if(l)pointLines.set(normLineKey(l),String(l));}
-     const point={lat:x.lat,lng:x.lng,marker,lines:pointLines};
-     routePoints.push(point);
-     marker.on('mouseover',()=>stationRouteEvent(point,false));
-     marker.on('mouseout',()=>{routeHovered=null;highlightRoute();});
-     marker.on('click',()=>stationRouteEvent(point,true));
-     const detail=tooltip(x,mr);marker.bindTooltip(detail,{direction:'top',opacity:1,sticky:true,interactive:true,className:'metro-info-tooltip',offset:[0,-8]});marker.bindPopup(detail,{maxWidth:390});
+     const point={lat:x.lat,lng:x.lng,marker,lines:pointLines};routePoints.push(point);
+     const hit=marker.element.querySelector('.metro-kakao-station');
+     const detail=tooltip(x,mr);
+     hit.addEventListener('click',ev=>{ev.stopPropagation();stationRouteEvent(point,true);hideBubble();activeMetroBubble=overlayHtml(pos,'<div class="metro-info-bubble"><button type="button" class="metro-popup-close" style="float:right;cursor:pointer" aria-label="닫기">×</button>'+detail+'</div>',30,-45);activeMetroBubble.element.querySelector('.metro-popup-close').onclick=()=>{hideBubble();routePinned=null;highlightRoute();};});
    }
    $id('metroMapLegend').innerHTML=[...lset].sort((a,b)=>a[0].localeCompare(b[0],'ko')).map(([line,color])=>'<span><i style="background:'+color+'"></i>'+esc(line)+'</span>').join('');
    return {found,matched};
@@ -1935,14 +1934,14 @@
    if(!admin.length){setStatus('행정동 경계 데이터 다운로드 중… (처음 한 번 약 33MB)');await getAdmin();if(token!==latestRun)return;populateSido();}
    initMap();
    const sido=$id('metroMapSido').value,gu=$id('metroMapGu').value;
-   resetRoute();stationLayer.clearLayers();areaLayer.clearLayers();labelLayer.clearLayers();mapStationCache=null;
+   resetRoute();hideBubble();stationLayer.clearLayers();areaLayer.clearLayers();labelLayer.clearLayers();mapStationCache=null;
    selectedFeatures=selectedRegion();
    if(!selectedFeatures.length){setStatus('선택한 지역과 일치하는 행정동 경계를 찾지 못했습니다.',true);return;}
    zoomToRegion(selectedFeatures);
-   if(!gu)map.fitBounds(areaLayer.getBounds().pad(.08),{maxZoom:11,animate:false});
+   // Kakao Maps setBounds로 선택 지역에 맞게 확대합니다.
    drawRegionLabels();
    setStatus('정적 역 좌표 목록 불러오는 중… ('+sido+(gu?' '+gu:'')+')');
-   let arr=await queryStations(areaLayer.getBounds().pad(.03));if(token!==latestRun)return;
+   let arr=await queryStations(geoBounds(selectedFeatures));if(token!==latestRun)return;
    mapStationCache=arr;
    refreshLineCheckboxes(arr);
    let result=drawStops(arr);
@@ -1956,10 +1955,19 @@
    const oldLine=$id('metroMapLine').value;optionList($id('metroMapLine'),lines,'전체 호선');if(lines.includes(oldLine))$id('metroMapLine').value=oldLine;
    if(mapVisible&&stationLayer){renderFromSelectors();}
  };
- window.onMetroMapCityChanged=function(){mapStationCache=null;mapLineRegionKey='';latestRun++;if(map){map.setView(CENTERS[activeCity],11);resetRoute();stationLayer.clearLayers();areaLayer.clearLayers();labelLayer.clearLayers();}if(admin.length)populateSido();updateMetroMapMonthLine();if(mapVisible)renderFromSelectors();};
+ window.onMetroMapCityChanged=function(){mapStationCache=null;mapLineRegionKey='';latestRun++;if(map){map.setCenter(new kakao.maps.LatLng(...CENTERS[activeCity]));map.setLevel(8);resetRoute();hideBubble();stationLayer.clearLayers();areaLayer.clearLayers();labelLayer.clearLayers();}if(admin.length)populateSido();updateMetroMapMonthLine();if(mapVisible)renderFromSelectors();};
  window.initMetroMapUI=function(){
-   const showMap=()=>{mapVisible=true;document.body.classList.add('metro-map-mode');$id('metroMapView').classList.add('active');$id('metroTableView').classList.remove('active');$id('metroMapView').setAttribute('aria-selected','true');$id('metroTableView').setAttribute('aria-selected','false');updateMetroMapMonthLine();initMap();setTimeout(()=>{map.invalidateSize();redraw();},100);};
+   const showMap=async()=>{mapVisible=true;document.body.classList.add('metro-map-mode');$id('metroMapView').classList.add('active');$id('metroTableView').classList.remove('active');$id('metroMapView').setAttribute('aria-selected','true');$id('metroTableView').setAttribute('aria-selected','false');updateMetroMapMonthLine();try{setStatus('카카오 지도 초기화 중…');await ensureKakao();if(!mapVisible)return;initMap();setTimeout(()=>{map.relayout();redraw();},120);}catch(e){setStatus(e.message,true);}};
    const showTable=()=>{mapVisible=false;latestRun++;document.body.classList.remove('metro-map-mode');$id('metroMapView').classList.remove('active');$id('metroTableView').classList.add('active');$id('metroMapView').setAttribute('aria-selected','false');$id('metroTableView').setAttribute('aria-selected','true');};
+   function ensureKakao(){
+     if(window.kakao?.maps?.Map)return Promise.resolve();
+     if(kakaoReadyPromise)return kakaoReadyPromise;
+     kakaoReadyPromise=new Promise((resolve,reject)=>{
+       if(!window.kakao?.maps?.load){reject(new Error('카카오 SDK 로딩 실패. GitHub Pages 도메인 및 카카오맵 사용 설정을 확인하세요.'));return;}
+       const timer=setTimeout(()=>reject(new Error('카카오맵 로딩 시간 초과. SDK 도메인을 확인하세요.')),12000);
+       kakao.maps.load(()=>{clearTimeout(timer);resolve();});
+     }).catch(e=>{kakaoReadyPromise=null;throw e;});return kakaoReadyPromise;
+   }
    $id('metroMapView').addEventListener('click',showMap);$id('metroTableView').addEventListener('click',showTable);
    $id('metroLocalStationFile').addEventListener('change',async ev=>{
      const file=ev.target.files?.[0];if(!file)return;
@@ -1985,8 +1993,8 @@
    $id('metroMapDong').addEventListener('change',renderFromSelectors);
    $id('metroMapMonth').addEventListener('change',()=>{updateMetroMapMonthLine();if(stationLayer&&mapVisible){renderFromSelectors();}});
    $id('metroMapLine').addEventListener('change',()=>{if(mapVisible&&stationLayer)renderFromSelectors();});
-   $id('metroExpandMap').addEventListener('click',()=>{let w=$id('metroMapWrap');if(!document.fullscreenElement){w.requestFullscreen?.().then(()=>setTimeout(()=>map.invalidateSize(),200)).catch(console.warn);}else document.exitFullscreen();});
-   document.addEventListener('fullscreenchange',()=>{if(map)setTimeout(()=>map.invalidateSize(),180);$id('metroExpandMap').textContent=document.fullscreenElement?'⤢ 전체 화면 종료':'⛶ 전체 화면';});
+   $id('metroExpandMap').addEventListener('click',()=>{let w=$id('metroMapWrap');if(!document.fullscreenElement){w.requestFullscreen?.().then(()=>setTimeout(()=>map.relayout(),200)).catch(console.warn);}else document.exitFullscreen();});
+   document.addEventListener('fullscreenchange',()=>{if(map)setTimeout(()=>map.relayout(),180);$id('metroExpandMap').textContent=document.fullscreenElement?'⤢ 전체 화면 종료':'⛶ 전체 화면';});
    optionList($id('metroMapSido'),CITY_SIDOS.seoul);optionList($id('metroMapGu'),[],'구 선택');optionList($id('metroMapDong'),[],'전체 읍·면·동');
  };
 })();
