@@ -6,7 +6,7 @@
 </style></head><body><main class="shell"><section class="panel top"><div><h1>전국 아파트 연식 지도</h1><div class="muted">카카오맵 · 아파트 단지 실제 부지 외곽선 색칠 · GitHub Pages</div></div><div id="counter" class="stats">자료 준비 중</div></section>
 <section class="panel"><div class="filters"><div><label>시·도</label><select id="sido"><option value="">전국</option></select></div><div><label>시·군·구</label><select id="sigungu"><option value="">전체 시·군·구</option></select></div><div><label id="dongSelectLabel">행정동 · 읍 · 면</label><select id="dong"><option value="">전체</option></select></div><div><label>입주 연식</label><select id="decade"><option value="">전체 연식</option><option value="2020">2020년대 이후</option><option value="2010">2010년대</option><option value="2000">2000년대</option><option value="1990">1990년대</option><option value="1980">1980년대</option><option value="old">1980년 이전</option></select></div><div><label>단지명 검색</label><input id="query" type="text" placeholder="예: 래미안, 롯데캐슬"/></div></div>
 <div class="toolbar"><strong style="font-size:13px">세대수</strong><label class="toggle"><input name="units" type="radio" value="0" checked>전체</label><label class="toggle"><input name="units" type="radio" value="200">200세대 이상</label><label class="toggle"><input name="units" type="radio" value="300">300세대 이상</label><label class="toggle"><input id="showPolygons" type="checkbox" checked>단지 부지 색칠</label><label class="toggle"><input id="showMissing" type="checkbox" checked>외곽선 없는 단지 점</label><label class="toggle"><input id="showBoundary" type="checkbox" checked>행정구역 경계</label><label class="toggle"><input id="showLabels" type="checkbox" checked>행정구역 이름</label><label class="toggle"><input id="shadeOutside" type="checkbox" checked>선택 지역 외부 음영</label><label class="toggle" style="gap:7px">음영 농도 <select id="shadeStrength" style="width:76px;height:32px;padding:4px"><option value="0.60">60%</option><option value="0.65" selected>65%</option><option value="0.70">70%</option></select></label><button id="searchBtn" class="primary">선택 지역 보기</button><button id="resetBtn">필터 초기화</button></div></section>
-<section class="panel"><div class="legend"><b style="font-size:12px">입주시기</b><span><i class="sw" style="background:#ed5b63"></i>2020년대~</span><span><i class="sw" style="background:#f6a33c"></i>2010년대</span><span><i class="sw" style="background:#f5df58"></i>2000년대</span><span><i class="sw" style="background:#a5d778"></i>1990년대</span><span><i class="sw" style="background:#49a880"></i>1980년대</span><span><i class="sw" style="background:#4aa7a8"></i>1980년 이전</span><span><i class="sw" style="background:#64748b"></i>외곽 미확보 단지</span></div><div id="boundaryInfo" style="font-size:12px;color:#33558b;margin:3px 0">행정구역 경계 준비 중…</div><div id="status" role="status">카카오맵 및 GitHub 데이터 연결 중…</div><div class="mapBox" id="mapBox"><div id="map"></div><div class="floating"><button id="fullscreen">⛶ 전체화면</button><div class="mode"><button class="active" data-mode="admin">행정동</button><button data-mode="legal">법정동</button></div><button id="fit">⊡ 선택 지역 맞춤</button></div></div><div class="foot">경계 표시 단계: 시·도 선택 시 시·군·구, 구 선택 시 읍·면·동, 특정 동 선택 시 해당 동 경계를 표시합니다. 행정동/법정동 모드에 따라 경계와 이름이 변경됩니다. 입주연도는 업로드하신 apt.json의 입주시기 기준입니다. 실제 건물 형태가 아닌 <b>아파트 단지 부지 경계</b>입니다. 외부 음영은 행정구역을 선택한 경우에만 나타나며 기본 65%입니다. 전국 데이터는 화면에 보이는 단지만 그리며, 지도 확대 시 세부 색칠이 나타납니다.</div></section>
+<section class="panel"><div class="legend"><b style="font-size:12px">입주시기</b><span><i class="sw" style="background:#ed5b63"></i>2020년대~</span><span><i class="sw" style="background:#f6a33c"></i>2010년대</span><span><i class="sw" style="background:#f5df58"></i>2000년대</span><span><i class="sw" style="background:#a5d778"></i>1990년대</span><span><i class="sw" style="background:#49a880"></i>1980년대</span><span><i class="sw" style="background:#4aa7a8"></i>1980년 이전</span><span><i class="sw" style="background:#64748b"></i>외곽 미확보 단지</span></div><div id="boundaryInfo" style="font-size:12px;color:#33558b;margin:3px 0">행정구역 경계 준비 중…</div><div id="status" role="status">카카오맵 및 GitHub 데이터 연결 중…</div><div class="mapBox" id="mapBox"><div id="map"></div><div class="floating"><button id="fullscreen">⛶ 전체화면</button><div class="mode"><button class="active" data-mode="admin">행정동</button><button data-mode="legal">법정동</button></div><button id="fit">⊡ 선택 지역 맞춤</button></div></div><div class="foot">경계 표시 단계: 시·도 선택 시 시·군·구, 일반구가 있는 시 전체 선택 시 해당 시의 구, 구 선택 시 읍·면·동, 특정 동 선택 시 해당 동 경계를 표시합니다. 행정동/법정동 모드에 따라 경계와 이름이 변경됩니다. 입주연도는 업로드하신 apt.json의 입주시기 기준입니다. 실제 건물 형태가 아닌 <b>아파트 단지 부지 경계</b>입니다. 외부 음영은 행정구역을 선택한 경우에만 나타나며 기본 65%입니다. 전국 데이터는 화면에 보이는 단지만 그리며, 지도 확대 시 세부 색칠이 나타납니다.</div></section>
 <section class="panel"><div class="top"><strong>조건에 해당하는 아파트</strong><span id="listCount" class="muted"></span></div><div id="resultList" class="muted">데이터 불러오는 중…</div></section></main>
 <script>
 'use strict';
@@ -27,7 +27,35 @@ function loadSdk(){return new Promise((resolve,reject)=>{let s=document.createEl
 async function loadJson(name){const r=await fetch(BASE+name,{cache:'force-cache'});if(!r.ok)throw new Error(name+' HTTP '+r.status);return r.json()}
 function showFileError(e){status('데이터 로드 실패: '+e.message+' · GitHub Pages 배포 상태와 파일 경로를 확인하세요.',true);console.error(e)}
 function setupChoices(){const sido=[...new Set(apartments.map(a=>a.sidoNm))].sort((a,b)=>a.localeCompare(b,'ko'));$id('sido').innerHTML='<option value="">전국</option>'+sido.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');const seoul=sido.find(v=>canonicalSido(v)==='서울');if(seoul)$id('sido').value=seoul;refreshDistricts()}
-function refreshDistricts(){const s=$id('sido').value;let gs=[...new Set(apartments.filter(a=>!s||a.sidoNm===s).map(a=>a.sigunguNm).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko'));$id('sigungu').innerHTML='<option value="">전체 시·군·구</option>'+gs.map(g=>`<option value="${esc(g)}">${esc(g)}</option>`).join('');refreshDongs()}
+// 여러 일반구를 가진 시를 구와 별도로 선택할 수 있도록 생성.
+const CITY_PREFIX='__CITY__:';
+function normDistrict(v){return txt(v).replace(/\s+/g,'').replace(/^(.*?시)(.+구)$/,(_,city,gu)=>city+gu)}
+function cityOfDistrict(g){const m=normDistrict(g).match(/^(.+?시)(.+구)$/);return m?m[1]:''}
+function selectedCity(){const v=$id('sigungu').value;return v.startsWith(CITY_PREFIX)?v.slice(CITY_PREFIX.length):''}
+function districtMatches(selected,actual){
+ if(!selected)return true;
+ if(selected.startsWith(CITY_PREFIX))return cityOfDistrict(actual)===selected.slice(CITY_PREFIX.length);
+ return normDistrict(actual)===normDistrict(selected);
+}
+function refreshDistricts(){
+ const s=$id('sido').value;
+ const gs=[...new Set(apartments.filter(a=>!s||a.sidoNm===s).map(a=>a.sigunguNm).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko'));
+ const cityCounts=new Map();
+ for(const g of gs){const city=cityOfDistrict(g);if(city)cityCounts.set(city,(cityCounts.get(city)||0)+1)}
+ const cities=new Set([...cityCounts].filter(([,n])=>n>=2).map(([city])=>city));
+ let opts='<option value="">전체 시·군·구</option>';
+ const rendered=new Set();
+ for(const g of gs){
+  const city=cityOfDistrict(g);
+  if(city&&cities.has(city)&&!rendered.has(city)){
+   opts+=`<option value="${esc(CITY_PREFIX+city)}">★ ${esc(city)} 전체</option>`;
+   rendered.add(city);
+  }
+  opts+=`<option value="${esc(g)}">${city&&cities.has(city)?'　└ ':''}${esc(g)}</option>`;
+ }
+ $id('sigungu').innerHTML=opts;
+ refreshDongs();
+}
 function regionFeatures(){return mode==='admin'?adminFeatures:legalFeatures}
 function featureName(f){let p=f.properties||{};return txt(p.adm_nm||p.FULL_NM||p.EMD_KOR_NM||p.emd_kor_nm||p.name||p.NAME||p.adm_nm_full||'')}
 function featureSido(f){const p=f.properties||{};return txt(p.sidonm||p.SIDO_NM||p.CTP_KOR_NM||'')}
@@ -42,8 +70,12 @@ function matchRegion(f){
  const sido=featureSido(f)||name.split(' ')[0];
  const gu=featureGu(f)||name.split(' ').slice(1,-1).join(' ');
  if(s&&canonicalSido(s)!==canonicalSido(sido))return false;
- if(g&&g!==gu&&!name.includes(g+' ')&&!name.includes(' '+g+' ')&&!gu.endsWith(' '+g)&&!g.endsWith(' '+gu))return false;
- return true;
+ if(!g)return true;
+ if(g.startsWith(CITY_PREFIX)){
+  const city=g.slice(CITY_PREFIX.length);
+  return cityOfDistrict(gu)===city||cityOfDistrict(name.split(' ').slice(1,-1).join(' '))===city;
+ }
+ return normDistrict(g)===normDistrict(gu)||normDistrict(name).includes(normDistrict(g));
 }
 function shortDong(f){const p=f.properties||{};if(p.EMD_KOR_NM)return txt(p.EMD_KOR_NM);const n=featureName(f);return n.split(' ').slice(-1)[0]||n}
 function refreshDongs(preserveSelection=true){
@@ -63,7 +95,7 @@ function refreshDongs(preserveSelection=true){
  select.disabled=false;
  if(old&&names.includes(old))select.value=old;
 }
-function checkApt(a){const s=$id('sido').value,g=$id('sigungu').value,q=$id('query').value.trim().toLowerCase(),dec=$id('decade').value,min=+$('input[name="units"]:checked').val(),y=numYear(a);return (!s||a.sidoNm===s)&&(!g||a.sigunguNm===g)&&(+a.units>=min)&&(!q||a.name.toLowerCase().includes(q))&&(!dec||(dec==='old'?y<1980:Math.floor(y/10)*10===+dec))}
+function checkApt(a){const s=$id('sido').value,g=$id('sigungu').value,q=$id('query').value.trim().toLowerCase(),dec=$id('decade').value,min=+$('input[name="units"]:checked').val(),y=numYear(a);return (!s||a.sidoNm===s)&&districtMatches(g,a.sigunguNm)&&(+a.units>=min)&&(!q||a.name.toLowerCase().includes(q))&&(!dec||(dec==='old'?y<1980:Math.floor(y/10)*10===+dec))}
 function filtered(){return apartments.filter(checkApt)}
 function boundsContains(b,lat,lng,extra=.012){const sw=b.getSouthWest(),ne=b.getNorthEast();return lat>=sw.getLat()-extra&&lat<=ne.getLat()+extra&&lng>=sw.getLng()-extra&&lng<=ne.getLng()+extra}
 function polygonPaths(entry){
@@ -117,37 +149,55 @@ function featureIntersectsBounds(paths,bounds){
 }
 // 선택한 구역을 비워 두고 그 바깥만 어둡게 표시하는 카카오맵 donut polygon.
 // 행정동/법정동 경계의 원본 링을 사용하며, 레이어는 아파트 위·경계/라벨 아래에 위치.
+// 부천시의 37개 동을 미리 합친 유효한 외곽선: 브라우저 대규모 union 실패 방지
+const BUCHEON_SHADE_GEOMETRIES={"부천시":[[[[126.783844,37.472333],[126.783194,37.47228],[126.782993,37.472049],[126.780468,37.4715],[126.780234,37.471572],[126.779646,37.471456],[126.778227,37.471795],[126.777763,37.471829],[126.777096,37.472209],[126.776095,37.47164],[126.775203,37.471698],[126.774564,37.471415],[126.772959,37.472306],[126.771878,37.472358],[126.771563,37.471847],[126.770409,37.471801],[126.767742,37.471762],[126.767524,37.472477],[126.767348,37.473328],[126.766529,37.474165],[126.765192,37.475234],[126.762216,37.475646],[126.761792,37.476329],[126.75906,37.476821],[126.758266,37.478822],[126.756211,37.479758],[126.755814,37.480824],[126.755249,37.48082],[126.755494,37.482804],[126.754517,37.483702],[126.753166,37.484284],[126.752453,37.484565],[126.749799,37.485347],[126.746973,37.485388],[126.745848,37.485957],[126.742601,37.486647],[126.74242,37.488434],[126.74241,37.488813],[126.741875,37.492539],[126.741634,37.495101],[126.742557,37.497222],[126.743617,37.50148],[126.742956,37.50361],[126.742656,37.505123],[126.742157,37.506449],[126.741575,37.508926],[126.743748,37.51037],[126.745101,37.514085],[126.745511,37.514649],[126.745799,37.514762],[126.746313,37.514798],[126.74732,37.514603],[126.747807,37.51453],[126.748671,37.514593],[126.749359,37.514718],[126.75059,37.514979],[126.751892,37.515337],[126.751946,37.515386],[126.752004,37.516409],[126.75497,37.516594],[126.759574,37.51556],[126.760284,37.515859],[126.760348,37.516818],[126.760116,37.517972],[126.761,37.517977],[126.760336,37.524096],[126.760318,37.527502],[126.760318,37.528318],[126.760675,37.535559],[126.760948,37.537859],[126.761596,37.54023],[126.762854,37.543218],[126.76319,37.544409],[126.763372,37.545525],[126.763506,37.546754],[126.764229,37.549768],[126.765009,37.550477],[126.76417,37.550825],[126.764749,37.551175],[126.766486,37.552875],[126.766203,37.554126],[126.767767,37.553253],[126.767552,37.551962],[126.768318,37.551575],[126.77007,37.550979],[126.771744,37.548307],[126.772625,37.548704],[126.775351,37.549073],[126.77681,37.54822],[126.777588,37.546581],[126.779901,37.546247],[126.780331,37.546162],[126.781856,37.546142],[126.784648,37.546291],[126.787382,37.545857],[126.791754,37.543749],[126.792043,37.541813],[126.79475,37.541516],[126.794296,37.540103],[126.793316,37.539725],[126.794191,37.538243],[126.794,37.536856],[126.794401,37.535831],[126.796074,37.536727],[126.797878,37.537031],[126.798376,37.537631],[126.799066,37.537508],[126.799493,37.537863],[126.799243,37.539288],[126.798753,37.539454],[126.798979,37.540268],[126.800829,37.540876],[126.800391,37.541696],[126.801612,37.542456],[126.802849,37.543082],[126.80732,37.543616],[126.810376,37.541609],[126.812362,37.540709],[126.816617,37.540567],[126.819418,37.540779],[126.822147,37.540679],[126.821592,37.539725],[126.82196,37.538871],[126.822309,37.537918],[126.822396,37.536489],[126.82182,37.534871],[126.82265,37.53419],[126.82274,37.53377],[126.823514,37.533774],[126.823452,37.53254],[126.823975,37.531795],[126.824736,37.530633],[126.825494,37.529821],[126.827092,37.5298],[126.828143,37.529033],[126.827856,37.52818],[126.828461,37.526703],[126.828805,37.526511],[126.82823,37.526214],[126.828154,37.525799],[126.826447,37.524961],[126.825916,37.524077],[126.825251,37.523149],[126.825205,37.523027],[126.82559,37.521975],[126.825583,37.520493],[126.825559,37.519846],[126.824492,37.51772],[126.823238,37.516181],[126.823324,37.514889],[126.824213,37.514346],[126.824471,37.513036],[126.823851,37.510957],[126.823966,37.509058],[126.824679,37.508328],[126.822237,37.507601],[126.822448,37.506075],[126.821946,37.504525],[126.821517,37.503035],[126.821594,37.502061],[126.820203,37.501579],[126.819377,37.500497],[126.819757,37.499227],[126.818951,37.498693],[126.818212,37.498885],[126.816507,37.497814],[126.815927,37.49764],[126.815173,37.498045],[126.814359,37.498314],[126.814001,37.497196],[126.812977,37.49629],[126.814295,37.494633],[126.814392,37.493199],[126.815587,37.493074],[126.815937,37.49243],[126.817858,37.491584],[126.818543,37.491648],[126.820259,37.490843],[126.820617,37.490756],[126.822741,37.489983],[126.823,37.488477],[126.823028,37.488076],[126.823473,37.487745],[126.822328,37.486737],[126.821296,37.48619],[126.820368,37.485879],[126.819508,37.485558],[126.819434,37.48547],[126.819389,37.48537],[126.819455,37.482711],[126.819928,37.481762],[126.819568,37.480276],[126.818201,37.478143],[126.817054,37.478118],[126.816445,37.477572],[126.816071,37.47712],[126.816094,37.476715],[126.815293,37.47645],[126.814868,37.475782],[126.814753,37.474668],[126.815392,37.474008],[126.815908,37.473992],[126.816658,37.473918],[126.817094,37.473593],[126.817309,37.473177],[126.817838,37.473155],[126.817926,37.473471],[126.818667,37.474135],[126.818458,37.475178],[126.819503,37.475115],[126.819149,37.475501],[126.819221,37.476158],[126.821221,37.476254],[126.821679,37.475306],[126.822648,37.475858],[126.824192,37.476177],[126.825132,37.476764],[126.82597,37.476848],[126.82876,37.4761],[126.829281,37.476248],[126.829646,37.476694],[126.831794,37.477575],[126.833014,37.477251],[126.832746,37.47702],[126.832878,37.476663],[126.832296,37.476296],[126.832528,37.474248],[126.832034,37.473423],[126.832428,37.471927],[126.832852,37.470503],[126.833508,37.4687],[126.83351,37.467936],[126.833489,37.467479],[126.833167,37.465892],[126.832578,37.46581],[126.83146,37.46635],[126.831064,37.464822],[126.830514,37.464831],[126.830085,37.464726],[126.828724,37.463976],[126.827683,37.46322],[126.826757,37.461668],[126.825973,37.459405],[126.825418,37.458975],[126.823795,37.45924],[126.823189,37.458346],[126.820902,37.458617],[126.819728,37.459452],[126.818171,37.459217],[126.817741,37.459186],[126.81705,37.459573],[126.816444,37.460001],[126.815477,37.460984],[126.813227,37.459933],[126.813349,37.45872],[126.812681,37.459176],[126.812166,37.459124],[126.811837,37.458858],[126.811508,37.459878],[126.811099,37.460278],[126.810877,37.460384],[126.810487,37.460764],[126.810173,37.460826],[126.8099,37.461172],[126.809358,37.46132],[126.808931,37.461724],[126.808889,37.462093],[126.807731,37.461996],[126.806988,37.462016],[126.805754,37.462009],[126.805443,37.461708],[126.804676,37.461699],[126.8041,37.461505],[126.803079,37.461739],[126.802401,37.462655],[126.80141,37.462923],[126.800938,37.462886],[126.801065,37.463748],[126.799783,37.464171],[126.79881,37.464538],[126.797487,37.464099],[126.796518,37.464025],[126.79477,37.465718],[126.794217,37.465773],[126.792527,37.465264],[126.79152,37.465287],[126.789269,37.465655],[126.787784,37.466841],[126.787908,37.469259],[126.785186,37.470056],[126.784364,37.471274],[126.784323,37.47241],[126.783844,37.472333]]]],"부천시소사구":[[[[126.817309,37.473177],[126.817838,37.473155],[126.817926,37.473471],[126.818667,37.474135],[126.818458,37.475178],[126.819503,37.475115],[126.819149,37.475501],[126.819221,37.476158],[126.821221,37.476254],[126.821679,37.475306],[126.822648,37.475858],[126.824192,37.476177],[126.825132,37.476764],[126.82597,37.476848],[126.82876,37.4761],[126.829281,37.476248],[126.829646,37.476694],[126.831794,37.477575],[126.833014,37.477251],[126.832746,37.47702],[126.832878,37.476663],[126.832296,37.476296],[126.832528,37.474248],[126.832034,37.473423],[126.832428,37.471927],[126.832852,37.470503],[126.833508,37.4687],[126.83351,37.467936],[126.833489,37.467479],[126.833167,37.465892],[126.832578,37.46581],[126.83146,37.46635],[126.831064,37.464822],[126.830514,37.464831],[126.830085,37.464726],[126.828724,37.463976],[126.827683,37.46322],[126.826757,37.461668],[126.825973,37.459405],[126.825418,37.458975],[126.823795,37.45924],[126.823189,37.458346],[126.820902,37.458617],[126.819728,37.459452],[126.818171,37.459217],[126.817741,37.459186],[126.81705,37.459573],[126.816444,37.460001],[126.815477,37.460984],[126.813227,37.459933],[126.813349,37.45872],[126.812681,37.459176],[126.812166,37.459124],[126.811837,37.458858],[126.811508,37.459878],[126.811099,37.460278],[126.810877,37.460384],[126.810487,37.460764],[126.810173,37.460826],[126.8099,37.461172],[126.809358,37.46132],[126.808931,37.461724],[126.808889,37.462093],[126.807731,37.461996],[126.806988,37.462016],[126.805754,37.462009],[126.805443,37.461708],[126.804676,37.461699],[126.8041,37.461505],[126.803079,37.461739],[126.802401,37.462655],[126.80141,37.462923],[126.800938,37.462886],[126.801065,37.463748],[126.799783,37.464171],[126.79881,37.464538],[126.797487,37.464099],[126.796518,37.464025],[126.79477,37.465718],[126.794217,37.465773],[126.792527,37.465264],[126.79152,37.465287],[126.789269,37.465655],[126.787784,37.466841],[126.787908,37.469259],[126.785186,37.470056],[126.784364,37.471274],[126.784323,37.47241],[126.783844,37.472333],[126.783194,37.47228],[126.782993,37.472049],[126.780468,37.4715],[126.780234,37.471572],[126.779646,37.471456],[126.778227,37.471795],[126.777763,37.471829],[126.777096,37.472209],[126.776095,37.47164],[126.775203,37.471698],[126.774564,37.471415],[126.772959,37.472306],[126.771878,37.472358],[126.771563,37.471847],[126.770409,37.471801],[126.767742,37.471762],[126.767524,37.472477],[126.767348,37.473328],[126.766529,37.474165],[126.765192,37.475234],[126.762216,37.475646],[126.761792,37.476329],[126.75906,37.476821],[126.758266,37.478822],[126.756211,37.479758],[126.755814,37.480824],[126.755249,37.48082],[126.755494,37.482804],[126.754517,37.483702],[126.753166,37.484284],[126.752453,37.484565],[126.749799,37.485347],[126.746973,37.485388],[126.745848,37.485957],[126.742601,37.486647],[126.742418,37.488492],[126.746036,37.488064],[126.747946,37.487986],[126.753511,37.487603],[126.761519,37.487098],[126.764618,37.486717],[126.774315,37.485188],[126.774843,37.485161],[126.779947,37.484597],[126.78817,37.483243],[126.791806,37.48276],[126.795129,37.482748],[126.798747,37.482843],[126.803172,37.482405],[126.808658,37.484162],[126.81114,37.485006],[126.811923,37.485305],[126.814458,37.486156],[126.816001,37.487006],[126.820617,37.490756],[126.822741,37.489983],[126.823,37.488477],[126.823028,37.488076],[126.823473,37.487745],[126.822328,37.486737],[126.821296,37.48619],[126.820368,37.485879],[126.819508,37.485558],[126.819434,37.48547],[126.819389,37.48537],[126.819455,37.482711],[126.819928,37.481762],[126.819568,37.480276],[126.818201,37.478143],[126.817054,37.478118],[126.816445,37.477572],[126.816071,37.47712],[126.816094,37.476715],[126.815293,37.47645],[126.814868,37.475782],[126.814753,37.474668],[126.815392,37.474008],[126.815908,37.473992],[126.816658,37.473918],[126.817094,37.473593],[126.817309,37.473177]]]],"부천시오정구":[[[[126.824492,37.51772],[126.823238,37.516181],[126.823324,37.514889],[126.824213,37.514346],[126.824471,37.513036],[126.823851,37.510957],[126.823966,37.509058],[126.824679,37.508328],[126.822237,37.507601],[126.822448,37.506075],[126.815038,37.505746],[126.808578,37.506535],[126.803664,37.506847],[126.801384,37.506246],[126.799501,37.506828],[126.797505,37.505851],[126.79561,37.506114],[126.794373,37.507027],[126.79108,37.506802],[126.791413,37.509072],[126.791249,37.510299],[126.790049,37.510886],[126.79025,37.513041],[126.792296,37.51505],[126.79423,37.515825],[126.793799,37.517271],[126.795295,37.517574],[126.795122,37.520275],[126.795965,37.520177],[126.795328,37.522282],[126.793146,37.522462],[126.783664,37.518111],[126.780216,37.516905],[126.775277,37.515054],[126.771438,37.513833],[126.770911,37.514619],[126.77005,37.515038],[126.769947,37.515468],[126.768694,37.515441],[126.768558,37.51683],[126.766566,37.516857],[126.766611,37.517288],[126.765576,37.517556],[126.765572,37.517986],[126.761,37.517977],[126.760336,37.524096],[126.760318,37.528318],[126.760675,37.535559],[126.760948,37.537859],[126.761596,37.54023],[126.762854,37.543218],[126.76319,37.544409],[126.763372,37.545525],[126.763506,37.546754],[126.764229,37.549768],[126.765009,37.550477],[126.76417,37.550825],[126.764749,37.551175],[126.766486,37.552875],[126.766203,37.554126],[126.767767,37.553253],[126.767552,37.551962],[126.768318,37.551575],[126.77007,37.550979],[126.771744,37.548307],[126.772625,37.548704],[126.775351,37.549073],[126.77681,37.54822],[126.777588,37.546581],[126.779901,37.546247],[126.780331,37.546162],[126.781856,37.546142],[126.784648,37.546291],[126.787382,37.545857],[126.791754,37.543749],[126.792043,37.541813],[126.79475,37.541516],[126.794296,37.540103],[126.793316,37.539725],[126.794191,37.538243],[126.794,37.536856],[126.794401,37.535831],[126.796074,37.536727],[126.797878,37.537031],[126.798376,37.537631],[126.799066,37.537508],[126.799493,37.537863],[126.799243,37.539288],[126.798753,37.539454],[126.798979,37.540268],[126.800829,37.540876],[126.800391,37.541696],[126.801612,37.542456],[126.802849,37.543082],[126.80732,37.543616],[126.810376,37.541609],[126.812362,37.540709],[126.816617,37.540567],[126.819418,37.540779],[126.822147,37.540679],[126.821592,37.539725],[126.82196,37.538871],[126.822309,37.537918],[126.822396,37.536489],[126.82182,37.534871],[126.82265,37.53419],[126.82274,37.53377],[126.823514,37.533774],[126.823452,37.53254],[126.823975,37.531795],[126.824736,37.530633],[126.825494,37.529821],[126.827092,37.5298],[126.828143,37.529033],[126.827856,37.52818],[126.828461,37.526703],[126.828805,37.526511],[126.82823,37.526214],[126.828154,37.525799],[126.826447,37.524961],[126.825916,37.524077],[126.825251,37.523149],[126.825205,37.523027],[126.82559,37.521975],[126.825583,37.520493],[126.825559,37.519846],[126.824492,37.51772]]]],"부천시원미구":[[[[126.774315,37.485188],[126.764618,37.486717],[126.761519,37.487098],[126.753511,37.487603],[126.747946,37.487986],[126.746036,37.488064],[126.742418,37.488492],[126.74241,37.488813],[126.741875,37.492539],[126.741634,37.495101],[126.742557,37.497222],[126.743617,37.50148],[126.742956,37.50361],[126.742656,37.505123],[126.742157,37.506449],[126.741575,37.508926],[126.743748,37.51037],[126.745101,37.514085],[126.745511,37.514649],[126.745799,37.514762],[126.746313,37.514798],[126.74732,37.514603],[126.747807,37.51453],[126.748671,37.514593],[126.749359,37.514718],[126.75059,37.514979],[126.751892,37.515337],[126.751946,37.515386],[126.752004,37.516409],[126.75497,37.516594],[126.759574,37.51556],[126.760284,37.515859],[126.760348,37.516818],[126.760116,37.517972],[126.765572,37.517986],[126.765576,37.517556],[126.766611,37.517288],[126.766566,37.516857],[126.768558,37.51683],[126.768694,37.515441],[126.769947,37.515468],[126.77005,37.515038],[126.770911,37.514619],[126.771438,37.513833],[126.775277,37.515054],[126.780216,37.516905],[126.783664,37.518111],[126.793146,37.522462],[126.795328,37.522282],[126.795965,37.520177],[126.795122,37.520275],[126.795295,37.517574],[126.793799,37.517271],[126.79423,37.515825],[126.792296,37.51505],[126.79025,37.513041],[126.790049,37.510886],[126.791249,37.510299],[126.791413,37.509072],[126.79108,37.506802],[126.794373,37.507027],[126.79561,37.506114],[126.797505,37.505851],[126.799501,37.506828],[126.801384,37.506246],[126.803664,37.506847],[126.808578,37.506535],[126.815038,37.505746],[126.822448,37.506075],[126.821946,37.504525],[126.821517,37.503035],[126.821594,37.502061],[126.820203,37.501579],[126.819377,37.500497],[126.819757,37.499227],[126.818951,37.498693],[126.818212,37.498885],[126.816507,37.497814],[126.815927,37.49764],[126.815173,37.498045],[126.814359,37.498314],[126.814001,37.497196],[126.812977,37.49629],[126.814295,37.494633],[126.814392,37.493199],[126.815587,37.493074],[126.815937,37.49243],[126.817858,37.491584],[126.818543,37.491648],[126.820259,37.490843],[126.820617,37.490756],[126.816001,37.487006],[126.814458,37.486156],[126.811923,37.485305],[126.81114,37.485006],[126.808658,37.484162],[126.803172,37.482405],[126.798747,37.482843],[126.795129,37.482748],[126.791806,37.48276],[126.78817,37.483243],[126.779947,37.484597],[126.774843,37.485161],[126.774315,37.485188]]]]};
 function drawOutsideShade(){
  clearLayer(shadeLayers);
  if(!sdkReady||!$id('shadeOutside').checked)return;
- const sido=$id('sido').value,gu=$id('sigungu').value,dong=$id('dong').value;
- if(!sido)return; // 전국 선택에는 특정 보호 영역이 없음
+ const sido=$id('sido').value,dong=$id('dong').value;
+ if(!sido)return;
  const matched=regionFeatures().filter(f=>matchRegion(f)&&(!dong||shortDong(f)===dong));
- if(!matched.length)return;
- const b=map.getBounds();
- const sw=b.getSouthWest(),ne=b.getNorthEast();
- const minLat=Math.max(-85,sw.getLat()-1.5),maxLat=Math.min(85,ne.getLat()+1.5);
- const minLng=Math.max(-179,sw.getLng()-1.5),maxLng=Math.min(179,ne.getLng()+1.5);
- const outer=[mapLL(minLng,minLat),mapLL(maxLng,minLat),mapLL(maxLng,maxLat),mapLL(minLng,maxLat)];
- const holes=[];
- for(const f of matched){
-  for(const poly of geoPolys(f)){
-   if(!poly.length)continue;
-   // 화면 밖 폴리곤은 제외. 내부 링(섬/구멍)은 필요 시 후속 별도 처리.
-   const ring=poly[0];
-   if(ring.length<3||!featureIntersectsBounds([poly],b))continue;
-   holes.push(ring);
+ if(!matched.length){console.warn('음영 영역: 해당 행정구역 없음', $id('sigungu').value);return;}
+ const bounds=map.getBounds(),sw=bounds.getSouthWest(),ne=bounds.getNorthEast();
+ const minLat=Math.max(-85,sw.getLat()-0.2),maxLat=Math.min(85,ne.getLat()+0.2);
+ const minLng=Math.max(-179,sw.getLng()-0.2),maxLng=Math.min(179,ne.getLng()+0.2);
+ const outer=[[minLng,minLat],[maxLng,minLat],[maxLng,maxLat],[minLng,maxLat],[minLng,minLat]];
+ const selected=[];
+ for(const f of matched){const g=f.geometry||{};
+  for(const poly of (g.type==='Polygon'?[g.coordinates]:g.type==='MultiPolygon'?g.coordinates:[])){
+   if(poly&&poly[0]&&poly[0].length>=3)selected.push(poly);
   }
  }
- if(!holes.length)return;
+ if(!selected.length)return;
+ const opacity=Number($id('shadeStrength').value)||.65;
  try{
-  // Kakao Polygon path: [outer, hole1, hole2 ...] (공식 도넛 폴리곤)
-  const shade=new kakao.maps.Polygon({map,path:[outer,...holes],strokeWeight:0,
-   fillColor:'#05070b',fillOpacity:Number($id('shadeStrength').value)||.65,zIndex:4,clickable:false});
-  shadeLayers.push(shade);
-  // 음영 내부/외부 모두 지도 제스처를 막지 않도록 이벤트를 투과시킴
-  if(typeof shade.setOptions==='function')shade.setOptions({clickable:false});
- }catch(e){console.warn('영역 외부 음영 표시 실패',e)}
+  if(!window.polygonClipping)throw new Error('polygon-clipping 라이브러리가 로드되지 않았습니다');
+  // 먼저 여러 행정동을 하나의 선택 범위로 합친 후, 지도 사각형에서 차집합을 계산.
+  // 여러 구·섬·분리된 지역도 독립 Polygon과 내부 hole로 나누어 처리한다.
+  const guSelected=$id('sigungu').value;
+  const normGu=normDistrict(guSelected);
+  const bucheonKey=guSelected.startsWith(CITY_PREFIX)&&selectedCity()==='부천시'
+    ? '부천시' : Object.keys(BUCHEON_SHADE_GEOMETRIES).find(k=>k!=='부천시'&&normDistrict(k)===normGu);
+  // 동을 따로 선택했다면 해당 동만 잘라내도록 기존 동 경계를 우선 사용한다.
+  const premerged=(!dong&&bucheonKey&&canonicalSido(sido)==='경기도')
+    ? BUCHEON_SHADE_GEOMETRIES[bucheonKey] : null;
+  const union=premerged || window.polygonClipping.union(...selected.map(poly=>[poly]));
+  const shaded=window.polygonClipping.difference([[outer]],union);
+  for(const polygon of shaded){
+   const paths=polygon.map(ring=>ring.map(pt=>mapLL(+pt[0],+pt[1]))).filter(r=>r.length>=3);
+   if(!paths.length)continue;
+   shadeLayers.push(new kakao.maps.Polygon({map,path:paths,strokeWeight:0,
+    fillColor:'#05070b',fillOpacity:opacity,zIndex:4,clickable:false}));
+  }
+ }catch(e){
+  console.warn('외부 음영 계산 실패, 원본 링으로 재시도',e);
+  // 예외 시에도 단일 구/동은 최대한 표시
+  try{
+   const holes=selected.map(poly=>poly[0].map(pt=>mapLL(+pt[0],+pt[1])));
+   shadeLayers.push(new kakao.maps.Polygon({map,path:[outer.map(pt=>mapLL(pt[0],pt[1])),...holes],
+     strokeWeight:0,fillColor:'#05070b',fillOpacity:opacity,zIndex:4,clickable:false}));
+  }catch(err){console.error('음영 재시도도 실패',err)}
+ }
 }
 // 단계별 경계 표시: 시·도 선택 → 시·군·구, 시·군·구 선택 → 동, 동 선택 → 해당 동 강조.
 // 개별 동 폴리곤을 합집합으로 묶어 구 내부의 동 경계선이 남지 않게 한다.
@@ -190,6 +240,26 @@ function geometryCenter(geometry){
   if(score>bestScore){bestScore=score;best=mapLL((mnX+mxX)/2,(mnY+mxY)/2)}
  }return best;
 }
+// 현재 지도에 보이는 경계 부분을 기준으로 라벨 위치를 정한다.
+// 단지/동의 원래 중심이 화면 밖에 있어도 표시 중인 동 이름이 사라지지 않도록 한다.
+function labelPositionInViewport(paths, bounds, preferred){
+ const sw=bounds.getSouthWest(),ne=bounds.getNorthEast();
+ const s=sw.getLat(),n=ne.getLat(),w=sw.getLng(),e=ne.getLng();
+ if(preferred&&preferred.getLat()>=s&&preferred.getLat()<=n&&preferred.getLng()>=w&&preferred.getLng()<=e)return preferred;
+ let candidate=null,best=-1;
+ for(const poly of paths){
+  // 각 폴리곤 외곽 링과 현재 화면의 겹친 사각 영역 중 가장 큰 것을 사용.
+  const rings=Array.isArray(poly?.[0])?poly:[poly];
+  for(const ring of rings.slice(0,1)){
+   let a=Infinity,b=-Infinity,c=Infinity,d=-Infinity;
+   for(const pt of ring){if(!pt||typeof pt.getLat!=='function')continue;const lat=pt.getLat(),lng=pt.getLng();a=Math.min(a,lat);b=Math.max(b,lat);c=Math.min(c,lng);d=Math.max(d,lng)}
+   const lowLat=Math.max(a,s),highLat=Math.min(b,n),lowLng=Math.max(c,w),highLng=Math.min(d,e);
+   const area=Math.max(0,highLat-lowLat)*Math.max(0,highLng-lowLng);
+   if(area>best&&lowLat<=highLat&&lowLng<=highLng){best=area;candidate=mapLL((lowLng+highLng)/2,(lowLat+highLat)/2)}
+  }
+ }
+ return candidate;
+}
 function drawAdmin(){
  clearLayer(adminLayers);clearLayer(labelLayers);drawOutsideShade();
  const info=$id('boundaryInfo');
@@ -198,9 +268,10 @@ function drawAdmin(){
  const bounds=map.getBounds();
  const fs=regionFeatures().filter(matchRegion).filter(f=>!dong||shortDong(f)===dong);
  const layerName=mode==='admin'?'행정':'법정';
- const level=gu?'동·읍·면':sido?'시·군·구':'전국';
+ const isCity=!!selectedCity();
+ const level=isCity?'일반구':gu?'동·읍·면':sido?'시·군·구':'전국';
  let groups=[];
- if(!gu){
+ if(!gu||isCity){
   // 시도만 정해졌을 때는 시군구별 경계의 합집합 + 구 이름 한 개씩.
   // 전국에서는 지나친 렌더링을 막기 위해 현재 화면 내 시군구만 표시.
   const byDistrict=new Map();
@@ -226,9 +297,10 @@ function drawAdmin(){
    const obj=new kakao.maps.Polygon({map,path,strokeColor:mode==='admin'?'#3166ba':'#8544c5',strokeWeight:dong?3.2:gu?2.2:3,strokeOpacity:.95,fillColor:'#ffffff',fillOpacity:0,zIndex:6});
    adminLayers.push(obj);
   }
-  if($id('showLabels').checked&&labeled<200&&group.center&&boundsContains(bounds,group.center.getLat(),group.center.getLng(),.015)){
-   const label=document.createElement('div');label.className='dongLabel';label.textContent=group.name;
-   labelLayers.push(new kakao.maps.CustomOverlay({map,position:group.center,content:label,zIndex:50,yAnchor:.5,clickable:false}));labeled++;
+  if($id('showLabels').checked&&labeled<200){
+   const labelPos=labelPositionInViewport(group.paths,bounds,group.center);
+   if(labelPos){const label=document.createElement('div');label.className='dongLabel';label.textContent=group.name;
+    labelLayers.push(new kakao.maps.CustomOverlay({map,position:labelPos,content:label,zIndex:50,yAnchor:.5,clickable:false}));labeled++;}
   }
   drawn++;
  }
