@@ -889,7 +889,7 @@
                     <div class="col" style="max-width:160px"><label>표시 지역 수</label><select id="mapLimit"><option value="10">상위 10곳</option><option value="20">상위 20곳</option><option value="30">상위 30곳</option><option value="50" selected>상위 50곳</option><option value="100">상위 100곳</option></select></div>
                 </div>
             
-                <div class="boundaryModeBar"><label class="boundaryCheck"><input type="checkbox" id="showBoundary" checked> 경계선 표시</label><label class="boundaryCheck"><input type="checkbox" id="showAreaLabels" checked> 지역명 표시</label><span id="populationBasisText">인구 통계·아이콘은 행정동 기준입니다.</span></div><span class="muted" id="mapOriginHelp"></span><div id="mapStatus" class="status" aria-live="polite"></div>
+                <div class="boundaryModeBar"><label class="boundaryCheck"><input type="checkbox" id="showOutsideShade" checked> 선택 지역 외부 음영</label><label class="boundaryCheck">농도 <select id="shadeOpacity" style="width:auto;padding:4px 7px"><option value="60">60%</option><option value="65" selected>65%</option><option value="70">70%</option></select></label><label class="boundaryCheck"><input type="checkbox" id="showBoundary" checked> 경계선 표시</label><label class="boundaryCheck"><input type="checkbox" id="showAreaLabels" checked> 지역명 표시</label><span id="populationBasisText">인구 통계·아이콘은 행정동 기준입니다.</span></div><span class="muted" id="mapOriginHelp"></span><div id="mapStatus" class="status" aria-live="polite"></div>
                 <div id="mapLegend" class="mapLegend"></div>
                 <div id="populationMapWrap">
                     <div id="populationMap"></div>
@@ -3440,7 +3440,30 @@ function renderAdultAgeChart() {
             return new kakao.maps.LatLng((sw.getLat()+ne.getLat())/2,(sw.getLng()+ne.getLng())/2);
         }
         function closeAgePopup(){if(agePopup){agePopup.setMap(null);agePopup=null;}}
+        var ageShadeLayers=[];
+        function clearAgeShade(){ageShadeLayers.forEach(function(p){p.setMap(null);});ageShadeLayers=[];}
+        function drawAgeOutsideShade(features){
+            clearAgeShade();
+            if(!$('#showOutsideShade').prop('checked')||!features.length)return;
+            // 외부 링은 한국 전역을 덮고, 선택된 시/구의 외곽 링만 구멍으로 비워둔다.
+            var outer=[[31,121],[31,135],[41,135],[41,121]].map(function(p){return new kakao.maps.LatLng(p[0],p[1]);});
+            var holes=[];
+            features.forEach(function(f){
+                var geom=f.geometry||{};
+                var polys=geom.type==='MultiPolygon'?geom.coordinates:geom.type==='Polygon'?[geom.coordinates]:[];
+                polys.forEach(function(poly){
+                    if(poly[0]&&poly[0].length>3)holes.push(poly[0].map(kakaoAgeCoords));
+                });
+            });
+            if(!holes.length)return;
+            try{
+                var polygon=new kakao.maps.Polygon({map:ageMap,path:[outer].concat(holes),
+                    strokeWeight:0,strokeOpacity:0,fillColor:'#000000',fillOpacity:Number($('#shadeOpacity').val()||65)/100,zIndex:1});
+                ageShadeLayers.push(polygon);
+            }catch(e){console.warn('선택 영역 음영 생성 실패',e);}
+        }
         function clearAgeOverlays(){
+            clearAgeShade();
             closeAgePopup();
             ageMarkers.forEach(function(m){m.setMap(null);});ageMarkers=[];
             ageVectorLayer.forEach(function(m){m.setMap(null);});ageVectorLayer=[];
@@ -3508,28 +3531,126 @@ function renderAdultAgeChart() {
             if(sidos.indexOf('서울특별시')>=0) $('#mapSido').val('서울특별시');
             populateMapSigungu();
         }
+        // 전국 일반구: CSV가 '용인시기흥구', '용인시 기흥구', '기흥구' 중
+        // 어느 표기를 사용해도 시 전체와 개별 구를 모두 선택할 수 있게 한다.
+        var MAP_CITY_PREFIX='__CITY_ALL__:';
+        var MAP_CITY_GUS={
+            '경기도':{'수원시':['장안구','권선구','팔달구','영통구'],'성남시':['수정구','중원구','분당구'],
+                '안양시':['만안구','동안구'],'안산시':['상록구','단원구'],'고양시':['덕양구','일산동구','일산서구'],
+                '용인시':['처인구','기흥구','수지구'],'부천시':['원미구','소사구','오정구']},
+            '충청북도':{'청주시':['상당구','서원구','흥덕구','청원구']},
+            '충청남도':{'천안시':['동남구','서북구']},
+            '전북특별자치도':{'전주시':['완산구','덕진구']},
+            '전라북도':{'전주시':['완산구','덕진구']},
+            '경상북도':{'포항시':['남구','북구']},
+            '경상남도':{'창원시':['의창구','성산구','마산합포구','마산회원구','진해구']}
+        };
+        function mapNorm(v){return String(v||'').replace(/[\s·.\-]/g,'');}
+        function cityDistrictGroup(sg,sido){
+            var n=mapNorm(sg),known=MAP_CITY_GUS[sido]||{};
+            for(var city in known){
+                for(var i=0;i<known[city].length;i++){
+                    var gu=known[city][i];
+                    if(n===mapNorm(gu)||n===mapNorm(city+gu))return city;
+                }
+            }
+            var m=n.match(/^(.+?시)(.+구)$/);
+            return m&&m[2] ? m[1] : '';
+        }
+        function mapDistrictMatches(rowDistrict,chosenDistrict,sido){
+            var a=mapNorm(rowDistrict),b=mapNorm(chosenDistrict);
+            if(a===b)return true;
+            var ca=cityDistrictGroup(rowDistrict,sido),cb=cityDistrictGroup(chosenDistrict,sido);
+            if(!ca||!cb||ca!==cb)return false;
+            return a.replace(mapNorm(ca),'')===b.replace(mapNorm(cb),'');
+        }
+        function selectedMapCity(){
+            var v=$('#mapSigungu').val()||'';
+            return v.indexOf(MAP_CITY_PREFIX)===0?v.slice(MAP_CITY_PREFIX.length):'';
+        }
+        function mapInSelectedCity(sg,city,sido){return cityDistrictGroup(sg,sido)===city;}
+        // 구별 인구 CSV 행이 없더라도 실제 일반구 선택 항목을 제공한다.
+        // 시 전체와 개별 구는 지역경계 GeoJSON을 기준으로 구분하며,
+        // 인구수는 원본 CSV에 존재하는 해상도만 그대로 사용한다.
         function populateMapSigungu(){
-            var sido=$('#mapSido').val();
-            var sgs=uniq(rawAgeRows.filter(function(r){return r.sido===sido;}).map(function(r){return r.sigungu;})).sort(function(a,b){return a.localeCompare(b,'ko');});
-            $('#mapSigungu').empty().append($('<option>',{value:'',text:'(전체 시/군/구)'}));
-            sgs.forEach(function(v){$('#mapSigungu').append($('<option>',{value:v,text:v}));});
+            var sido=$('#mapSido').val(),$sel=$('#mapSigungu'),prior=$sel.val();
+            var sgs=uniq(rawAgeRows.filter(function(r){return r.sido===sido && !!r.sigungu;})
+                .map(function(r){return String(r.sigungu).trim();})).sort(function(a,b){return a.localeCompare(b,'ko');});
+            var known=MAP_CITY_GUS[sido]||{}, listed={};
+            $sel.empty().append($('<option>',{value:'',text:'(전체 시/군/구)'}));
+            // 기존 도시 목록 정렬 순서를 유지하면서 실제 행정구를 삽입한다.
+            sgs.forEach(function(sg){
+                var city=cityDistrictGroup(sg,sido);
+                if(!city && known[sg])city=sg; // CSV가 시 이름만 제공하는 경우
+                if(city && known[city]){
+                    if(!listed[city]){
+                        $sel.append($('<option>',{value:MAP_CITY_PREFIX+city,text:'★ '+city+' 전체'}));
+                        known[city].forEach(function(gu){
+                            $sel.append($('<option>',{value:city+' '+gu,text:'　└ '+city+' '+gu}));
+                        });
+                        listed[city]=true;
+                    }
+                }else if(!listed[sg]){
+                    $sel.append($('<option>',{value:sg,text:sg}));listed[sg]=true;
+                }
+            });
+            // 시 단위 통계 자체가 없어도 행정구 경계 선택은 가능하도록 보장
+            Object.keys(known).sort(function(a,b){return a.localeCompare(b,'ko');}).forEach(function(city){
+                if(listed[city])return;
+                $sel.append($('<option>',{value:MAP_CITY_PREFIX+city,text:'★ '+city+' 전체'}));
+                known[city].forEach(function(gu){$sel.append($('<option>',{value:city+' '+gu,text:'　└ '+city+' '+gu}));});
+            });
+            if(prior&&$sel.find('option').filter(function(){return this.value===prior;}).length)$sel.val(prior);
+            else $sel.val('');
+        }
+        // 전국 복합시 인구 CSV에서는 sigungu='용인시', emd='기흥구 신갈동'처럼 기록된다.
+        // 따라서 선택된 구의 실제 인구는 emd 앞의 일반구 이름으로 찾아야 한다.
+        function mapRowGuParts(r){
+            var emd=String(r.emd||'').trim();
+            var parsed=parseGuRest(emd);
+            var known=MAP_CITY_GUS[r.sido]||{};
+            if(parsed){
+                var city=String(r.sigungu||'').trim();
+                if(known[city]&&known[city].indexOf(parsed.gu)>=0)
+                    return {city:city,gu:parsed.gu,dong:parsed.rest};
+            }
+            var city=cityDistrictGroup(r.sigungu,r.sido);
+            if(city){
+                var sgNorm=mapNorm(r.sigungu),gu=sgNorm.replace(mapNorm(city),'');
+                if(known[city]&&known[city].indexOf(gu)>=0)
+                    return {city:city,gu:gu,dong:emd};
+            }
+            return null;
+        }
+        function mapChosenGu(sg,sido){
+            var city=cityDistrictGroup(sg,sido);
+            if(!city)return null;
+            var compact=mapNorm(sg),list=(MAP_CITY_GUS[sido]||{})[city]||[];
+            for(var i=0;i<list.length;i++)if(compact===mapNorm(city+list[i])||compact===mapNorm(list[i]))
+                return {city:city,gu:list[i]};
+            return null;
         }
         function getMapItems(){
-            var sido=$('#mapSido').val(), sg=$('#mapSigungu').val();
-            if(!sido) return [];
+            var sido=$('#mapSido').val(),sg=$('#mapSigungu').val(),city=selectedMapCity();
+            if(!sido)return [];
+            var chosenGu=(!city&&sg)?mapChosenGu(sg,sido):null;
             var data=rawAgeRows.filter(function(r){
-                if(r.sido!==sido) return false;
-                if(sg) return r.sigungu===sg && !!r.emd;
-                return !!r.sigungu && !r.emd;
+                if(r.sido!==sido)return false;
+                var p=mapRowGuParts(r);
+                if(city)return !!p&&p.city===city&&!!r.emd;
+                if(chosenGu)return !!p&&p.city===chosenGu.city&&p.gu===chosenGu.gu&&!!p.dong;
+                if(sg)return mapDistrictMatches(r.sigungu,sg,sido)&&!!r.emd;
+                return !!r.sigungu&&!r.emd;
             });
-            // 시군구 합계가 없는 파일에 대비: 읍면동 단위 집계로 대체
-            if(!sg && !data.length) data=rawAgeRows.filter(function(r){return r.sido===sido && !!r.sigungu && !!r.emd;});
+            if(!sg&&!data.length)data=rawAgeRows.filter(function(r){return r.sido===sido&&!!r.sigungu&&!!r.emd;});
             var byKey=new Map();
             data.forEach(function(r){
-                var name=sg ? r.emd : r.sigungu;
-                if(!name) return;
-                var full=sg ? [sido,sg,name].join(' ') : [sido,name].join(' ');
-                if(!byKey.has(full)) byKey.set(full,{name:name,full:full,sido:sido,sg:sg,raw:{}});
+                var parsed=mapRowGuParts(r);
+                var name=city&&parsed?parsed.gu:chosenGu&&parsed?parsed.dong:sg?r.emd:r.sigungu;
+                if(!name)return;
+                // 선택 도시는 구 합산, 선택 구는 동 이름으로 그룹화
+                var full=(chosenGu?[sido,chosenGu.city,chosenGu.gu,name]:city?[sido,city,name]:sg?[sido,sg,name]:[sido,name]).join(' ');
+                if(!byKey.has(full))byKey.set(full,{name:name,full:full,sido:sido,sg:chosenGu?chosenGu.city+' '+chosenGu.gu:(city?'':sg),raw:{}});
                 var item=byKey.get(full);
                 var age={a0_9:r.a0_9,a10_19:r.a10_19,a20:r.a20_29,a30:r.a30_39,a40:r.a40_49,a50:r.a50_59,
                     a60p:(r.a60_69||0)+(r.a70_79||0)+(r.a80_89||0)+(r.a90_99||0)+(r.a100p||0)};
@@ -3683,36 +3804,42 @@ function renderAdultAgeChart() {
             return normalizedMapName(p.adm_nm||p.ADM_NM||'');
         }
         function featureIsArea(f,sido,sg){
-            var p=f.properties||{};
-            var full=adminFeatureFullName(f);
-            if(full){
-                if(!full.includes(normalizedMapName(sido))) return false;
-                return !sg || full.includes(normalizedMapName(sg));
-            }
+            var p=f.properties||{},full=adminFeatureFullName(f);
             var fs=normalizedMapName(p.SIDO_NM||p.CTP_KOR_NM||p.sido_nm||p.CTP_NM);
+            if(full){
+                if(!full.includes(normalizedMapName(sido)))return false;
+                if(!sg)return true;
+                var city=selectedMapCity();
+                if(city)return full.includes(normalizedMapName(city));
+                var cityOf=cityDistrictGroup(sg,sido);
+                return full.includes(normalizedMapName(sg)) ||
+                    (!!cityOf&&full.includes(normalizedMapName(cityOf))&&
+                     full.includes(normalizedMapName(mapNorm(sg).replace(mapNorm(cityOf),''))));
+            }
             var fg=normalizedMapName(p.SGG_NM||p.SIG_KOR_NM||p.sgg_nm||p.SIG_NM);
-            if(fs && fs!==normalizedMapName(sido)) return false;
-            if(!sg) return true;
-            var q=normalizedMapName(sg);
-            return !fg || fg===q || fg.indexOf(q)===0 || q.indexOf(fg)===0;
+            if(fs && fs!==normalizedMapName(sido))return false;
+            if(!sg)return true;
+            var city=selectedMapCity();
+            if(city)return fg.includes(normalizedMapName(city));
+            return mapDistrictMatches(fg,sg,sido)||fg===normalizedMapName(sg);
         }
         function scoreAreaFeature(f,item,sg){
-            var p=f.properties||{}, target=normalizedMapName(item.name);
+            var p=f.properties||{},target=normalizedMapName(item.name);
             var full=adminFeatureFullName(f);
             if(full){
-                var expected=normalizedMapName(item.full);
-                if(full===expected) return 10;
-                if(/^세종/.test(item.sido) && full.endsWith(target) && full.indexOf('세종')>=0) return 9;
-                if(full.endsWith(target) && full.includes(normalizedMapName(item.sido)) && (!sg || sg==='__SEJONG_DONG__' || full.includes(normalizedMapName(sg)))) return 8;
+                if(full===normalizedMapName(item.full))return 10;
+                var selectedGu=mapChosenGu($('#mapSigungu').val(),item.sido);
+                if(selectedGu){
+                    if(full.endsWith(target)&&full.includes(normalizedMapName(selectedGu.city))&&full.includes(normalizedMapName(selectedGu.gu)))return 9;
+                    return 0;
+                }
+                if(/^세종/.test(item.sido)&&full.endsWith(target)&&full.indexOf('세종')>=0)return 9;
+                if(full.endsWith(target)&&full.includes(normalizedMapName(item.sido))&&(!sg||sg==='__SEJONG_DONG__'||full.includes(normalizedMapName(sg))))return 8;
                 return 0;
             }
-            var hj=normalizedMapName(p.HJD_NM), legal=normalizedMapName(p.EMD_KOR_NM), district=normalizedMapName(p.SIG_KOR_NM);
-            if(sg){
-                if(hj===target) return 5;
-                if(legal===target) return 4;
-            }else{
-                if(district===target) return 6;
-            }
+            var hj=normalizedMapName(p.HJD_NM),legal=normalizedMapName(p.EMD_KOR_NM),district=normalizedMapName(p.SIG_KOR_NM);
+            if(sg){if(hj===target)return 5;if(legal===target)return 4;}
+            else if(district===target||district.endsWith(target))return 6;
             return 0;
         }
         async function renderAgeMap(){
@@ -3721,11 +3848,11 @@ function renderAdultAgeChart() {
             initAgeMap();
             document.getElementById('populationMap').classList.toggle('legalBoundaryMode',$('#boundaryMode').val()==='legal');
             var token=++mapRunToken;
-            var items=getMapItems(),sg=$('#mapSigungu').val(),sido=$('#mapSido').val();
-            if(!sido||!items.length){clearAgeOverlays();ageMapStatus('선택 지역에 표시할 인구 데이터가 없습니다.');return;}
+            var items=getMapItems(),sg=$('#mapSigungu').val(),sido=$('#mapSido').val(),city=selectedMapCity();
+            if(!sido){clearAgeOverlays();ageMapStatus('시·도를 선택해 주세요.');return;}
             clearAgeOverlays();
-            var adminLevel=(sg||/^세종/.test(sido))?'admin':'sig';
-            var displayLevel=(!sg&&!/^세종/.test(sido))?'sig':($('#boundaryMode').val()==='legal'?'legal':'admin');
+            var adminLevel=((sg&&!city)||/^세종/.test(sido))?'admin':'sig';
+            var displayLevel=(!(sg&&!city)&&!/^세종/.test(sido))?'sig':($('#boundaryMode').val()==='legal'?'legal':'admin');
             ageMapStatus('카카오 지도 · '+(displayLevel==='legal'?'법정동':'행정동')+' 경계 불러오는 중…');
             try{
                 var datasets=await Promise.all([loadAgeGeo(adminLevel),displayLevel===adminLevel?loadAgeGeo(adminLevel):loadAgeGeo(displayLevel)]);
@@ -3735,7 +3862,7 @@ function renderAdultAgeChart() {
                 // 인구 마커는 경계 모드에 상관없이 행정동/시군구 인구 자료의 위치로만 표시.
                 var matched=0,unmatched=[],ambiguous=[],colored=new Map();
                 items.forEach(function(item){
-                    var candidates=adminFeatures.map(function(f){return {f:f,score:scoreAreaFeature(f,item,sg||(/^세종/.test(sido)?'__SEJONG_DONG__':''))};}).filter(function(o){return o.score>=4;});
+                    var candidates=adminFeatures.map(function(f){return {f:f,score:scoreAreaFeature(f,item,(city?'':sg)||(/^세종/.test(sido)?'__SEJONG_DONG__':''))};}).filter(function(o){return o.score>=4;});
                     if(!candidates.length){unmatched.push(item.name);return;}
                     var score=Math.max.apply(null,candidates.map(function(o){return o.score;}));candidates=candidates.filter(function(o){return o.score===score;});
                     if(candidates.length!==1){ambiguous.push(item.name);return;}
@@ -3743,6 +3870,16 @@ function renderAdultAgeChart() {
                     matched++;colored.set(f,item);
                     addAgeMapMarker(item,[center.getLat(),center.getLng()]);
                 });
+                // 인구 지도 외부 음영은 행정동 경계가 아니라 시군구 경계 자료로 생성한다.
+                // 개별 구는 해당 구 1개, 시 전체는 소속 모든 구를 구멍으로 처리한다.
+                if(token===mapRunToken){
+                    try{
+                        var shadeData=await loadAgeGeo('sig');
+                        if(token!==mapRunToken)return;
+                        var shadeFeatures=shadeData.features.filter(function(f){return featureIsArea(f,sido,sg);});
+                        drawAgeOutsideShade(shadeFeatures);
+                    }catch(shadeErr){console.warn('음영 경계 불러오기 실패',shadeErr);}
+                }
                 var bounds=new kakao.maps.LatLngBounds(),hasBounds=false;
                 var shouldDraw=$('#showBoundary').prop('checked');
                 displayFeatures.forEach(function(f){
@@ -3751,7 +3888,7 @@ function renderAdultAgeChart() {
                     var b=ageFeatureBounds(f);if(b){bounds.extend(b.getSouthWest());bounds.extend(b.getNorthEast());hasBounds=true;}
                 });
                 if(hasBounds){ageMapLastBounds=bounds;fitAgeMapView();setTimeout(function(){if(token===mapRunToken){kakao.maps.event.trigger(ageMap,'resize');fitAgeMapView();}},180);}
-                ageMapStatus((displayFeatures.length===0?'선택 지역 경계 매칭 0개 — 경계 원본 지역명 또는 자료 버전 확인 필요 · ':'')+matched+'개 인구 아이콘 · '+displayFeatures.length+'개 '+(displayLevel==='legal'?'법정동':'행정구역')+' 경계'
+                ageMapStatus((items.length===0?'선택 구의 인구 원천 데이터 없음(경계만 표시) · ':'')+(displayFeatures.length===0?'선택 지역 경계 매칭 0개 — 경계 원본 지역명 또는 자료 버전 확인 필요 · ':'')+matched+'개 인구 아이콘 · '+displayFeatures.length+'개 '+(displayLevel==='legal'?'법정동':'행정구역')+' 경계'
                    +(unmatched.length?' · 인구 지역명 매칭 실패 '+unmatched.length+'개':'')
                    +(ambiguous.length?' · 중복 지역명 '+ambiguous.length+'개':'')
                    +(displayLevel==='legal'?' · 주의: 인구 통계와 아이콘 위치는 행정동 기준':''));
@@ -3778,7 +3915,7 @@ function renderAdultAgeChart() {
             $(this).addClass('modeActive');
             scheduleAgeMapRender(80);
         });
-        $('#mapAge,#showBoundary,#showAreaLabels').on('change',function(){drawMapLegend();scheduleAgeMapRender(80);});
+        $('#mapAge,#showBoundary,#showAreaLabels,#showOutsideShade,#shadeOpacity').on('change',function(){drawMapLegend();scheduleAgeMapRender(80);});
         function drawMapLegend(){
             if($('#mapAge').val()==='family_only'){
                 $('#mapLegend').html('<strong>완성형만 표시</strong><span>👨‍👩‍👧 완성형 비율이 선택 지역 평균 이상인 동만 표시합니다.</span>');return;
