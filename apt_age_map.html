@@ -3,10 +3,27 @@
 <script src="https://cdn.jsdelivr.net/npm/polygon-clipping@0.15.7/dist/polygon-clipping.umd.min.js"></script>
 <style>
 :root{font-family:system-ui,-apple-system,'Noto Sans KR',sans-serif;color:#192a3d;background:#f2f5fa}*{box-sizing:border-box}body{margin:0}.shell{max-width:1440px;margin:auto;padding:15px}.panel{background:white;border:1px solid #e2e8f0;border-radius:14px;padding:15px;margin-bottom:12px;box-shadow:0 3px 16px #17324c09}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}h1{font-size:22px;margin:0}.muted{color:#64748b;font-size:12px}.filters{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:12px}label{display:block;font-size:12px;color:#64748b;font-weight:650;margin-bottom:5px}select,input[type=text]{width:100%;height:39px;padding:8px;border:1px solid #cbd5e1;border-radius:9px;background:white;font-size:13px}.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:13px}.toggle{display:inline-flex;align-items:center;gap:5px;font-size:13px}.toggle input{accent-color:#2563eb}button{cursor:pointer;border:1px solid #cbd5e1;border-radius:9px;padding:9px 12px;font-weight:750;background:white;color:#263b50}button.primary{background:#2563eb;border-color:#2563eb;color:white}button.selected{background:#dbeafe;border-color:#60a5fa;color:#1d4ed8}.legend{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.sw{display:inline-block;width:13px;height:13px;border-radius:3px;vertical-align:-2px;margin-right:4px}.legend span{white-space:nowrap;font-size:12px}#status{font-size:12px;line-height:1.7;color:#52647d;min-height:22px}#status.error{color:#ba1c30}.mapBox{position:relative}#map{height:72vh;min-height:550px;border-radius:12px;overflow:hidden;background:#e7eef5;border:1px solid #cbd5e1}.floating{position:absolute;top:12px;right:12px;z-index:100;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}.floating button{box-shadow:0 2px 8px #0002}.mode{display:flex;background:white;padding:3px;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 2px 8px #0002}.mode button{border:none;box-shadow:none;font-size:12px;padding:7px 10px}.mode button.active{background:#1d4ed8;color:white}.mapBox:fullscreen{background:white;padding:0}.mapBox:fullscreen #map{height:100vh;border-radius:0}.mapBox:fullscreen .floating{top:14px;right:14px}.dongLabel{display:inline-block;background:#fffef6ec;border:1px solid #889dbb;border-radius:6px;padding:2px 5px;white-space:nowrap;font-size:11px;color:#1f3a57;font-weight:800;pointer-events:none;box-shadow:0 1px 3px #0002}.aptPop{width:260px;max-width:calc(100vw - 30px);background:white;border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 8px 24px #0004;overflow:hidden;font-size:13px}.aptPop .head{background:#f5f8fe;padding:10px 12px;font-weight:850;display:flex;justify-content:space-between;gap:8px}.aptPop .body{padding:9px 12px;line-height:1.9}.aptPop button{border:0;padding:0;background:none;font-size:19px;line-height:1}.aptPop .pill{border-radius:20px;padding:3px 7px;font-size:11px;color:white}.foot{margin-top:9px;color:#64748b;font-size:12px;line-height:1.7}#resultList{max-height:240px;overflow:auto}.item{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid #edf2f6;padding:9px 0;font-size:13px}.item button{white-space:nowrap;padding:5px 8px;font-size:11px}.stats{font-size:13px;font-weight:700}.loading-bar{height:4px;background:linear-gradient(90deg,#2563eb,#06b6d4);border-radius:10px;animation:pulse 1s infinite alternate}@keyframes pulse{to{opacity:.25}}@media(max-width:960px){.filters{grid-template-columns:repeat(2,minmax(0,1fr))}.shell{padding:9px}#map{height:70vh;min-height:490px}.floating{left:8px;right:8px}.floating button{font-size:11px;padding:7px}}
+
+/* 지도 거리 측정 기능 */
+.measureBar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:0 0 9px;padding:9px 11px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;font-size:12px}
+.measureBar button{padding:7px 10px;font-size:12px}
+.measureBar .measureTotal{font-size:15px;font-weight:850;color:#1d4ed8;margin-left:5px}
+.measureBar .measureHint{color:#64748b;font-size:12px}
+.measureBubble{background:#fff;color:#172b43;border:1px solid #2563eb;box-shadow:0 2px 8px #0003;border-radius:7px;padding:4px 8px;white-space:nowrap;font-weight:800;font-size:12px;pointer-events:none}
+.measureBubble.final{background:#1d4ed8;color:#fff}
+/* 지도와 동일한 전체화면 컨테이너에 도구를 두어 전체화면에서도 표시 */
+.mapBox .measureBar{position:absolute;left:12px;top:12px;right:12px;width:max-content;max-width:calc(100% - 24px);z-index:180;margin:0;background:#fffffff2;box-shadow:0 3px 12px #0002}
+.mapBox .measureBar .measureToggle{display:inline-flex;gap:5px;align-items:center;white-space:nowrap;font-size:12px;font-weight:700;color:#334155;margin:0}
+.mapBox .measureBar .measureToggle input{accent-color:#2563eb}
+#map.measuring{cursor:crosshair!important}
+#cadastralToggle.selected{background:#dbeafe;border-color:#60a5fa;color:#1d4ed8}
+@media(max-width:850px){.mapBox .measureBar{top:55px;right:8px;left:8px;width:auto;padding:7px;gap:4px}.mapBox .measureBar .measureHint{display:none}}
+
+#map.measuring{cursor:crosshair!important}
 </style></head><body><main class="shell"><section class="panel top"><div><h1>전국 아파트 연식 지도</h1><div class="muted">카카오맵 · 아파트 단지 실제 부지 외곽선 색칠 · GitHub Pages</div></div><div id="counter" class="stats">자료 준비 중</div></section>
 <section class="panel"><div class="filters"><div><label>시·도</label><select id="sido"><option value="">전국</option></select></div><div><label>시·군·구</label><select id="sigungu"><option value="">전체 시·군·구</option></select></div><div><label id="dongSelectLabel">행정동 · 읍 · 면</label><select id="dong"><option value="">전체</option></select></div><div><label>입주 연식</label><select id="decade"><option value="">전체 연식</option><option value="2020">2020년대 이후</option><option value="2010">2010년대</option><option value="2000">2000년대</option><option value="1990">1990년대</option><option value="1980">1980년대</option><option value="old">1980년 이전</option></select></div><div><label>단지명 검색</label><input id="query" type="text" placeholder="예: 래미안, 롯데캐슬"/></div></div>
 <div class="toolbar"><strong style="font-size:13px">세대수</strong><label class="toggle"><input name="units" type="radio" value="0" checked>전체</label><label class="toggle"><input name="units" type="radio" value="200">200세대 이상</label><label class="toggle"><input name="units" type="radio" value="300">300세대 이상</label><label class="toggle"><input id="showPolygons" type="checkbox" checked>단지 부지 색칠</label><label class="toggle"><input id="showMissing" type="checkbox" checked>외곽선 없는 단지 점</label><label class="toggle"><input id="showBoundary" type="checkbox" checked>행정구역 경계</label><label class="toggle"><input id="showLabels" type="checkbox" checked>행정구역 이름</label><label class="toggle"><input id="shadeOutside" type="checkbox" checked>선택 지역 외부 음영</label><label class="toggle" style="gap:7px">음영 농도 <select id="shadeStrength" style="width:76px;height:32px;padding:4px"><option value="0.60">60%</option><option value="0.65" selected>65%</option><option value="0.70">70%</option></select></label><button id="searchBtn" class="primary">선택 지역 보기</button><button id="resetBtn">필터 초기화</button></div></section>
-<section class="panel"><div class="legend"><b style="font-size:12px">입주시기</b><span><i class="sw" style="background:#ed5b63"></i>2020년대~</span><span><i class="sw" style="background:#f6a33c"></i>2010년대</span><span><i class="sw" style="background:#f5df58"></i>2000년대</span><span><i class="sw" style="background:#a5d778"></i>1990년대</span><span><i class="sw" style="background:#49a880"></i>1980년대</span><span><i class="sw" style="background:#4aa7a8"></i>1980년 이전</span><span><i class="sw" style="background:#64748b"></i>외곽 미확보 단지</span></div><div id="boundaryInfo" style="font-size:12px;color:#33558b;margin:3px 0">행정구역 경계 준비 중…</div><div id="status" role="status">카카오맵 및 GitHub 데이터 연결 중…</div><div class="mapBox" id="mapBox"><div id="map"></div><div class="floating"><button id="fullscreen">⛶ 전체화면</button><div class="mode"><button class="active" data-mode="admin">행정동</button><button data-mode="legal">법정동</button></div><button id="fit">⊡ 선택 지역 맞춤</button></div></div><div class="foot">경계 표시 단계: 시·도 선택 시 시·군·구, 일반구가 있는 시 전체 선택 시 해당 시의 구, 구 선택 시 읍·면·동, 특정 동 선택 시 해당 동 경계를 표시합니다. 행정동/법정동 모드에 따라 경계와 이름이 변경됩니다. 입주연도는 업로드하신 apt.json의 입주시기 기준입니다. 실제 건물 형태가 아닌 <b>아파트 단지 부지 경계</b>입니다. 외부 음영은 행정구역을 선택한 경우에만 나타나며 기본 65%입니다. 전국 데이터는 화면에 보이는 단지만 그리며, 지도 확대 시 세부 색칠이 나타납니다.</div></section>
+<section class="panel"><div class="legend"><b style="font-size:12px">입주시기</b><span><i class="sw" style="background:#ed5b63"></i>2020년대~</span><span><i class="sw" style="background:#f6a33c"></i>2010년대</span><span><i class="sw" style="background:#f5df58"></i>2000년대</span><span><i class="sw" style="background:#a5d778"></i>1990년대</span><span><i class="sw" style="background:#49a880"></i>1980년대</span><span><i class="sw" style="background:#4aa7a8"></i>1980년 이전</span><span><i class="sw" style="background:#64748b"></i>외곽 미확보 단지</span></div><div id="boundaryInfo" style="font-size:12px;color:#33558b;margin:3px 0">행정구역 경계 준비 중…</div><div id="status" role="status">카카오맵 및 GitHub 데이터 연결 중…</div><div class="mapBox" id="mapBox"><div id="map"></div><div class="measureBar" id="measureBar"><b>📏 거리 측정</b><button id="measureStart" type="button">측정 시작</button><button id="measureUndo" type="button" disabled>↶ 뒤로</button><button id="measureFinish" type="button" disabled>측정 종료</button><button id="measureClear" type="button" disabled>전체 지우기</button><label class="measureToggle"><input type="checkbox" id="measureShowLabels" checked> 거리 표시</label><span class="measureTotal" id="measureTotal">0 m</span><span class="measureHint" id="measureHint">우클릭 / Backspace: 현재 경로 뒤로</span></div><div class="floating"><button id="fullscreen">⛶ 전체화면</button><button id="cadastralToggle" type="button" aria-pressed="false">▦ 지적편집도 OFF</button><div class="mode"><button class="active" data-mode="admin">행정동</button><button data-mode="legal">법정동</button></div><button id="fit">⊡ 선택 지역 맞춤</button></div></div><div class="foot">경계 표시 단계: 시·도 선택 시 시·군·구, 일반구가 있는 시 전체 선택 시 해당 시의 구, 구 선택 시 읍·면·동, 특정 동 선택 시 해당 동 경계를 표시합니다. 행정동/법정동 모드에 따라 경계와 이름이 변경됩니다. 입주연도는 업로드하신 apt.json의 입주시기 기준입니다. 실제 건물 형태가 아닌 <b>아파트 단지 부지 경계</b>입니다. 외부 음영은 행정구역을 선택한 경우에만 나타나며 기본 65%입니다. 전국 데이터는 화면에 보이는 단지만 그리며, 지도 확대 시 세부 색칠이 나타납니다.</div></section>
 <section class="panel"><div class="top"><strong>조건에 해당하는 아파트</strong><span id="listCount" class="muted"></span></div><div id="resultList" class="muted">데이터 불러오는 중…</div></section></main>
 <script>
 'use strict';
@@ -38,23 +55,42 @@ function districtMatches(selected,actual){
  return normDistrict(actual)===normDistrict(selected);
 }
 function refreshDistricts(){
- const s=$id('sido').value;
- const gs=[...new Set(apartments.filter(a=>!s||a.sidoNm===s).map(a=>a.sigunguNm).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko'));
- const cityCounts=new Map();
- for(const g of gs){const city=cityOfDistrict(g);if(city)cityCounts.set(city,(cityCounts.get(city)||0)+1)}
- const cities=new Set([...cityCounts].filter(([,n])=>n>=2).map(([city])=>city));
- let opts='<option value="">전체 시·군·구</option>';
- const rendered=new Set();
- for(const g of gs){
-  const city=cityOfDistrict(g);
-  if(city&&cities.has(city)&&!rendered.has(city)){
-   opts+=`<option value="${esc(CITY_PREFIX+city)}">★ ${esc(city)} 전체</option>`;
-   rendered.add(city);
-  }
-  opts+=`<option value="${esc(g)}">${city&&cities.has(city)?'　└ ':''}${esc(g)}</option>`;
+ const selector=$id('sigungu');
+ const old=selector.value;
+ const sido=$id('sido').value;
+ const districts=[...new Set(apartments.filter(a=>!sido||a.sidoNm===sido).map(a=>txt(a.sigunguNm)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko'));
+ // 전국 모든 일반구 설치시를 실제 데이터에서 자동 파악: 용인·부천·청주·천안·포항·수원 등.
+ const groups=new Map();
+ const singles=[];
+ for(const district of districts){
+  const city=cityOfDistrict(district);
+  if(!city){singles.push(district);continue}
+  if(!groups.has(city))groups.set(city,[]);
+  groups.get(city).push(district);
  }
- $id('sigungu').innerHTML=opts;
- refreshDongs();
+ // 시 전체 + 해당 일반구를 묶어서 한눈에 구분. 일반구가 1개만 있어도 구 선택은 유지.
+ const entries=[];
+ for(const district of singles)entries.push({sort:district,type:'single',name:district});
+ for(const [city, members] of groups){
+  if(members.length<2){for(const district of members)entries.push({sort:district,type:'single',name:district});continue}
+  entries.push({sort:city,type:'group',name:city,members:members.sort((a,b)=>a.localeCompare(b,'ko'))});
+ }
+ entries.sort((a,b)=>a.sort.localeCompare(b.sort,'ko'));
+ let options='<option value="">전체 시·군·구</option>';
+ for(const item of entries){
+  if(item.type==='single'){
+   options+=`<option value="${esc(item.name)}">${esc(item.name)}</option>`;
+  }else{
+   options+=`<option value="${esc(CITY_PREFIX+item.name)}">★ ${esc(item.name)} 전체</option>`;
+   for(const district of item.members){
+    const gu=district.replace(/^.*?시\s*/, '');
+    options+=`<option value="${esc(district)}">　└ ${esc(item.name)} · ${esc(gu)}</option>`;
+   }
+  }
+ }
+ selector.innerHTML=options;
+ if(old&&[...selector.options].some(o=>o.value===old))selector.value=old;
+ refreshDongs(false);
 }
 function regionFeatures(){return mode==='admin'?adminFeatures:legalFeatures}
 function featureName(f){let p=f.properties||{};return txt(p.adm_nm||p.FULL_NM||p.EMD_KOR_NM||p.emd_kor_nm||p.name||p.NAME||p.adm_nm_full||'')}
@@ -121,7 +157,7 @@ function aptPosition(a){const sh=shapes[a.id];return sh?.c?.x&&sh?.c?.y?mapLL(+s
 function renderPopup(a){closePopup();selectedApt=a;const el=document.createElement('div');el.className='aptPop';el.innerHTML=`<div class="head"><span>${esc(a.name)}</span><button type="button" aria-label="닫기">×</button></div><div class="body"><div><span class="pill" style="background:${color(numYear(a))}">${esc(a.year||'연도 미상')}</span> · ${fmt(a.units)}세대</div><div>${esc(a.sidoNm)} ${esc(a.sigunguNm)}</div><div>구분: ${esc(a.type)}</div><div>외곽선: ${shapes[a.id]?'확보':'미확보 (점 표시)'}</div><button type="button" class="detailBtn" style="margin-top:5px;font-size:12px;color:#1d4ed8">평형·용적률 상세 보기</button><div class="detailArea"></div></div>`;el.querySelector('.head button').onclick=closePopup;el.querySelector('.detailBtn').onclick=()=>fetchDetails(a,el.querySelector('.detailArea'));openPopup=new kakao.maps.CustomOverlay({map,position:aptPosition(a),content:el,yAnchor:1.12,zIndex:9999,clickable:true})}
 let detailCache=null;
 async function fetchDetails(a,holder){holder.textContent='상세 데이터 불러오는 중…';try{if(!detailCache){let both=await Promise.all([loadJson('aptDetail1.json'),loadJson('aptDetail2.json')]);detailCache=Object.assign({},...both)}const d=detailCache[a.id];if(!d){holder.textContent='상세 정보 없음';return}const types=(d['타입정보']||[]).slice(0,16);holder.innerHTML=`<div style="margin-top:8px;border-top:1px solid #eee;padding-top:8px">용적률 ${esc(d['용적률'])}% · 주차 ${esc(d['주차대수'])}대/세대<br>${types.map(t=>`${esc(t['전용면적'])}㎡ · ${fmt(t['평형 세대수'])}세대`).join('<br>')||'평형정보 없음'}</div>`}catch(e){holder.textContent='상세 데이터 로딩 실패: '+e.message}}
-function drawApts(){if(!sdkReady||!shapeReady)return;clearLayer(aptLayers);const all=filtered();const b=map.getBounds();let visible=all.filter(a=>boundsContains(b,+a.lat,+a.lng));const level=map.getLevel();const LIMIT=650;if(visible.length>LIMIT){visible.sort((a,c)=>(+c.units)-(+a.units));visible=visible.slice(0,LIMIT)}let count=0,miss=0;for(const a of visible){let data=shapes[a.id];if(data&&$id('showPolygons').checked){const paths=polygonPaths(data);for(const path of paths){const p=new kakao.maps.Polygon({map,path,strokeWeight:1.5,strokeColor:color(numYear(a)),strokeOpacity:1,fillColor:color(numYear(a)),fillOpacity:.55,zIndex:2});kakao.maps.event.addListener(p,'click',()=>renderPopup(a));aptLayers.push(p);count++}}else if(!data&&$id('showMissing').checked){const p=new kakao.maps.Circle({map,center:mapLL(+a.lng,+a.lat),radius:24,strokeWeight:2,strokeColor:'#475569',fillColor:color(numYear(a)),fillOpacity:.7,zIndex:3});kakao.maps.event.addListener(p,'click',()=>renderPopup(a));aptLayers.push(p);miss++}}$id('counter').textContent=`검색 ${fmt(all.length)}개 · 현재 화면 ${fmt(visible.length)}개`;
+function drawApts(){if(!sdkReady||!shapeReady)return;clearLayer(aptLayers);const all=filtered();const b=map.getBounds();let visible=all.filter(a=>boundsContains(b,+a.lat,+a.lng));const level=map.getLevel();const LIMIT=650;if(visible.length>LIMIT){visible.sort((a,c)=>(+c.units)-(+a.units));visible=visible.slice(0,LIMIT)}let count=0,miss=0;for(const a of visible){let data=shapes[a.id];if(data&&$id('showPolygons').checked){const paths=polygonPaths(data);for(const path of paths){const p=new kakao.maps.Polygon({map,path,strokeWeight:1.5,strokeColor:color(numYear(a)),strokeOpacity:1,fillColor:color(numYear(a)),fillOpacity:.55,zIndex:2});kakao.maps.event.addListener(p,'click',e=>{if(measuring)addMeasurePoint(e.latLng);else renderPopup(a)});aptLayers.push(p);count++}}else if(!data&&$id('showMissing').checked){const p=new kakao.maps.Circle({map,center:mapLL(+a.lng,+a.lat),radius:24,strokeWeight:2,strokeColor:'#475569',fillColor:color(numYear(a)),fillOpacity:.7,zIndex:3});kakao.maps.event.addListener(p,'click',e=>{if(measuring)addMeasurePoint(e.latLng);else renderPopup(a)});aptLayers.push(p);miss++}}$id('counter').textContent=`검색 ${fmt(all.length)}개 · 현재 화면 ${fmt(visible.length)}개`;
  const limitNote=all.filter(a=>boundsContains(b,+a.lat,+a.lng)).length>LIMIT?` · 표시 성능을 위해 상위 ${LIMIT}개만 렌더링, 더 확대하세요`:'';
  status(`단지 외곽 ${fmt(count)}개 도형 · 점 ${fmt(miss)}개 · 현재 지도 확대 수준 ${level}${limitNote}${count===0&&visible.some(a=>shapes[a.id])?' · 경계 좌표 변환 확인 필요':''}`)}
 function scheduleDraw(){clearTimeout(redrawTimer);redrawTimer=setTimeout(()=>{drawApts();drawAdmin()},200)}
@@ -295,7 +331,7 @@ function drawAdmin(){
   if(!group.paths.length||!featureIntersectsBounds(group.paths,bounds))continue;
   if($id('showBoundary').checked)for(const path of group.paths){
    const obj=new kakao.maps.Polygon({map,path,strokeColor:mode==='admin'?'#3166ba':'#8544c5',strokeWeight:dong?3.2:gu?2.2:3,strokeOpacity:.95,fillColor:'#ffffff',fillOpacity:0,zIndex:6});
-   adminLayers.push(obj);
+   kakao.maps.event.addListener(obj,'click',e=>{if(measuring)addMeasurePoint(e.latLng)});adminLayers.push(obj);
   }
   if($id('showLabels').checked&&labeled<200){
    const labelPos=labelPositionInViewport(group.paths,bounds,group.center);
@@ -308,6 +344,75 @@ function drawAdmin(){
 }
 async function loadAdmin(){if(loadingAdmin)return loadingAdmin;loadingAdmin=(async()=>{try{let parts=await Promise.all([loadJson('adm_part_001.geojson'),loadJson('adm_part_002.geojson')]);adminFeatures=parts.flatMap(p=>p.features||[]);districtGeometryCache.clear();console.info('행정동 경계 로드:',adminFeatures.length,'개');refreshDongs();scheduleDraw()}catch(e){const x=$id('boundaryInfo');if(x)x.textContent='행정동 경계 로드 실패: '+e.message;console.warn('행정동 경계 오류',e)}})();return loadingAdmin}
 async function loadLegal(){if(loadingLegal)return loadingLegal;loadingLegal=(async()=>{try{let r=await fetch(LEGAL_URL,{cache:'force-cache'});if(!r.ok)throw Error('법정동 GeoJSON HTTP '+r.status);let json=await r.json();legalFeatures=json.features||[];districtGeometryCache.clear();console.info('법정동 경계 로드:',legalFeatures.length,'개 / 첫 속성:',legalFeatures[0]?.properties);refreshDongs();scheduleDraw()}catch(e){status('법정동 경계 로드 실패: '+e.message,true);console.error(e)}})();return loadingLegal}
+
+// 거리 측정: SDK의 LatLng.distance 대신 구면 Haversine 거리(m)를 계산한다.
+let measuring=false,measurePoints=[],finishedMeasurePaths=[],measureGraphics=[],measureLastClick=0,measureShowLabels=true,cadastralOn=false;
+const EARTH_RADIUS=6371008.8;
+function segmentMeters(a,b){const rad=Math.PI/180,lat1=a.getLat()*rad,lat2=b.getLat()*rad,dLat=(b.getLat()-a.getLat())*rad,dLng=(b.getLng()-a.getLng())*rad;const v=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;return 2*EARTH_RADIUS*Math.atan2(Math.sqrt(v),Math.sqrt(Math.max(0,1-v)))}
+function metersLabel(v){return v<1000?Math.round(v).toLocaleString('ko-KR')+' m':(v/1000).toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2})+' km'}
+function clearMeasureGraphics(){clearLayer(measureGraphics)}
+function renderMeasurePath(pts,finished){
+ let total=0;
+ if(pts.length>=2){const path=new kakao.maps.Polyline({map,path:pts,strokeWeight:5,strokeColor:finished?'#7c3aed':'#e11d48',strokeOpacity:1,strokeStyle:'solid',zIndex:600});measureGraphics.push(path)}
+ for(let i=0;i<pts.length;i++){
+  const dot=new kakao.maps.Circle({map,center:pts[i],radius:4,strokeWeight:2,strokeColor:'#ffffff',fillColor:finished?'#7c3aed':'#e11d48',fillOpacity:1,zIndex:605});measureGraphics.push(dot);
+  if(i){const d=segmentMeters(pts[i-1],pts[i]);total+=d;
+   if(measureShowLabels){const mid=new kakao.maps.LatLng((pts[i-1].getLat()+pts[i].getLat())/2,(pts[i-1].getLng()+pts[i].getLng())/2);
+    const el=document.createElement('div');el.className='measureBubble';el.textContent='+'+metersLabel(d);
+    measureGraphics.push(new kakao.maps.CustomOverlay({map,position:mid,content:el,zIndex:610,yAnchor:1.1,clickable:false}));}
+  }
+ }
+ if(pts.length&&measureShowLabels){const el=document.createElement('div');el.className='measureBubble final';el.textContent=(finished?'완료 ':'합계 ')+metersLabel(total);measureGraphics.push(new kakao.maps.CustomOverlay({map,position:pts[pts.length-1],content:el,zIndex:620,yAnchor:1.75,clickable:false}))}
+ return total;
+}
+function drawMeasure(){
+ clearMeasureGraphics();
+ for(const pts of finishedMeasurePaths)renderMeasurePath(pts,true);
+ const total=renderMeasurePath(measurePoints,false);
+ $id('measureTotal').textContent=metersLabel(total);
+ $id('measureUndo').disabled=measurePoints.length===0;
+ $id('measureClear').disabled=measurePoints.length===0&&finishedMeasurePaths.length===0;
+ $id('measureFinish').disabled=!measuring;
+}
+function setMeasuring(on){
+ if(on&&!measuring&&measurePoints.length){finishedMeasurePaths.push(measurePoints.slice());measurePoints=[];}
+ if(!on&&measuring&&measurePoints.length){finishedMeasurePaths.push(measurePoints.slice());measurePoints=[];}
+ measuring=on;
+ $id('map').classList.toggle('measuring',on);
+ $id('measureStart').classList.toggle('selected',on);
+ $id('measureStart').textContent=on?'측정 중 ●':'측정 시작';
+ $id('measureHint').textContent=on?'새 경로 측정 중 · 우클릭/Backspace로 취소':'측정 완료 · 다시 시작하면 새로운 경로';
+ drawMeasure();
+}
+function addMeasurePoint(latLng){if(!measuring||!latLng)return;const now=Date.now();if(now-measureLastClick<220)return;measureLastClick=now;measurePoints.push(latLng);drawMeasure()}
+function bindMeasurement(){
+ $id('measureStart').addEventListener('click',()=>setMeasuring(!measuring));
+ $id('measureShowLabels').addEventListener('change',e=>{measureShowLabels=e.target.checked;drawMeasure()});
+ $id('measureUndo').addEventListener('click',()=>{measurePoints.pop();drawMeasure()});
+ // Backspace = undo last measurement point, but never intercept typing in form fields.
+ document.addEventListener('keydown',e=>{
+  if(e.key!=='Backspace'||e.altKey||e.ctrlKey||e.metaKey||!measurePoints.length)return;
+  const target=e.target;
+  if(target&&(target.isContentEditable||target.closest('input,textarea,select,[contenteditable="true"]')))return;
+  e.preventDefault();
+  measurePoints.pop();
+  drawMeasure();
+ });
+ $id('measureFinish').addEventListener('click',()=>setMeasuring(false));
+ $id('measureClear').addEventListener('click',()=>{measurePoints=[];finishedMeasurePaths=[];drawMeasure()});
+ kakao.maps.event.addListener(map,'click',e=>addMeasurePoint(e.latLng));
+ // 우클릭은 마지막 측정 점 1개만 제거한다. 우클릭 메뉴는 측정 중 억제한다.
+ $id('map').addEventListener('contextmenu',e=>{if(measuring)e.preventDefault()});
+ kakao.maps.event.addListener(map,'rightclick',()=>{if(measuring&&measurePoints.length){measurePoints.pop();drawMeasure()}});
+ $id('cadastralToggle').addEventListener('click',()=>{
+  cadastralOn=!cadastralOn;
+  const id=kakao.maps.MapTypeId.USE_DISTRICT;
+  if(cadastralOn)map.addOverlayMapTypeId(id);else map.removeOverlayMapTypeId(id);
+  $id('cadastralToggle').classList.toggle('selected',cadastralOn);
+  $id('cadastralToggle').setAttribute('aria-pressed',String(cadastralOn));
+  $id('cadastralToggle').textContent='▦ 지적편집도 '+(cadastralOn?'ON':'OFF');
+ });
+}
 function events(){$('#sido').on('change',()=>{refreshDistricts();updateFilters();fitFiltered()});$('#sigungu').on('change',()=>{refreshDongs();updateFilters();fitFiltered()});$('#dong').on('change',()=>{updateFilters();if($id('dong').value){let f=regionFeatures().find(f=>matchRegion(f)&&shortDong(f)===$id('dong').value);if(f){const paths=geoPolys(f);let b=new kakao.maps.LatLngBounds();for(const poly of paths)for(const ring of poly)for(const p of ring)b.extend(p);map.setBounds(b)}}});$('#decade,input[name="units"],#showPolygons,#showMissing,#showBoundary,#showLabels').on('change',updateFilters);$('#shadeOutside,#shadeStrength').on('change',drawOutsideShade);$('#query').on('input',()=>{clearTimeout(redrawTimer);redrawTimer=setTimeout(updateFilters,300)});$('#searchBtn').on('click',()=>{updateFilters();fitFiltered()});$('#fit').on('click',fitFiltered);$('#resetBtn').on('click',()=>{const seoul=[...$id('sido').options].find(o=>canonicalSido(o.value)==='서울');$id('sido').value=seoul?seoul.value:'';refreshDistricts();$id('decade').value='';$id('query').value='';$('input[name="units"][value="0"]').prop('checked',true);updateFilters();fitFiltered()});$('.mode button').on('click',async function(){
  const next=this.dataset.mode;
  if(mode===next)return;
@@ -321,6 +426,6 @@ function events(){$('#sido').on('change',()=>{refreshDistricts();updateFilters()
  refreshDongs(false);
  updateFilters();
 });$('#fullscreen').on('click',async()=>{const w=$id('mapBox');if(document.fullscreenElement)await document.exitFullscreen();else if(w.requestFullscreen)await w.requestFullscreen();setTimeout(()=>map.relayout(),180)});document.addEventListener('fullscreenchange',()=>setTimeout(()=>map&&map.relayout(),170))}
-async function main(){try{await loadSdk();map=new kakao.maps.Map($id('map'),{center:mapLL(126.9780,37.5665),level:9});sdkReady=true;kakao.maps.event.addListener(map,'idle',scheduleDraw);events();status('아파트 목록 다운로드 중…');apartments=await loadJson('apt.json');aptById=new Map(apartments.map(a=>[txt(a.id),a]));setupChoices();renderList();status('단지 외곽선 데이터 다운로드 중… 처음에는 24MB를 읽으므로 시간이 걸릴 수 있습니다.');shapes=await loadJson('apt_boundaries.json');shapeReady=true;await loadAdmin();drawApts();status('단지 외곽선 준비 완료 · 단지를 클릭해 상세정보를 확인하세요.');}catch(e){showFileError(e)}}
+async function main(){try{await loadSdk();map=new kakao.maps.Map($id('map'),{center:mapLL(126.9780,37.5665),level:9});sdkReady=true;kakao.maps.event.addListener(map,'idle',scheduleDraw);bindMeasurement();events();status('아파트 목록 다운로드 중…');apartments=await loadJson('apt.json');aptById=new Map(apartments.map(a=>[txt(a.id),a]));setupChoices();renderList();status('단지 외곽선 데이터 다운로드 중… 처음에는 24MB를 읽으므로 시간이 걸릴 수 있습니다.');shapes=await loadJson('apt_boundaries.json');shapeReady=true;await loadAdmin();drawApts();status('단지 외곽선 준비 완료 · 단지를 클릭해 상세정보를 확인하세요.');}catch(e){showFileError(e)}}
 $(main);
 </script></body></html>
