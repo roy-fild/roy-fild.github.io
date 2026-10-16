@@ -14,3 +14,4 @@ people               - 인구 그래프 <br/>
 middleSchoolGrade    - 21-25 전국 중학교 학업성취율 <br/>
 net_worth_calculator - 순자산계산기 <br/>
 apt_age_map          - 연식지도 <br/>
+real_estate          - 부동산연구소 <br/>
