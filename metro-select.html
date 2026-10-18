@@ -720,8 +720,18 @@
         .metro-map-wrap:fullscreen #metroRegionMap{height:calc(100vh - 24px)}
         .metro-map-expand{position:absolute;z-index:700;right:14px;top:14px;padding:8px 12px;background:#fff;border:1px solid #cbd5e1;border-radius:8px;cursor:pointer;font-weight:700;box-shadow:0 2px 7px #0002}
         .metro-stop-symbol.metro-stop-active{transform:scale(1.32);box-shadow:0 0 0 5px rgba(255,255,255,.9),0 0 0 8px var(--line-color);}
+        #metroRegionMap .metro-station-name.metro-stop-active{background:var(--line-color);color:#fff;box-shadow:0 0 0 3px #fff,0 0 0 5px var(--line-color);}
+        #metroRegionMap .metro-station-name.metro-stop-related{border-width:2px;box-shadow:0 0 0 2px #fff,0 0 0 3px var(--line-color);}
+        #metroRegionMap .metro-station-name.metro-stop-dim{opacity:.45;}
         .metro-stop-symbol.metro-stop-related{background:var(--line-color);color:#fff;box-shadow:0 0 0 3px white,0 2px 8px #0005;}
         .metro-stop-symbol{display:flex;align-items:center;justify-content:center;width:27px;height:27px;border:4px solid var(--line-color,#64748b);border-radius:50%;background:#fff;box-shadow:0 2px 7px #0004;font-weight:800;font-size:11px;color:#0f172a}
+        /* 호선 색상과 함께 역 이름을 표시하는 배지 */
+        #metroRegionMap .metro-kakao-station{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+        #metroRegionMap .metro-station-name{display:inline-block;border:1.5px solid var(--line-color,#64748b);background:rgba(255,255,255,.96);color:var(--line-color,#334155);border-radius:6px;padding:3px 7px;font-weight:800;font-size:12px;line-height:1.15;box-shadow:0 2px 5px rgba(15,23,42,.17);max-width:150px;overflow:hidden;text-overflow:ellipsis;pointer-events:none;}
+        #metroRegionMap.metro-hide-station-names .metro-station-name{display:none!important;}
+        .metro-visual-controls{display:flex;flex-wrap:wrap;gap:8px 15px;align-items:center;padding:8px 12px;margin:0 0 9px;background:#fff;border:1px solid #cbd5e1;border-radius:9px;font-size:12px;}
+        .metro-visual-controls label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:700;color:#334155;}
+        .metro-visual-controls input[type=checkbox]{width:16px;height:16px;margin:0;accent-color:#2563eb;}
         .metro-stop-small{background:#fff;display:inline-block;border-radius:5px;padding:1px 4px;font-size:11px;border:1px solid #e2e8f0}
         .metro-tooltip{min-width:255px;max-width:330px;font:12px/1.5 system-ui,sans-serif}
         .metro-tooltip .mt-name{font-size:15px;font-weight:800;margin-bottom:5px}
@@ -1518,6 +1528,12 @@
                     <span>기본은 온라인 정적 목록을 읽고, 파일을 선택하면 해당 좌표를 우선 사용합니다.</span>
                 </div>
                 <div id="metroLineCheckboxes" class="metro-lines-filter" aria-label="지도에 표시할 호선"><strong>호선 표시</strong><span>역 위치 데이터 로딩 후 자동 표시됩니다.</span></div>
+                <div class="metro-visual-controls" aria-label="지도 표시 옵션">
+                    <strong>지도 표시</strong>
+                    <label><input type="checkbox" id="metroShowStationNames" checked> 역 이름 표시 (호선 색상)</label>
+                    <label><input type="checkbox" id="metroShowRouteLines" checked> 전체 노선 / 선택 역 노선 표시</label>
+                    <span style="color:#64748b">연결선은 역 선택 시 나타나는 참고 직선입니다.</span>
+                </div>
                 <div id="metroMapStatus" role="status" aria-live="polite">지도를 보려면 구를 선택해 주세요.</div>
                 <div class="metro-map-wrap" id="metroMapWrap">
                     <div id="metroRegionMap"></div>
@@ -1803,25 +1819,50 @@
    routePinned=null;routeHovered=null;routePoints=[];
    if(routeLayer)routeLayer.clearLayers();
  }
+ // 체크박스를 켜면 클릭 여부와 관계없이 현재 선택된 모든 호선의 역을 연결한다.
+ // 역의 공식 순서/선형 정보가 없으므로 역 사이의 가까운 지점을 연결한 참고선이다.
+ function drawLineEdges(points, color, weight=5, z=3){
+   if(points.length<2 || !routeLayer)return;
+   const visited=new Set([0]),edges=[];
+   while(visited.size<points.length){
+     let best=null;
+     for(const i of visited)for(let j=0;j<points.length;j++){
+       if(visited.has(j))continue;
+       const km=routeKm(points[i],points[j]);
+       if(!best||km<best.km)best={i,j,km};
+     }
+     if(!best)break;
+     visited.add(best.j);
+     // 너무 먼 역은 억지로 잇지 않는다. 분기 또는 결측역으로 발생할 수 있다.
+     if(best.km<=4.5)edges.push(best);
+   }
+   for(const e of edges){
+     const a=points[e.i],b=points[e.j];
+     const path=[new kakao.maps.LatLng(a.lat,a.lng),new kakao.maps.LatLng(b.lat,b.lng)];
+     routeLayer.add(new kakao.maps.Polyline({map,path,strokeWeight:weight+3,strokeColor:'#fff',strokeOpacity:.8,zIndex:z}));
+     routeLayer.add(new kakao.maps.Polyline({map,path,strokeWeight:weight,strokeColor:color,strokeOpacity:.92,zIndex:z+1}));
+   }
+ }
  function highlightRoute(){
    if(routeLayer)routeLayer.clearLayers();
-   for(const p of routePoints){const el=p.marker.element?.querySelector('.metro-stop-symbol');if(el)el.classList.remove('metro-stop-active','metro-stop-related');}
-   const active=routePinned||routeHovered;
-   if(!active||!routeLayer)return;
-   const connected=routePoints.filter(p=>p.lines.has(active.key));
-   for(const p of connected){const el=p.marker.element?.querySelector('.metro-stop-symbol');if(el)el.classList.add(p===active.point?'metro-stop-active':'metro-stop-related');}
-   if(connected.length<2)return;
-   const visited=new Set([0]),edges=[];
-   while(visited.size<connected.length){let best=null;
-     for(const i of visited)for(let j=0;j<connected.length;j++){
-       if(visited.has(j))continue;const km=routeKm(connected[i],connected[j]);if(!best||km<best.km)best={i,j,km};
-     }if(!best)break;visited.add(best.j);if(best.km<=4.5)edges.push(best);
+   // 호선 색상 역명 라벨이 역 마커 역할을 한다. 역을 선택한 경우 다른 호선의 선은 완전히 숨긴다.
+   const active=routePinned;
+   for(const p of routePoints){
+     const el=p.marker.element?.querySelector('.metro-station-name');
+     if(!el)continue;
+     el.classList.remove('metro-stop-active','metro-stop-related','metro-stop-dim');
+     if(active)el.classList.add(p===active.point?'metro-stop-active':p.lines.has(active.key)?'metro-stop-related':'metro-stop-dim');
    }
-   const color=lineColor(active.label);
-   for(const e of edges){const a=connected[e.i],b=connected[e.j],path=[new kakao.maps.LatLng(a.lat,a.lng),new kakao.maps.LatLng(b.lat,b.lng)];
-     routeLayer.add(new kakao.maps.Polyline({map,path,strokeWeight:10,strokeColor:'#fff',strokeOpacity:.9,zIndex:3}));
-     routeLayer.add(new kakao.maps.Polyline({map,path,strokeWeight:6,strokeColor:color,strokeOpacity:.95,zIndex:4}));
+   if(!routeLayer||!$id('metroShowRouteLines').checked)return;
+   const byLine=new Map();
+   for(const p of routePoints){
+     for(const [key,label] of p.lines){
+       if(!mapCheckedLineKeys.has(key)||active&&key!==active.key)continue;
+       if(!byLine.has(key))byLine.set(key,{label,points:[]});
+       byLine.get(key).points.push(p);
+     }
    }
+   for(const [,group] of byLine)drawLineEdges(group.points,lineColor(group.label),active?6:5,3);
  }
  function stationRouteEvent(point,isClick){
    if(!point.lines.size)return;
@@ -1917,7 +1958,7 @@
      if(mr.length){matched++;for(const r of mr)lset.set(String(r[st.lineField]),lineColor(r[st.lineField]));}
      const line=mr.length?String(mr[0][st.lineField]):(candidateLines[0]||'');
      const pos=new kakao.maps.LatLng(x.lat,x.lng);
-     const marker=overlayHtml(pos,'<div class="metro-kakao-station"><div class="metro-stop-symbol" style="--line-color:'+lineColor(line)+'">'+(mr.length?'●':'·')+'</div></div>',9,0);
+     const marker=overlayHtml(pos,'<div class="metro-kakao-station" style="--line-color:'+lineColor(line)+'"><span class="metro-station-name">'+esc(name)+'</span></div>',9,0);
      stationLayer.add(marker);
      const pointLines=new Map();
      for(const r of mr){const l=String(r[st.lineField]||'');if(l)pointLines.set(normLineKey(l),l);}
@@ -1928,6 +1969,7 @@
      hit.addEventListener('click',ev=>{ev.stopPropagation();stationRouteEvent(point,true);hideBubble();activeMetroBubble=overlayHtml(pos,'<div class="metro-info-bubble"><button type="button" class="metro-popup-close" style="float:right;cursor:pointer" aria-label="닫기">×</button>'+detail+'</div>',30,-45);activeMetroBubble.element.querySelector('.metro-popup-close').onclick=()=>{hideBubble();routePinned=null;highlightRoute();};});
    }
    $id('metroMapLegend').innerHTML=[...lset].sort((a,b)=>a[0].localeCompare(b[0],'ko')).map(([line,color])=>'<span><i style="background:'+color+'"></i>'+esc(line)+'</span>').join('');
+   highlightRoute();
    return {found,matched};
  }
  async function redraw(){if(!mapVisible)return;let token=++latestRun;try{
@@ -1978,6 +2020,10 @@
        manualStations=rows;setStatus('직접 선택한 역 좌표 '+rows.length+'곳을 불러왔습니다.');renderFromSelectors();
      }catch(e){setStatus('역 좌표 파일 오류: '+e.message,true);}
    });
+   $id('metroShowStationNames').addEventListener('change',ev=>{
+     $id('metroRegionMap').classList.toggle('metro-hide-station-names',!ev.target.checked);
+   });
+   $id('metroShowRouteLines').addEventListener('change',()=>highlightRoute());
    $id('metroLineCheckboxes').addEventListener('change',ev=>{
      const input=ev.target;
      if(!(input instanceof HTMLInputElement)||input.type!=='checkbox')return;
