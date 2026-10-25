@@ -333,6 +333,17 @@ html, body {
 }
 
 
+    /* 면적 유형별 필터: 일반/고액용 옆에 동적 라디오 버튼 표시 */
+    .label-filterbar { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:6px 0 10px; }
+    .label-filterbar .mode-tabs { margin:0; flex-shrink:0; }
+    .type-filters { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+    .type-filter-caption { color:var(--muted); font-size:12px; font-weight:800; margin-left:4px; }
+    .type-filter-option { display:inline-flex; align-items:center; gap:5px; padding:7px 10px;
+      border:1px solid var(--border); background:#fff; border-radius:999px; cursor:pointer;
+      font-size:12px; font-weight:750; white-space:nowrap; }
+    .type-filter-option input { margin:0; accent-color:#4f46e5; cursor:pointer; }
+    .type-filter-option:has(input:checked) { background:#eef2ff; border-color:#818cf8; color:#3730a3; }
+
     /* PPT 복사 크기 선택 */
     .sizebox{
         background: var(--panel);
@@ -384,6 +395,53 @@ html, body {
         // 라벨 모드: 일반이 기본, 고액용은 탭으로 전환
         let currentLabelMode = "normal";
         let lastAptArr = [];
+        let selectedType = "all";
+
+        // 라벨 데이터의 첫 항목(예: 84|계|3|...)에서 유형 숫자만 추출
+        function getLabelType(rowText) {
+            const match = String(rowText || "").trim().match(/^(\d+(?:\.\d+)?)/);
+            return match ? String(Number(match[1])) : null;
+        }
+
+        function rebuildTypeFilters() {
+            const types = new Set();
+            $("#apt_tables tbody tr").each(function() {
+                const type = getLabelType($(this).text());
+                if (type !== null) types.add(type);
+            });
+            const sorted = Array.from(types).sort((a, b) => Number(a) - Number(b));
+            if (selectedType !== "all" && !types.has(selectedType)) selectedType = "all";
+            const $holder = $("#typeFilters").empty();
+            const createOption = (value, label) => {
+                const $label = $("<label>").addClass("type-filter-option");
+                const $input = $("<input>").attr({type:"radio", name:"labelType", value:value})
+                    .prop("checked", selectedType === value);
+                $label.append($input, document.createTextNode(label));
+                $holder.append($label);
+            };
+            createOption("all", "전체보기");
+            sorted.forEach(type => createOption(type, type));
+        }
+
+        function applyTypeFilter() {
+            let visibleCount = 0;
+            $("#apt_tables table").each(function() {
+                let hasVisible = false;
+                $(this).find("tbody tr").each(function() {
+                    const matches = selectedType === "all" || getLabelType($(this).text()) === selectedType;
+                    $(this).toggle(matches);
+                    if (matches) hasVisible = true;
+                });
+                $(this).toggle(hasVisible);
+                if (hasVisible) visibleCount++;
+            });
+            $("#apt_cnt").text("단지 개수: " + visibleCount + (selectedType === "all" ? "" : " (" + selectedType + " 유형)"));
+        }
+
+        $(document).on("change", 'input[name="labelType"]', function() {
+            selectedType = this.value;
+            applyTypeFilter();
+        });
 
         function setLabelMode(mode) {
             currentLabelMode = (mode === "high") ? "high" : "normal";
@@ -414,6 +472,8 @@ html, body {
             if (lastAptArr.length > 0) {
                 labelCreate(lastAptArr);
             }
+            rebuildTypeFilters();
+            applyTypeFilter();
         }
         // ============================================================
         // PPT 고해상도 + 작은 표시 크기 복사 (V5)
@@ -849,6 +909,7 @@ html, body {
 
                 // 같은 엑셀 데이터를 탭 전환 시 다시 사용할 수 있게 보관
                 lastAptArr = aptArr.slice();
+                selectedType = "all"; // 새로운 엑셀은 전체보기부터
                 renderLabels();
             };
 
@@ -1082,9 +1143,15 @@ html, body {
       </div>
     </div>
 
+    <div class="label-filterbar">
     <div class="mode-tabs" role="tablist" aria-label="라벨 가격 모드">
       <button type="button" class="mode-tab active" data-mode="normal" role="tab" aria-selected="true" onclick="setLabelMode('normal')">일반</button>
       <button type="button" class="mode-tab" data-mode="high" role="tab" aria-selected="false" onclick="setLabelMode('high')">고액용</button>
+    </div>
+    <span class="type-filter-caption">유형별 보기</span>
+    <div id="typeFilters" class="type-filters" role="group" aria-label="유형별 라벨 필터">
+      <label class="type-filter-option"><input type="radio" name="labelType" value="all" checked />전체보기</label>
+    </div>
     </div>
 
     <div id="normalLegend" class="legend" aria-label="일반 가격 구간 색상 안내">
