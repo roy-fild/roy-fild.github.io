@@ -1,5 +1,6 @@
 <!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>전국 아파트 연식 · 실제 부지 지도</title>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/polygon-clipping@0.15.7/dist/polygon-clipping.umd.min.js"></script>
 <style>
 :root{font-family:system-ui,-apple-system,'Noto Sans KR',sans-serif;color:#192a3d;background:#f2f5fa}*{box-sizing:border-box}body{margin:0}.shell{max-width:1440px;margin:auto;padding:15px}.panel{background:white;border:1px solid #e2e8f0;border-radius:14px;padding:15px;margin-bottom:12px;box-shadow:0 3px 16px #17324c09}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}h1{font-size:22px;margin:0}.muted{color:#64748b;font-size:12px}.filters{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:12px}label{display:block;font-size:12px;color:#64748b;font-weight:650;margin-bottom:5px}select,input[type=text]{width:100%;height:39px;padding:8px;border:1px solid #cbd5e1;border-radius:9px;background:white;font-size:13px}.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:13px}.toggle{display:inline-flex;align-items:center;gap:5px;font-size:13px}.toggle input{accent-color:#2563eb}button{cursor:pointer;border:1px solid #cbd5e1;border-radius:9px;padding:9px 12px;font-weight:750;background:white;color:#263b50}button.primary{background:#2563eb;border-color:#2563eb;color:white}button.selected{background:#dbeafe;border-color:#60a5fa;color:#1d4ed8}.legend{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.sw{display:inline-block;width:13px;height:13px;border-radius:3px;vertical-align:-2px;margin-right:4px}.legend span{white-space:nowrap;font-size:12px}#status{font-size:12px;line-height:1.7;color:#52647d;min-height:22px}#status.error{color:#ba1c30}.mapBox{position:relative}#map{height:72vh;min-height:550px;border-radius:12px;overflow:hidden;background:#e7eef5;border:1px solid #cbd5e1}.floating{position:absolute;top:12px;right:12px;z-index:100;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}.floating button{box-shadow:0 2px 8px #0002}.mode{display:flex;background:white;padding:3px;border:1px solid #cbd5e1;border-radius:10px;box-shadow:0 2px 8px #0002}.mode button{border:none;box-shadow:none;font-size:12px;padding:7px 10px}.mode button.active{background:#1d4ed8;color:white}.mapBox:fullscreen{background:white;padding:0}.mapBox:fullscreen #map{height:100vh;border-radius:0}.mapBox:fullscreen .floating{top:14px;right:14px}.dongLabel{display:inline-block;background:#fffef6ec;border:1px solid #889dbb;border-radius:6px;padding:2px 5px;white-space:nowrap;font-size:11px;color:#1f3a57;font-weight:800;pointer-events:none;box-shadow:0 1px 3px #0002}.aptPop{width:260px;max-width:calc(100vw - 30px);background:white;border:1px solid #cbd5e1;border-radius:12px;box-shadow:0 8px 24px #0004;overflow:hidden;font-size:13px}.aptPop .head{background:#f5f8fe;padding:10px 12px;font-weight:850;display:flex;justify-content:space-between;gap:8px}.aptPop .body{padding:9px 12px;line-height:1.9}.aptPop button{border:0;padding:0;background:none;font-size:19px;line-height:1}.aptPop .pill{border-radius:20px;padding:3px 7px;font-size:11px;color:white}.foot{margin-top:9px;color:#64748b;font-size:12px;line-height:1.7}#resultList{max-height:240px;overflow:auto}.item{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid #edf2f6;padding:9px 0;font-size:13px}.item button{white-space:nowrap;padding:5px 8px;font-size:11px}.stats{font-size:13px;font-weight:700}.loading-bar{height:4px;background:linear-gradient(90deg,#2563eb,#06b6d4);border-radius:10px;animation:pulse 1s infinite alternate}@keyframes pulse{to{opacity:.25}}@media(max-width:960px){.filters{grid-template-columns:repeat(2,minmax(0,1fr))}.shell{padding:9px}#map{height:70vh;min-height:490px}.floating{left:8px;right:8px}.floating button{font-size:11px;padding:7px}}
@@ -20,9 +21,16 @@
 @media(max-width:850px){.mapBox .measureBar{top:55px;right:8px;left:8px;width:auto;padding:7px;gap:4px}.mapBox .measureBar .measureHint{display:none}}
 
 #map.measuring{cursor:crosshair!important}
+.populationLabel{background:#ffffffee;border:1px solid #146c96;border-radius:8px;padding:4px 7px;text-align:center;white-space:nowrap;box-shadow:0 2px 8px #0003;pointer-events:none;font-size:11px;line-height:1.4;color:#123d61}.populationLabel b{font-size:13px;color:#075985}.populationLabel small{display:block;font-size:10px;color:#64748b}
+
+.ageIconsLabel{display:flex;flex-direction:column;align-items:center;white-space:nowrap;pointer-events:none;filter:drop-shadow(0 2px 4px #0003)}
+.ageIconsRow{display:flex;gap:2px;padding:4px;background:#fffffff2;border:1px solid #b7c6d6;border-radius:10px}
+.ageIconChip{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:30px;padding:2px 4px;background:white;border:2px solid var(--age-color);border-radius:7px;font-size:17px;line-height:1.1}
+.ageIconChip b{font-size:9px;line-height:1.25;color:#263648;margin-top:2px}
+.ageIconTitle{background:white;border:1px solid #cbd5e1;border-radius:5px;margin-top:3px;padding:2px 5px;color:#20374c;font-size:11px;font-weight:800}
 </style></head><body><main class="shell"><section class="panel top"><div><h1>전국 아파트 연식 지도</h1><div class="muted">카카오맵 · 아파트 단지 실제 부지 외곽선 색칠 · GitHub Pages</div></div><div id="counter" class="stats">자료 준비 중</div></section>
 <section class="panel"><div class="filters"><div><label>시·도</label><select id="sido"><option value="">전국</option></select></div><div><label>시·군·구</label><select id="sigungu"><option value="">전체 시·군·구</option></select></div><div><label id="dongSelectLabel">행정동 · 읍 · 면</label><select id="dong"><option value="">전체</option></select></div><div><label>입주 연식</label><select id="decade"><option value="">전체 연식</option><option value="2020">2020년대 이후</option><option value="2010">2010년대</option><option value="2000">2000년대</option><option value="1990">1990년대</option><option value="1980">1980년대</option><option value="old">1980년 이전</option></select></div><div><label>단지명 검색</label><input id="query" type="text" placeholder="예: 래미안, 롯데캐슬"/></div></div>
-<div class="toolbar"><strong style="font-size:13px">세대수</strong><label class="toggle"><input name="units" type="radio" value="0" checked>전체</label><label class="toggle"><input name="units" type="radio" value="200">200세대 이상</label><label class="toggle"><input name="units" type="radio" value="300">300세대 이상</label><label class="toggle"><input id="showPolygons" type="checkbox" checked>단지 부지 색칠</label><label class="toggle"><input id="showMissing" type="checkbox" checked>외곽선 없는 단지 점</label><label class="toggle"><input id="showBoundary" type="checkbox" checked>행정구역 경계</label><label class="toggle"><input id="showLabels" type="checkbox" checked>행정구역 이름</label><label class="toggle"><input id="shadeOutside" type="checkbox" checked>선택 지역 외부 음영</label><label class="toggle" style="gap:7px">음영 농도 <select id="shadeStrength" style="width:76px;height:32px;padding:4px"><option value="0.60">60%</option><option value="0.65" selected>65%</option><option value="0.70">70%</option></select></label><button id="searchBtn" class="primary">선택 지역 보기</button><button id="resetBtn">필터 초기화</button></div></section>
+<div class="toolbar"><strong style="font-size:13px">세대수</strong><label class="toggle"><input name="units" type="radio" value="0" checked>전체</label><label class="toggle"><input name="units" type="radio" value="200">200세대 이상</label><label class="toggle"><input name="units" type="radio" value="300">300세대 이상</label><label class="toggle"><input id="showPolygons" type="checkbox" checked>단지 부지 색칠</label><label class="toggle"><input id="showMissing" type="checkbox" checked>외곽선 없는 단지 점</label><label class="toggle"><input id="showPopulation" type="checkbox"> 인구 표시 (연령대별)</label><label class="toggle"><input id="showBoundary" type="checkbox" checked>행정구역 경계</label><label class="toggle"><input id="showLabels" type="checkbox" checked>행정구역 이름</label><label class="toggle"><input id="shadeOutside" type="checkbox" checked>선택 지역 외부 음영</label><label class="toggle" style="gap:7px">음영 농도 <select id="shadeStrength" style="width:76px;height:32px;padding:4px"><option value="0.60">60%</option><option value="0.65" selected>65%</option><option value="0.70">70%</option></select></label><button id="searchBtn" class="primary">선택 지역 보기</button><button id="resetBtn">필터 초기화</button></div></section>
 <section class="panel"><div class="legend"><b style="font-size:12px">입주시기</b><span><i class="sw" style="background:#ed5b63"></i>2020년대~</span><span><i class="sw" style="background:#f6a33c"></i>2010년대</span><span><i class="sw" style="background:#f5df58"></i>2000년대</span><span><i class="sw" style="background:#a5d778"></i>1990년대</span><span><i class="sw" style="background:#49a880"></i>1980년대</span><span><i class="sw" style="background:#4aa7a8"></i>1980년 이전</span><span><i class="sw" style="background:#64748b"></i>외곽 미확보 단지</span></div><div id="boundaryInfo" style="font-size:12px;color:#33558b;margin:3px 0">행정구역 경계 준비 중…</div><div id="status" role="status">카카오맵 및 GitHub 데이터 연결 중…</div><div class="mapBox" id="mapBox"><div id="map"></div><div class="measureBar" id="measureBar"><b>📏 거리 측정</b><button id="measureStart" type="button">측정 시작</button><button id="measureUndo" type="button" disabled>↶ 뒤로</button><button id="measureFinish" type="button" disabled>측정 종료</button><button id="measureClear" type="button" disabled>전체 지우기</button><label class="measureToggle"><input type="checkbox" id="measureShowLabels" checked> 거리 표시</label><span class="measureTotal" id="measureTotal">0 m</span><span class="measureHint" id="measureHint">우클릭 / Backspace: 현재 경로 뒤로</span></div><div class="floating"><button id="fullscreen">⛶ 전체화면</button><button id="cadastralToggle" type="button" aria-pressed="false">▦ 지적편집도 OFF</button><div class="mode"><button class="active" data-mode="admin">행정동</button><button data-mode="legal">법정동</button></div><button id="fit">⊡ 선택 지역 맞춤</button></div></div><div class="foot">경계 표시 단계: 시·도 선택 시 시·군·구, 일반구가 있는 시 전체 선택 시 해당 시의 구, 구 선택 시 읍·면·동, 특정 동 선택 시 해당 동 경계를 표시합니다. 행정동/법정동 모드에 따라 경계와 이름이 변경됩니다. 입주연도는 업로드하신 apt.json의 입주시기 기준입니다. 실제 건물 형태가 아닌 <b>아파트 단지 부지 경계</b>입니다. 외부 음영은 행정구역을 선택한 경우에만 나타나며 기본 65%입니다. 전국 데이터는 화면에 보이는 단지만 그리며, 지도 확대 시 세부 색칠이 나타납니다.</div></section>
 <section class="panel"><div class="top"><strong>조건에 해당하는 아파트</strong><span id="listCount" class="muted"></span></div><div id="resultList" class="muted">데이터 불러오는 중…</div></section></main>
 <script>
@@ -30,7 +38,11 @@
 const BASE='https://roy-fild.github.io/json/apt/';
 const KEY='eb1b44548edb9556f3a5b18aba90e5be';
 const LEGAL_URL='https://raw.githubusercontent.com/KnellBalm/kr-admin-geojson/main/emd.geojson';
+const MODERN_ADMIN_URL='https://raw.githubusercontent.com/vuski/admdongkor/master/ver20260701/HangJeongDong_ver20260701.geojson';
+const HWASEONG_GUS=['만세구','효행구','병점구','동탄구'];
+let hwaseongModernFeatures=[];
 let apartments=[], aptById=new Map(), shapes={}, adminFeatures=[], legalFeatures=[], map=null, geocoder=null, sdkReady=false, shapeReady=false;
+let populationLayers=[], populationRows=null, populationLoading=null;
 let aptLayers=[], adminLayers=[], labelLayers=[], shadeLayers=[], openPopup=null, mode='admin', redrawTimer=null, epoch=0, loadingAdmin=null, loadingLegal=null, selectedApt=null;
 const $id=id=>document.getElementById(id), txt=(s)=>String(s==null?'':s), esc=(s)=>txt(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('ko-KR');
@@ -49,6 +61,27 @@ const CITY_PREFIX='__CITY__:';
 function normDistrict(v){return txt(v).replace(/\s+/g,'').replace(/^(.*?시)(.+구)$/,(_,city,gu)=>city+gu)}
 function cityOfDistrict(g){const m=normDistrict(g).match(/^(.+?시)(.+구)$/);return m?m[1]:''}
 function selectedCity(){const v=$id('sigungu').value;return v.startsWith(CITY_PREFIX)?v.slice(CITY_PREFIX.length):''}
+function isHwaseongApt(a){return canonicalSido(a.sidoNm)==='경기도' && /화성시/.test(txt(a.sigunguNm))}
+function isHwaseongDistrict(g){return /^화성시(?:\s*(?:만세구|효행구|병점구|동탄구))?$/.test(txt(g).trim())}
+function validPointInRing(x,y,ring){let inside=false;for(let i=0,j=ring.length-1;i<ring.length;j=i++) {const a=ring[i],b=ring[j];if(((a[1]>y)!==(b[1]>y))&&(x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0]))inside=!inside;}return inside;}
+function featureContainsPoint(f,x,y){const geo=f.geometry||{};const polys=geo.type==='Polygon'?[geo.coordinates]:geo.type==='MultiPolygon'?geo.coordinates:[];for(const p of polys){if(p.length&&validPointInRing(x,y,p[0])&&!p.slice(1).some(h=>validPointInRing(x,y,h)))return true;}return false;}
+function modernGuOfFeature(f){const name=txt(f.properties?.adm_nm||f.properties?.ADM_NM||f.properties?.FULL_NM).replace(/\s/g,'');if(!name.includes('화성시'))return '';return HWASEONG_GUS.find(gu=>name.includes(gu))||'';}
+function hwaseongFeatureGu(f){return f._hwaseongGu||modernGuOfFeature(f)}
+function mapHwaseongApartments(){
+  if(!hwaseongModernFeatures.length)return;
+  let assigned=0,unmapped=0;
+  const indexed=hwaseongModernFeatures.map(f=>{const g=f.geometry||{};const coordinates=g.type==='Polygon'?[g.coordinates]:g.type==='MultiPolygon'?g.coordinates:[];let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;for(const p of coordinates)for(const pt of (p[0]||[])){x0=Math.min(x0,+pt[0]);x1=Math.max(x1,+pt[0]);y0=Math.min(y0,+pt[1]);y1=Math.max(y1,+pt[1]);}return {f,gu:hwaseongFeatureGu(f),x0,x1,y0,y1};});
+  for(const a of apartments){
+    if(!isHwaseongApt(a))continue;
+    const x=+a.lng,y=+a.lat;
+    if(!Number.isFinite(x)||!Number.isFinite(y)){unmapped++;continue;}
+    const found=indexed.find(v=>x>=v.x0&&x<=v.x1&&y>=v.y0&&y<=v.y1&&featureContainsPoint(v.f,x,y));
+    if(found){a.sigunguNm='화성시 '+found.gu;assigned++;}
+    else {unmapped++;}
+  }
+  console.info('화성시 신규 구 아파트 좌표 재분류',assigned,'개 / 미배정',unmapped,'개');
+}
+
 function districtMatches(selected,actual){
  if(!selected)return true;
  if(selected.startsWith(CITY_PREFIX))return cityOfDistrict(actual)===selected.slice(CITY_PREFIX.length);
@@ -109,9 +142,9 @@ function matchRegion(f){
  if(!g)return true;
  if(g.startsWith(CITY_PREFIX)){
   const city=g.slice(CITY_PREFIX.length);
-  return cityOfDistrict(gu)===city||cityOfDistrict(name.split(' ').slice(1,-1).join(' '))===city;
+  return cityOfDistrict(gu)===city||cityOfDistrict(name.split(' ').slice(1,-1).join(' '))===city||(city==='화성시'&&name.includes('화성시'));
  }
- return normDistrict(g)===normDistrict(gu)||normDistrict(name).includes(normDistrict(g));
+ return normDistrict(g)===normDistrict(gu)||normDistrict(name).includes(normDistrict(g))||(isHwaseongDistrict(g)&&hwaseongFeatureGu(f)&&normDistrict(g)===normDistrict('화성시 '+hwaseongFeatureGu(f)));
 }
 function shortDong(f){const p=f.properties||{};if(p.EMD_KOR_NM)return txt(p.EMD_KOR_NM);const n=featureName(f);return n.split(' ').slice(-1)[0]||n}
 function refreshDongs(preserveSelection=true){
@@ -296,10 +329,113 @@ function labelPositionInViewport(paths, bounds, preferred){
  }
  return candidate;
 }
+
+// 인구수는 인구지도와 동일한 주민등록 총인구 CSV(2026.05)를 사용한다.
+// 기본은 OFF이며 체크할 때만 CSV를 요청한다. 행정동 자료와 법정동 모드의
+// 인구지도의 연령별 평균 이상 아이콘을 연식지도 위에 겹쳐 표시한다.
+// 통계는 행정동 기준이며, 법정동 모드에서도 행정동 인구 데이터를 사용한다.
+const POPULATION_AGE_CSV='https://roy-fild.github.io/file/people/ingu_age_202605.csv';
+const popNorm=x=>txt(x).replace(/\s+/g,'').replace(/특별자치도|특별자치시|특별시|광역시|자치시|도$/g,'').trim();
+function popSidoMatches(a,b){return popNorm(a)===popNorm(b) || popNorm(canonicalSido(a))===popNorm(canonicalSido(b));}
+function popDongName(d){return popNorm(d).replace(/^(?:만세구|효행구|병점구|동탄구)/,'');}
+function popDistrictName(d){return popNorm(d).replace(/^(?:경기도|경기)/,'');}
+const AGE_TYPES=[
+ {key:'teen',label:'0~19세',short:'유아·10대',icon:'🧒',color:'#e8774c'},
+ {key:'a20',label:'20대',short:'20대',icon:'🚶',color:'#4b91d2'},
+ {key:'a30',label:'30대',short:'30대',icon:'🧑',color:'#2a9f83'},
+ {key:'a40',label:'40대',short:'40대',icon:'👤',color:'#8b75cd'},
+ {key:'a50',label:'50대',short:'50대',icon:'👨',color:'#cb6699'},
+ {key:'a60',label:'60대 이상',short:'60+',icon:'👴',color:'#657587'},
+ {key:'family',label:'완성형 가족',short:'가족',icon:'👨‍👩‍👧',color:'#111827'}
+];
+async function loadPopulation(){
+ if(populationRows)return populationRows;
+ if(populationLoading)return populationLoading;
+ populationLoading=(async()=>{
+  const resp=await fetch(POPULATION_AGE_CSV,{cache:'no-store'});
+  if(!resp.ok)throw Error('연령 CSV HTTP '+resp.status);
+  const buf=await resp.arrayBuffer();let parsed=null;
+  for(const enc of ['utf-8','euc-kr']){
+   const decoded=new TextDecoder(enc).decode(buf);
+   if(!window.Papa)throw Error('CSV 파서(PapaParse) 미로드');
+   const result=window.Papa.parse(decoded,{header:true,skipEmptyLines:true});
+   const cols=result.meta.fields||[];
+   const col=(regex)=>cols.find(c=>regex.test(c));
+   const ages=[/^0\s*~\s*9\s*세/,/^10\s*~\s*19\s*세/,/^20\s*~\s*29\s*세/,/^30\s*~\s*39\s*세/,/^40\s*~\s*49\s*세/,/^50\s*~\s*59\s*세/,/^60\s*~\s*69\s*세/,/^70\s*~\s*79\s*세/,/^80\s*~\s*89\s*세/,/^90\s*~\s*99\s*세/,/^100\s*세\s*이상/].map(col);
+   if(ages.slice(0,6).some(x=>!x) || !cols[2] || cols[0].includes('�'))continue;
+   if(!ages[10])ages[10]=cols.find(x=>x.includes('100')&&x.includes('이상'));
+   const number=v=>Number(txt(v).replace(/,/g,''))||0;
+   parsed=result.data.map(r=>({sido:txt(r[cols[0]]).trim(),gu:txt(r[cols[1]]).trim(),dong:txt(r[cols[2]]).trim(),n:ages.map(k=>number(r[k]))})).filter(r=>r.sido);
+   break;
+  }
+  if(!parsed||!parsed.length)throw Error('연령별 CSV 열 구성을 인식하지 못했습니다');
+  populationRows=parsed;return parsed;
+ })();
+ try{return await populationLoading;}finally{populationLoading=null;}
+}
+function ageCountsForArea(district,dong=''){
+ if(!populationRows)return null;
+ const sd=$id('sido').value,target=popDistrictName(district),dn=popDongName(dong);
+ let rows=populationRows.filter(r=>popSidoMatches(r.sido,sd));
+ const modern=HWASEONG_GUS.find(g=>target.endsWith(g)&&target.includes('화성시'));
+ if(modern){
+  // 신설 4개 구는 2026년 경계의 행정동 이름으로 화성시 원천행을 분류한다.
+  const allowed=new Set(hwaseongModernFeatures.filter(f=>hwaseongFeatureGu(f)===modern).map(f=>popDongName(shortDong(f))));
+  rows=rows.filter(r=>popDistrictName(r.gu)==='화성시' || popDistrictName(r.gu)===target)
+           .filter(r=>r.dong && allowed.has(popDongName(r.dong)));
+ }else{
+  rows=rows.filter(r=>popDistrictName(r.gu)===target);
+  if(!rows.length && target.startsWith('화성시'))rows=populationRows.filter(r=>popSidoMatches(r.sido,sd)&&popDistrictName(r.gu)==='화성시');
+ }
+ if(dong){rows=rows.filter(r=>popDongName(r.dong)===dn);}
+ else if(!modern){const details=rows.filter(r=>r.dong);if(details.length)rows=details;else rows=rows.filter(r=>!r.dong);}
+ if(!rows.length)return null;
+ const sums=Array(11).fill(0);for(const r of rows)for(let i=0;i<11;i++)sums[i]+=r.n[i];
+ const total=sums.reduce((a,b)=>a+b,0);if(!total)return null;
+ const teen=(sums[0]+sums[1])/total*100;
+ return {teen,a20:sums[2]/total*100,a30:sums[3]/total*100,a40:sums[4]/total*100,a50:sums[5]/total*100,a60:sums.slice(6).reduce((a,b)=>a+b,0)/total*100,
+   family:(sums[0]+sums[1]+sums[3]+sums[4]+sums[5])/total*100};
+}
+function drawPopulation(){
+ clearLayer(populationLayers);
+ if(!$id('showPopulation').checked||!sdkReady||!populationRows)return;
+ const sd=$id('sido').value,gu=$id('sigungu').value,dong=$id('dong').value;
+ if(!sd)return;
+ const bounds=map.getBounds();
+ // 평균 모집단은 선택된 행정단위의 전체 지역 (현재 지도 화면에 보이는 부분만이 아님).
+ // 법정동 전환 시에도 행정동 기준 통계·평균을 유지한다.
+ const fs=(adminFeatures.length?adminFeatures:regionFeatures()).filter(matchRegion).filter(f=>!dong||shortDong(f)===dong);
+ let groups=[];
+ if(!gu||selectedCity()){
+  const byDistrict=new Map();
+  for(const f of fs){const key=districtKey(f);if(!getDistrict(f))continue;if(!byDistrict.has(key))byDistrict.set(key,[]);byDistrict.get(key).push(f)}
+  for(const arr of byDistrict.values()){
+   const geo=polygonUnionFeatures(arr);
+   groups.push({name:getDistrict(arr[0]),district:getDistrict(arr[0]),paths:geometryPaths(geo),center:geometryCenter(geo)});
+  }
+ }else{
+  for(const f of fs){const paths=geoPolys(f);if(!paths.length)continue;groups.push({name:shortDong(f),district:getDistrict(f),dong:shortDong(f),paths,center:featureCenter(f)});}
+ }
+ const entries=groups.map(g=>({...g,shares:ageCountsForArea(g.district,g.dong||'')})).filter(g=>g.shares);
+ if(!entries.length)return;
+ const means={};for(const type of AGE_TYPES)means[type.key]=entries.reduce((n,g)=>n+g.shares[type.key],0)/entries.length;
+ let drawn=0;
+ for(const g of entries){
+  if(!featureIntersectsBounds(g.paths,bounds)||drawn>=180)continue;
+  const above=AGE_TYPES.filter(t=>g.shares[t.key]>=means[t.key]);
+  if(!above.length)continue;
+  const preferred=above.some(t=>t.key==='family')?above.filter(t=>t.key==='family'):above;
+  const pos=labelPositionInViewport(g.paths,bounds,g.center);if(!pos)continue;
+  const el=document.createElement('div');el.className='ageIconsLabel';
+  el.innerHTML='<div class="ageIconsRow">'+preferred.map(t=>'<span class="ageIconChip" style="--age-color:'+t.color+'" title="'+esc(t.label)+': '+g.shares[t.key].toFixed(1)+'% / 평균 '+means[t.key].toFixed(1)+'%"><span>'+t.icon+'</span><b>'+esc(t.short)+'</b></span>').join('')+'</div><span class="ageIconTitle">'+esc(g.name)+'</span>';
+  populationLayers.push(new kakao.maps.CustomOverlay({map,position:pos,content:el,zIndex:95,yAnchor:.5,clickable:false}));drawn++;
+ }
+}
+
 function drawAdmin(){
  clearLayer(adminLayers);clearLayer(labelLayers);drawOutsideShade();
  const info=$id('boundaryInfo');
- if(!sdkReady||(!$id('showBoundary').checked&&!$id('showLabels').checked)){if(info)info.textContent='행정구역 경계·이름 숨김';return}
+ if(!sdkReady||(!$id('showBoundary').checked&&!$id('showLabels').checked)){if(info)info.textContent='행정구역 경계·이름 숨김';drawPopulation();return}
  const sido=$id('sido').value, gu=$id('sigungu').value, dong=$id('dong').value;
  const bounds=map.getBounds();
  const fs=regionFeatures().filter(matchRegion).filter(f=>!dong||shortDong(f)===dong);
@@ -341,9 +477,74 @@ function drawAdmin(){
   drawn++;
  }
  if(info)info.textContent=`${layerName} ${level} 경계 ${drawn}개 · 이름 ${labeled}개`+(groups.length===0?' (지역명 또는 데이터 확인 필요)':'');
+ drawPopulation();
 }
-async function loadAdmin(){if(loadingAdmin)return loadingAdmin;loadingAdmin=(async()=>{try{let parts=await Promise.all([loadJson('adm_part_001.geojson'),loadJson('adm_part_002.geojson')]);adminFeatures=parts.flatMap(p=>p.features||[]);districtGeometryCache.clear();console.info('행정동 경계 로드:',adminFeatures.length,'개');refreshDongs();scheduleDraw()}catch(e){const x=$id('boundaryInfo');if(x)x.textContent='행정동 경계 로드 실패: '+e.message;console.warn('행정동 경계 오류',e)}})();return loadingAdmin}
-async function loadLegal(){if(loadingLegal)return loadingLegal;loadingLegal=(async()=>{try{let r=await fetch(LEGAL_URL,{cache:'force-cache'});if(!r.ok)throw Error('법정동 GeoJSON HTTP '+r.status);let json=await r.json();legalFeatures=json.features||[];districtGeometryCache.clear();console.info('법정동 경계 로드:',legalFeatures.length,'개 / 첫 속성:',legalFeatures[0]?.properties);refreshDongs();scheduleDraw()}catch(e){status('법정동 경계 로드 실패: '+e.message,true);console.error(e)}})();return loadingLegal}
+async function loadAdmin(){if(loadingAdmin)return loadingAdmin;loadingAdmin=(async()=>{
+ try{
+  let parts=await Promise.all([loadJson('adm_part_001.geojson'),loadJson('adm_part_002.geojson')]);
+  adminFeatures=parts.flatMap(p=>p.features||[]);
+  // 기존 전국 경계는 유지하고, 화성시만 2026년 7월 행정동으로 교체한다.
+  try{
+   const r=await fetch(MODERN_ADMIN_URL,{cache:'force-cache'});
+   if(!r.ok)throw Error('2026 행정동 HTTP '+r.status);
+   const modern=(await r.json()).features||[];
+   hwaseongModernFeatures=modern.filter(f=>modernGuOfFeature(f));
+   const seen=new Set(hwaseongModernFeatures.map(f=>modernGuOfFeature(f)));
+   if(!HWASEONG_GUS.every(g=>seen.has(g)))throw Error('2026 GeoJSON에 화성시 구 4개가 전부 없습니다: '+[...seen]);
+   hwaseongModernFeatures.forEach(f=>{f._hwaseongGu=modernGuOfFeature(f);f.properties={...(f.properties||{}),sggnm:'화성시 '+f._hwaseongGu,sidonm:'경기도'};});
+   adminFeatures=adminFeatures.filter(f=>!(canonicalSido(featureSido(f)||featureName(f).split(' ')[0])==='경기도' && (featureName(f).includes('화성시')||getDistrict(f).includes('화성시'))));
+   adminFeatures.push(...hwaseongModernFeatures);
+   mapHwaseongApartments();
+   console.info('2026 화성시 4개 구 행정 경계 적용:',hwaseongModernFeatures.length,'개 동');
+  }catch(e){console.warn('화성시 2026 행정동 보완 실패: 기존 경계 이용',e);hwaseongModernFeatures=[];}
+  districtGeometryCache.clear();console.info('행정동 경계 로드:',adminFeatures.length,'개');refreshDongs();scheduleDraw();
+ }catch(e){const x=$id('boundaryInfo');if(x)x.textContent='행정동 경계 로드 실패: '+e.message;console.warn('행정동 경계 오류',e)}
+})();return loadingAdmin}
+function legalHwaseongFeature(f){
+ const full=featureName(f), district=getDistrict(f), sido=featureSido(f);
+ return (full.includes('화성시')||district.includes('화성시')) && (!sido||popSidoMatches(sido,'경기도'));
+}
+function legalRepresentative(f){
+ const geo=f.geometry||{};
+ const polys=geo.type==='Polygon'?[geo.coordinates]:geo.type==='MultiPolygon'?geo.coordinates:[];
+ // Representative vertex and polygon-centered candidates: do not rely on bounding-box center alone.
+ for(const poly of polys){const ring=poly&&poly[0];if(!ring||ring.length<3)continue;
+  let sx=0,sy=0,n=0;
+  for(const pt of ring){sx+=+pt[0];sy+=+pt[1];n++;}
+  if(n){const x=sx/n,y=sy/n;if(featureContainsPoint(f,x,y))return [x,y];}
+  return ring[Math.floor(ring.length/3)];
+ }
+ return null;
+}
+function assignModernGuToLegal(f){
+ const p=legalRepresentative(f);if(!p)return '';
+ const found=hwaseongModernFeatures.find(m=>featureContainsPoint(m,+p[0],+p[1]));
+ return found?hwaseongFeatureGu(found):'';
+}
+async function loadLegal(){
+ if(loadingLegal)return loadingLegal;
+ loadingLegal=(async()=>{
+  try{
+   const r=await fetch(LEGAL_URL,{cache:'force-cache'});
+   if(!r.ok)throw Error('법정동 GeoJSON HTTP '+r.status);
+   const json=await r.json();legalFeatures=json.features||[];
+   if(hwaseongModernFeatures.length){
+    let assigned=0,missing=0;
+    legalFeatures=legalFeatures.map(f=>{
+     if(!legalHwaseongFeature(f))return f;
+     const gu=assignModernGuToLegal(f);
+     if(!gu){missing++;return f;}
+     assigned++;
+     return {...f,properties:{...(f.properties||{}),sggnm:'화성시 '+gu,sidonm:'경기도'}};
+    });
+    console.info('화성시 법정동 실제 법정 경계 분류',assigned,'개, 구 미분류',missing,'개');
+    if(!assigned)console.warn('기존 법정동 자료에 화성시 법정 경계를 찾지 못했습니다.');
+   }
+   districtGeometryCache.clear();
+   refreshDongs();scheduleDraw();
+  }catch(e){status('법정동 경계 로드 실패: '+e.message,true);console.error(e)}
+ })();return loadingLegal;
+}
 
 // 거리 측정: SDK의 LatLng.distance 대신 구면 Haversine 거리(m)를 계산한다.
 let measuring=false,measurePoints=[],finishedMeasurePaths=[],measureGraphics=[],measureLastClick=0,measureShowLabels=true,cadastralOn=false;
@@ -413,7 +614,7 @@ function bindMeasurement(){
   $id('cadastralToggle').textContent='▦ 지적편집도 '+(cadastralOn?'ON':'OFF');
  });
 }
-function events(){$('#sido').on('change',()=>{refreshDistricts();updateFilters();fitFiltered()});$('#sigungu').on('change',()=>{refreshDongs();updateFilters();fitFiltered()});$('#dong').on('change',()=>{updateFilters();if($id('dong').value){let f=regionFeatures().find(f=>matchRegion(f)&&shortDong(f)===$id('dong').value);if(f){const paths=geoPolys(f);let b=new kakao.maps.LatLngBounds();for(const poly of paths)for(const ring of poly)for(const p of ring)b.extend(p);map.setBounds(b)}}});$('#decade,input[name="units"],#showPolygons,#showMissing,#showBoundary,#showLabels').on('change',updateFilters);$('#shadeOutside,#shadeStrength').on('change',drawOutsideShade);$('#query').on('input',()=>{clearTimeout(redrawTimer);redrawTimer=setTimeout(updateFilters,300)});$('#searchBtn').on('click',()=>{updateFilters();fitFiltered()});$('#fit').on('click',fitFiltered);$('#resetBtn').on('click',()=>{const seoul=[...$id('sido').options].find(o=>canonicalSido(o.value)==='서울');$id('sido').value=seoul?seoul.value:'';refreshDistricts();$id('decade').value='';$id('query').value='';$('input[name="units"][value="0"]').prop('checked',true);updateFilters();fitFiltered()});$('.mode button').on('click',async function(){
+function events(){$('#showPopulation').on('change',async()=>{if(!$id('showPopulation').checked){clearLayer(populationLayers);return}try{status('인구 통계 불러오는 중…');await loadPopulation();drawPopulation();status('연령대별 평균 이상 아이콘 ON · 2026년 5월 통계 (행정동 기준)')}catch(e){console.error(e);$id('showPopulation').checked=false;clearLayer(populationLayers);status('인구 데이터 불러오기 실패: '+e.message,true)}});$('#sido').on('change',()=>{refreshDistricts();updateFilters();fitFiltered()});$('#sigungu').on('change',()=>{refreshDongs();updateFilters();fitFiltered()});$('#dong').on('change',()=>{updateFilters();if($id('dong').value){let f=regionFeatures().find(f=>matchRegion(f)&&shortDong(f)===$id('dong').value);if(f){const paths=geoPolys(f);let b=new kakao.maps.LatLngBounds();for(const poly of paths)for(const ring of poly)for(const p of ring)b.extend(p);map.setBounds(b)}}});$('#decade,input[name="units"],#showPolygons,#showMissing,#showBoundary,#showLabels').on('change',updateFilters);$('#shadeOutside,#shadeStrength').on('change',drawOutsideShade);$('#query').on('input',()=>{clearTimeout(redrawTimer);redrawTimer=setTimeout(updateFilters,300)});$('#searchBtn').on('click',()=>{updateFilters();fitFiltered()});$('#fit').on('click',fitFiltered);$('#resetBtn').on('click',()=>{const seoul=[...$id('sido').options].find(o=>canonicalSido(o.value)==='서울');$id('sido').value=seoul?seoul.value:'';refreshDistricts();$id('decade').value='';$id('query').value='';$('input[name="units"][value="0"]').prop('checked',true);updateFilters();fitFiltered()});$('.mode button').on('click',async function(){
  const next=this.dataset.mode;
  if(mode===next)return;
  mode=next;
@@ -426,6 +627,6 @@ function events(){$('#sido').on('change',()=>{refreshDistricts();updateFilters()
  refreshDongs(false);
  updateFilters();
 });$('#fullscreen').on('click',async()=>{const w=$id('mapBox');if(document.fullscreenElement)await document.exitFullscreen();else if(w.requestFullscreen)await w.requestFullscreen();setTimeout(()=>map.relayout(),180)});document.addEventListener('fullscreenchange',()=>setTimeout(()=>map&&map.relayout(),170))}
-async function main(){try{await loadSdk();map=new kakao.maps.Map($id('map'),{center:mapLL(126.9780,37.5665),level:9});sdkReady=true;kakao.maps.event.addListener(map,'idle',scheduleDraw);bindMeasurement();events();status('아파트 목록 다운로드 중…');apartments=await loadJson('apt.json');aptById=new Map(apartments.map(a=>[txt(a.id),a]));setupChoices();renderList();status('단지 외곽선 데이터 다운로드 중… 처음에는 24MB를 읽으므로 시간이 걸릴 수 있습니다.');shapes=await loadJson('apt_boundaries.json');shapeReady=true;await loadAdmin();drawApts();status('단지 외곽선 준비 완료 · 단지를 클릭해 상세정보를 확인하세요.');}catch(e){showFileError(e)}}
+async function main(){try{await loadSdk();map=new kakao.maps.Map($id('map'),{center:mapLL(126.9780,37.5665),level:9});sdkReady=true;kakao.maps.event.addListener(map,'idle',scheduleDraw);bindMeasurement();events();status('아파트 목록 다운로드 중…');apartments=await loadJson('apt.json');await loadAdmin();aptById=new Map(apartments.map(a=>[txt(a.id),a]));setupChoices();renderList();status('단지 외곽선 데이터 다운로드 중… 처음에는 24MB를 읽으므로 시간이 걸릴 수 있습니다.');shapes=await loadJson('apt_boundaries.json');shapeReady=true;drawApts();status('단지 외곽선 준비 완료 · 단지를 클릭해 상세정보를 확인하세요.');}catch(e){showFileError(e)}}
 $(main);
 </script></body></html>
