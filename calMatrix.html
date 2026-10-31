@@ -493,9 +493,35 @@
             });
         }
 
+        // 비어 있는 가격 행과 투자금 열을 표시 옵션에 따라 제외합니다.
+        function getVisibleTableData(data) {
+            if (!data || !data.length) return data;
+            if ($('input[name="emptyItems"]:checked').val() === 'show') return data;
+
+            var occupiedColumns = [0];
+            for (var col = 1; col < data[0].length; col++) {
+                if (data.slice(1).some(function(row) {
+                    return row[col] != null && String(row[col]).trim() !== '';
+                })) occupiedColumns.push(col);
+            }
+            var rows = data.filter(function(row, index) {
+                return index === 0 || occupiedColumns.slice(1).some(function(col) {
+                    return row[col] != null && String(row[col]).trim() !== '';
+                });
+            });
+            return rows.map(function(row) {
+                return occupiedColumns.map(function(col) { return row[col] == null ? '' : row[col]; });
+            });
+        }
+
+        function refreshTableVisibility() {
+            if (currentTableData) renderTable(currentTableData);
+        }
+
         // 화면에 테이블과 엑셀 버튼 렌더링
         function renderTable(contentsArr) {
             var html = "";
+            contentsArr = getVisibleTableData(contentsArr);
 
             if (!contentsArr || contentsArr.length === 0) {
                 html = "<p style='font-size:13px; color:#6b7280;'>표시할 데이터가 없습니다.</p>";
@@ -555,7 +581,7 @@
                 alert("다운로드할 데이터가 없습니다.");
                 return;
             }
-            downloadCSV(currentTableData, currentFileName);
+            downloadCSV(getVisibleTableData(currentTableData), currentFileName);
         }
 
         function downloadCSV(contentsArr, f) {
@@ -613,6 +639,12 @@
                 <label>
                     <input type="radio" name="option" value="2"> 지방
                 </label>
+            </div>
+
+            <div class="option-row">
+                <span class="hint-text">빈 항목</span>
+                <label><input type="radio" name="emptyItems" value="show" onchange="refreshTableVisibility()"> 없는 항목 표시</label>
+                <label><input type="radio" name="emptyItems" value="hide" checked onchange="refreshTableVisibility()"> 없는 항목 표시안함</label>
             </div>
 
             <div class="hint-text">엑셀 형식: 매매가 / 전세가 / 라벨 (3열)</div>
