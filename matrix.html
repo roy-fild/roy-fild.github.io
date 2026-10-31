@@ -4,14 +4,53 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.15.5/xlsx.full.min.js"></script>
 <script>
     var currentMode = 'normal';
+    var regionRowCount = 4;
 
     $(function () {
-        $('#region_left_1').val('S');
-        $('#region_left_2').val('A');
-        $('#region_left_3').val('B');
-        $('#region_left_4').val('C');
+        updateHeaderType();
         setMode('normal');
     });
+
+    // 문자형의 기본 4개는 S/A/B/C, 추가 항목은 E/F/G... 순서
+    function getDefaultRegionLabel(index) {
+        var type = $('input[name="headerType"]:checked').val() || 'letter';
+        if (type === 'number') return String(index);
+        if (index === 1) return 'S';
+        // 2=A, 3=B, 4=C, 5=E, 6=F, 7=G (D는 요청에 따라 생략)
+        var letterIndex = index <= 4 ? index - 2 : index - 1;
+        return String.fromCharCode(65 + letterIndex);
+    }
+
+    function updateHeaderType() {
+        $('#regionPairArea .regionPair').each(function (i) {
+            $(this).find('.regionLeft').val(getDefaultRegionLabel(i + 1));
+        });
+    }
+
+    function addRegionPair() {
+        regionRowCount++;
+        var index = regionRowCount;
+        var row = $('<div class="regionPair"></div>');
+        $('<input type="text" class="regionLeft" />')
+            .attr('id', 'region_left_' + index).val(getDefaultRegionLabel(index)).appendTo(row);
+        $('<span class="plusSign">+</span>').appendTo(row);
+        $('<input type="text" class="regionRight" placeholder="추가 헤더 값" />')
+            .attr('id', 'region_right_' + index).appendTo(row);
+        $('<button type="button" class="removeRegion" title="이 항목 삭제">삭제</button>')
+            .on('click', function () {
+                row.remove();
+                renumberRegions();
+            }).appendTo(row);
+        $('#regionPairArea').append(row);
+    }
+
+    function renumberRegions() {
+        $('#regionPairArea .regionPair').each(function (i) {
+            $(this).find('.regionLeft').attr('id', 'region_left_' + (i + 1));
+            $(this).find('.regionRight').attr('id', 'region_right_' + (i + 1));
+        });
+        regionRowCount = $('#regionPairArea .regionPair').length;
+    }
 
     function setMode(mode) {
         currentMode = mode;
@@ -45,9 +84,9 @@
     function getRegionPairs() {
         var pairs = [];
 
-        for (var i = 1; i <= 4; i++) {
-            var left = $('#region_left_' + i).val();
-            var right = $('#region_right_' + i).val();
+        $('#regionPairArea .regionPair').each(function () {
+            var left = $(this).find('.regionLeft').val();
+            var right = $(this).find('.regionRight').val();
 
             left = left == null ? '' : String(left).trim();
             right = right == null ? '' : String(right).trim();
@@ -56,7 +95,7 @@
                 region: left,
                 header: right !== '' ? left + '.' + right : left
             });
-        }
+        });
 
         return pairs;
     }
@@ -355,6 +394,14 @@
             margin: 8px 0 16px 0; padding: 10px 12px; background: #f7f9fc;
             border: 1px solid #d9e1ef; border-radius: 5px; font-size: 13px; color: #444;
         }
+        .regionPair { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+        .regionLeft { width: 70px; box-sizing: border-box; padding: 5px; }
+        .regionRight { width: 140px; box-sizing: border-box; padding: 5px; }
+        .plusSign { margin: 0 3px; }
+        .addRegion, .removeRegion { cursor: pointer; border: 1px solid #c3cbd8; border-radius: 5px; padding: 6px 12px; background: #f7f9fc; }
+        .addRegion { color: #2455a4; font-weight: bold; }
+        .removeRegion { font-size: 12px; color: #555; }
+        .helpText { color: #666; font-size: 12px; margin: 6px 0; }
     </style>
 </head>
 
@@ -367,33 +414,25 @@
     </div>
     <div id="modeDescription"></div>
 
-    지역 및 헤더 입력<br/>
-    <div id="regionPairArea" style="margin: 8px 0 12px 0;">
-        <div style="margin-bottom: 6px;">
-            <input type="text" id="region_left_1" style="width: 70px;" />
-            <span style="margin: 0 6px;">+</span>
-            <input type="text" id="region_right_1" style="width: 140px;" placeholder="추가 헤더 값" />
-            <span style="margin-left: 8px; color: #666; font-size: 12px;">예: S + 강남 → S.강남</span>
-        </div>
-        <div style="margin-bottom: 6px;">
-            <input type="text" id="region_left_2" style="width: 70px;" />
-            <span style="margin: 0 6px;">+</span>
-            <input type="text" id="region_right_2" style="width: 140px;" placeholder="추가 헤더 값" />
-        </div>
-        <div style="margin-bottom: 6px;">
-            <input type="text" id="region_left_3" style="width: 70px;" />
-            <span style="margin: 0 6px;">+</span>
-            <input type="text" id="region_right_3" style="width: 140px;" placeholder="추가 헤더 값" />
-        </div>
-        <div style="margin-bottom: 6px;">
-            <input type="text" id="region_left_4" style="width: 70px;" />
-            <span style="margin: 0 6px;">+</span>
-            <input type="text" id="region_right_4" style="width: 140px;" placeholder="추가 헤더 값" />
-        </div>
-        <div style="color: #666; font-size: 12px;">
-            오른쪽 값이 있으면 “왼쪽.오른쪽” 형식으로 헤더가 생성되고, 없으면 왼쪽 값만 사용됩니다.
-        </div>
+    <div style="font-weight: bold; margin-bottom: 8px;">지역 및 헤더 입력</div>
+    <div style="margin-bottom: 10px;">
+        헤더 유형:
+        <label style="margin-left: 8px;"><input type="radio" name="headerType" value="letter" checked onchange="updateHeaderType()" /> 문자형 (S, A, B, C, E...)</label>
+        <label style="margin-left: 12px;"><input type="radio" name="headerType" value="number" onchange="updateHeaderType()" /> 숫자형 (1, 2, 3, 4, 5...)</label>
     </div>
+    <div id="regionPairArea" style="margin: 8px 0 8px 0;">
+        <div class="regionPair">
+            <input type="text" id="region_left_1" class="regionLeft" />
+            <span class="plusSign">+</span>
+            <input type="text" id="region_right_1" class="regionRight" placeholder="추가 헤더 값" />
+            <span class="helpText">예: S + 강남 → S.강남</span>
+        </div>
+        <div class="regionPair"><input type="text" id="region_left_2" class="regionLeft" /><span class="plusSign">+</span><input type="text" id="region_right_2" class="regionRight" placeholder="추가 헤더 값" /></div>
+        <div class="regionPair"><input type="text" id="region_left_3" class="regionLeft" /><span class="plusSign">+</span><input type="text" id="region_right_3" class="regionRight" placeholder="추가 헤더 값" /></div>
+        <div class="regionPair"><input type="text" id="region_left_4" class="regionLeft" /><span class="plusSign">+</span><input type="text" id="region_right_4" class="regionRight" placeholder="추가 헤더 값" /></div>
+    </div>
+    <button type="button" class="addRegion" onclick="addRegionPair()">+ 지역 추가</button>
+    <div class="helpText">오른쪽 값이 있으면 “왼쪽.오른쪽” 형식으로 헤더가 생성되고, 없으면 왼쪽 값만 사용됩니다. 유형을 바꾸면 왼쪽 값이 다시 지정됩니다.</div>
     <div style="margin: 10px 0;">
         빈 행 출력 옵션<br/>
         <label>
@@ -412,7 +451,7 @@
         동/매매가/라벨 엑셀 파일선택 <input type="file" id="excelFile" onchange="excelExport(event)" />
     </div>
     <br/>
-    2026.09.24 version
+    2026.10.31 version
     <br/>
 </body>
 </html>
