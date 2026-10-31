@@ -3418,7 +3418,40 @@ function renderAdultAgeChart() {
             if(!ageGeoPromises[level]){
                 var url=level==='admin'?ADMIN_EMD_URL:GEO_BASE+(level==='legal'?'emd':level)+'.geojson';
                 ageGeoPromises[level]=fetch(url).then(function(r){if(!r.ok)throw new Error('경계 자료 HTTP '+r.status+' : '+level);return r.json();})
-                    .then(function(data){if(!data||!Array.isArray(data.features))throw new Error('GeoJSON 형식 오류: '+level);ageGeoCache[level]=data;return data;})
+                    .then(async function(data){
+                        if(!data||!Array.isArray(data.features))throw new Error('GeoJSON 형식 오류: '+level);
+                        // 2023년 시군구 경계 파일에는 2026년 신설된 화성시 4개 구가 없다.
+                        // 2026-07 행정동 경계의 소속 구별 폴리곤을 조합해 시군구 레이어를 보완한다.
+                        if(level==='sig'){
+                            try{
+                                var admin=await loadAgeGeo('admin');
+                                var groups={만세구:[],효행구:[],병점구:[],동탄구:[]};
+                                (admin.features||[]).forEach(function(f){
+                                    var full=String((f.properties||{}).adm_nm||(f.properties||{}).ADM_NM||'').replace(/\s/g,'');
+                                    if(!full.includes('화성시'))return;
+                                    Object.keys(groups).forEach(function(gu){
+                                        if(full.includes(gu)){
+                                            var g=f.geometry||{};
+                                            if(g.type==='Polygon')groups[gu].push(g.coordinates);
+                                            else if(g.type==='MultiPolygon')groups[gu].push.apply(groups[gu],g.coordinates);
+                                        }
+                                    });
+                                });
+                                if(Object.keys(groups).every(function(gu){return groups[gu].length>0;})){
+                                    data.features=data.features.filter(function(f){
+                                        var n=String((f.properties||{}).SIG_KOR_NM||'').replace(/\s/g,'');
+                                        return n!=='화성시' && !/^화성시(만세구|효행구|병점구|동탄구)$/.test(n);
+                                    });
+                                    Object.keys(groups).forEach(function(gu){
+                                        data.features.push({type:'Feature',properties:{SIG_KOR_NM:'화성시 '+gu,
+                                            SIDO_NM:'경기도',FULL_NM:'경기도 화성시 '+gu},
+                                            geometry:{type:'MultiPolygon',coordinates:groups[gu]}});
+                                    });
+                                }else console.warn('화성시 신규 구 경계의 행정동 원천 자료를 확인하지 못했습니다.',Object.keys(groups).map(function(k){return k+':'+groups[k].length;}));
+                            }catch(e){console.warn('화성시 4개 구 경계 보완 실패:',e);}
+                        }
+                        ageGeoCache[level]=data;return data;
+                    })
                     .catch(function(e){delete ageGeoPromises[level];throw e;});
             }
             return ageGeoPromises[level];
@@ -3537,7 +3570,8 @@ function renderAdultAgeChart() {
         var MAP_CITY_GUS={
             '경기도':{'수원시':['장안구','권선구','팔달구','영통구'],'성남시':['수정구','중원구','분당구'],
                 '안양시':['만안구','동안구'],'안산시':['상록구','단원구'],'고양시':['덕양구','일산동구','일산서구'],
-                '용인시':['처인구','기흥구','수지구'],'부천시':['원미구','소사구','오정구']},
+                '용인시':['처인구','기흥구','수지구'],'부천시':['원미구','소사구','오정구'],
+                '화성시':['만세구','효행구','병점구','동탄구']},
             '충청북도':{'청주시':['상당구','서원구','흥덕구','청원구']},
             '충청남도':{'천안시':['동남구','서북구']},
             '전북특별자치도':{'전주시':['완산구','덕진구']},
@@ -3613,6 +3647,24 @@ function renderAdultAgeChart() {
                 var city=String(r.sigungu||'').trim();
                 if(known[city]&&known[city].indexOf(parsed.gu)>=0)
                     return {city:city,gu:parsed.gu,dong:parsed.rest};
+            }
+            // 2026년 화성시 CSV가 '화성시 / 향남읍' 형태로 되어 있어도 4개 구로 분류.
+            if(r.sido==='경기도' && mapNorm(r.sigungu)==='화성시' && emd){
+                var hName=mapNorm(emd).replace(/^화성시/,'');
+                var hwaseongGroups={
+                    '만세구':['우정읍','향남읍','남양읍','마도면','송산면','서신면','팔탄면','장안면','양감면','새솔동'],
+                    '효행구':['봉담읍','비봉면','매송면','정남면','기배동'],
+                    '병점구':['진안동','병점1동','병점2동','반월동','화산동'],
+                    '동탄구':['동탄1동','동탄2동','동탄3동','동탄4동','동탄5동','동탄6동','동탄7동','동탄8동','동탄9동']
+                };
+                for(var hGu in hwaseongGroups){
+                    for(var hi=0;hi<hwaseongGroups[hGu].length;hi++){
+                        var hDong=hwaseongGroups[hGu][hi];
+                        if(hName===mapNorm(hGu+hDong)||hName===mapNorm(hDong)||
+                           hName.indexOf(mapNorm(hDong)+' ')===0)
+                            return {city:'화성시',gu:hGu,dong:hDong};
+                    }
+                }
             }
             var city=cityDistrictGroup(r.sigungu,r.sido);
             if(city){
