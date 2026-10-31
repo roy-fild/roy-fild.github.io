@@ -344,8 +344,13 @@ function labelPositionInViewport(paths, bounds, preferred){
 const POPULATION_AGE_CSV='https://roy-fild.github.io/file/people/ingu_age_202605.csv';
 const popNorm=x=>txt(x).replace(/\s+/g,'').replace(/특별자치도|특별자치시|특별시|광역시|자치시|도$/g,'').trim();
 function popSidoMatches(a,b){return popNorm(a)===popNorm(b) || popNorm(canonicalSido(a))===popNorm(canonicalSido(b));}
-function popDongName(d){return popNorm(d).replace(/^(?:만세구|효행구|병점구|동탄구)/,'');}
-function popDistrictName(d){return popNorm(d).replace(/^(?:경기도|경기)/,'');}
+// 행정동 명칭 통일: CSV의 '상도제1동/노량진제2동'과 경계의 '상도1동/노량진2동'을 같은 동으로 처리.
+// 동작구뿐 아니라 용산구(청파제1동 등), 부천·용인 등의 숫자형 동에도 공통 적용.
+function popDongName(d){return popNorm(d)
+ .replace(/^(?:만세구|효행구|병점구|동탄구)/,'')
+ .replace(/제(?=[0-9０-９]+(?:동|가동))/g,'')
+ .replace(/([0-9０-９]+)가제(?=[0-9０-９]+동)/g,'$1가');} 
+function popDistrictName(d){return popNorm(d).replace(/^(?:서울특별시|서울시|서울|경기도|경기|인천광역시|인천|부산광역시|부산|대구광역시|대구|대전광역시|대전|광주광역시|광주|울산광역시|울산|세종특별자치시|세종|충청북도|충북|충청남도|충남|경상북도|경북|경상남도|경남|전라북도|전북|전라남도|전남|강원특별자치도|강원|제주특별자치도|제주)/,'');}
 const AGE_TYPES=[
  {key:'teen',label:'0~19세',short:'유아·10대',icon:'🧒',color:'#e8774c'},
  {key:'a20',label:'20대',short:'20대',icon:'🚶',color:'#4b91d2'},
@@ -380,28 +385,56 @@ async function loadPopulation(){
  })();
  try{return await populationLoading;}finally{populationLoading=null;}
 }
-function ageCountsForArea(district,dong=''){
- if(!populationRows)return null;
- const sd=$id('sido').value,target=popDistrictName(district),dn=popDongName(dong);
- let rows=populationRows.filter(r=>popSidoMatches(r.sido,sd));
+// CSV의 일반구 표기 차이(예: 용인시 / 기흥구 신갈동)를 모두 해석한다.
+function populationAreaRows(source,district,dong=''){
+ if(!source)return [];
+ const sd=$id('sido').value;
+ const target=popDistrictName(district);
+ const compact=v=>popDistrictName(v).replace(/\s+/g,'');
+ const cleanDong=v=>popDongName(v).replace(/\s+/g,'').replace(/^(?:행정동|법정동)/,'');
+ const wantedDong=cleanDong(dong);
+ const cityGu=target.match(/^(.+?시)(.+구)$/);
  const modern=HWASEONG_GUS.find(g=>target.endsWith(g)&&target.includes('화성시'));
- if(modern){
-  // 신설 4개 구는 2026년 경계의 행정동 이름으로 화성시 원천행을 분류한다.
-  const allowed=new Set(hwaseongModernFeatures.filter(f=>hwaseongFeatureGu(f)===modern).map(f=>popDongName(shortDong(f))));
-  rows=rows.filter(r=>popDistrictName(r.gu)==='화성시' || popDistrictName(r.gu)===target)
-           .filter(r=>r.dong && allowed.has(popDongName(r.dong)));
- }else{
-  rows=rows.filter(r=>popDistrictName(r.gu)===target);
-  if(!rows.length && target.startsWith('화성시'))rows=populationRows.filter(r=>popSidoMatches(r.sido,sd)&&popDistrictName(r.gu)==='화성시');
+ const allowed=modern?new Set(hwaseongModernFeatures.filter(f=>hwaseongFeatureGu(f)===modern).map(f=>cleanDong(shortDong(f)))):null;
+ const rows=[];
+ for(const r of source){
+  if(!popSidoMatches(r.sido,sd))continue;
+  const gu=compact(r.gu), rawDong=cleanDong(r.dong);
+  const joined=gu+rawDong;
+  let matched=false, localDong=rawDong;
+  if(cityGu){
+   const city=compact(cityGu[1]),part=compact(cityGu[2]);
+   if(gu===city+part || gu===part){matched=true;localDong=rawDong.startsWith(part)?rawDong.slice(part.length):rawDong;}
+   else if(gu===city && rawDong.startsWith(part)){matched=true;localDong=rawDong.slice(part.length);}
+   else if(gu===city && allowed?.has(rawDong)){matched=true;localDong=rawDong;}
+  }else{
+   // 서울 동작구처럼 CSV의 시군구가 '서울특별시 동작구', '서울 동작구', '동작구'로 섞여도 매칭.
+   matched=gu===compact(target)||gu.endsWith(compact(target));
+   if(!matched && rawDong.startsWith(compact(target))){matched=true;localDong=rawDong.slice(compact(target).length);}
+  }
+  if(!matched)continue;
+  if(dong){
+   // '동작구 상도1동'처럼 접두사가 읍면동 칼럼에 다시 붙는 경우까지 허용.
+   if(localDong!==wantedDong && !localDong.endsWith(wantedDong))continue;
+  }else if(!localDong)continue; // 합계행 이중계산 방지
+  rows.push(r);
  }
- if(dong){rows=rows.filter(r=>popDongName(r.dong)===dn);}
- else if(!modern){const details=rows.filter(r=>r.dong);if(details.length)rows=details;else rows=rows.filter(r=>!r.dong);}
- if(!rows.length)return null;
- const sums=Array(11).fill(0);for(const r of rows)for(let i=0;i<11;i++)sums[i]+=r.n[i];
- const total=sums.reduce((a,b)=>a+b,0);if(!total)return null;
- const teen=(sums[0]+sums[1])/total*100;
- return {pop:total,teen,a20:sums[2]/total*100,a30:sums[3]/total*100,a40:sums[4]/total*100,a50:sums[5]/total*100,a60:sums.slice(6).reduce((a,b)=>a+b,0)/total*100,
-   family:(sums[0]+sums[1]+sums[3]+sums[4]+sums[5])/total*100};
+ if(rows.length)return rows;
+ if(!dong)return source.filter(r=>popSidoMatches(r.sido,sd)&&compact(r.gu)===compact(target)&&!cleanDong(r.dong));
+ // 구 이름 표현이 맞지 않는 파일에서는 같은 시도 내 고유 행정동명으로 최종 교차 매칭.
+ // 다른 구에도 같은 동 이름이 있다면 추측해 표시하지 않도록 제외한다.
+ const candidates=source.filter(r=>popSidoMatches(r.sido,sd)&&cleanDong(r.dong).endsWith(wantedDong)&&wantedDong);
+ const distinct=new Set(candidates.map(r=>compact(r.gu)));
+ return distinct.size===1?candidates:[];
+}
+function ageCountsForArea(district,dong=''){
+  const rows=populationAreaRows(populationRows,district,dong);
+  if(!rows.length)return null;
+  const sums=Array(11).fill(0);
+  for(const r of rows)for(let i=0;i<11;i++)sums[i]+=Number(r.n[i])||0;
+  const total=sums.reduce((a,b)=>a+b,0);if(!total)return null;
+  return {pop:total,teen:(sums[0]+sums[1])/total*100,a20:sums[2]/total*100,a30:sums[3]/total*100,a40:sums[4]/total*100,a50:sums[5]/total*100,a60:sums.slice(6).reduce((a,b)=>a+b,0)/total*100,
+    family:(sums[0]+sums[1]+sums[3]+sums[4]+sums[5])/total*100};
 }
 
 const POPULATION_TOTAL_CSV='https://roy-fild.github.io/file/people/ingu_202605.csv';
@@ -428,22 +461,11 @@ async function loadHouseholds(){
  try{return await householdPromise}finally{householdPromise=null}
 }
 function householdsForArea(district,dong=''){
- if(!householdRows)return null;
- const target=popDistrictName(district), dn=popDongName(dong),sd=$id('sido').value;
- let rows=householdRows.filter(r=>popSidoMatches(r.sido,sd));
- const modern=HWASEONG_GUS.find(g=>target.endsWith(g)&&target.includes('화성시'));
- if(modern){
-  const allowed=new Set(hwaseongModernFeatures.filter(f=>hwaseongFeatureGu(f)===modern).map(f=>popDongName(shortDong(f))));
-  rows=rows.filter(r=>(popDistrictName(r.gu)==='화성시'||popDistrictName(r.gu)===target)&&r.dong&&allowed.has(popDongName(r.dong)));
- }else{
-  rows=rows.filter(r=>popDistrictName(r.gu)===target);
-  if(!rows.length&&target.startsWith('화성시'))rows=householdRows.filter(r=>popSidoMatches(r.sido,sd)&&popDistrictName(r.gu)==='화성시');
- }
- if(dong)rows=rows.filter(r=>popDongName(r.dong)===dn);
- else if(!modern){const detail=rows.filter(r=>r.dong);rows=detail.length?detail:rows.filter(r=>!r.dong)}
+ const rows=populationAreaRows(householdRows,district,dong);
  if(!rows.length)return null;
- return {pop:rows.reduce((v,r)=>v+r.pop,0),house:rows.reduce((v,r)=>v+r.house,0)};
+ return {pop:rows.reduce((n,r)=>n+(r.pop||0),0),house:rows.reduce((n,r)=>n+(r.house||0),0)};
 }
+
 function makeRankDots(g){
  if(!g.ranks)return '';
  const defs=[['pop','인구','명'],['house','세대수','세대'],['pph','세대당 인구','명/세대']];
@@ -471,16 +493,25 @@ function drawPopulation(){
    groups.push({name:getDistrict(arr[0]),district:getDistrict(arr[0]),paths:geometryPaths(geo),center:geometryCenter(geo)});
   }
  }else{
-  for(const f of fs){const paths=geoPolys(f);if(!paths.length)continue;groups.push({name:shortDong(f),district:getDistrict(f),dong:shortDong(f),paths,center:featureCenter(f)});}
+  for(const f of fs){const paths=geoPolys(f);if(!paths.length)continue;groups.push({name:shortDong(f),district:gu,dong:shortDong(f),paths,center:featureCenter(f)});}
  }
- const entries=groups.map(g=>({...g,shares:ageCountsForArea(g.district,g.dong||''),metrics:householdsForArea(g.district,g.dong||'')})).filter(g=>g.shares);
+ const prepared=groups.map(g=>({...g,shares:ageCountsForArea(g.district,g.dong||''),metrics:householdsForArea(g.district,g.dong||'')}));
+ const unmatched=prepared.filter(g=>!g.shares).map(g=>g.name);
+ if(unmatched.length)console.warn('[연령 아이콘] CSV 미매칭 행정동', {region:sd+' '+gu,unmatched});
+ const entries=prepared.filter(g=>g.shares);
  // TOP5는 지도 화면에 보이는 곳만이 아니라 선택 범위 전체를 대상으로 산출.
  for(const g of entries){if(!g.metrics)g.metrics={pop:g.shares.pop||0,house:0};g.metrics.pph=g.metrics.house?g.metrics.pop/g.metrics.house:0;g.ranks={};}
  for(const metric of ['pop','house','pph']){
   entries.filter(g=>g.metrics[metric]>0).sort((a,b)=>b.metrics[metric]-a.metrics[metric]||a.name.localeCompare(b.name,'ko'))
     .slice(0,5).forEach((g,i)=>{g.ranks[metric]=i+1});
  }
- if(!entries.length)return;
+ if(!entries.length){
+  const names=groups.slice(0,4).map(g=>g.name).join(', ');
+  console.warn('연령 아이콘 대상 0개:',{sido:sd,gu,selectedDong:dong,boundaryGroups:groups.length,sampleNames:names,ageCsvRows:populationRows.length});
+  const suffix=groups.length?'경계는 '+groups.length+'개이나 인구 CSV와 매칭되지 않습니다':'선택 지역의 행정동 경계를 찾을 수 없습니다';
+  status('연령 아이콘 표시 불가 · '+suffix+' ('+sd+' '+gu+')',true);
+  return;
+ }
  const means={};for(const type of AGE_TYPES)means[type.key]=entries.reduce((n,g)=>n+g.shares[type.key],0)/entries.length;
  let drawn=0;
  for(const g of entries){
