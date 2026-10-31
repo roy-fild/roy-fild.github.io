@@ -335,6 +335,15 @@
         .ageInfoClose{position:sticky;float:right;top:0;border:0;background:#e2e8f0;border-radius:5px;cursor:pointer;padding:2px 7px;font-weight:bold}
         .ageKakaoPin .mapMultiMarker,.ageKakaoPin .mapMarker{transform:translate(-50%,-94%)}
 
+
+        /* 평균 이상 연령 아이콘 밑 TOP5 표시 (인구/세대수/세대당 인구) */
+        .mapRankDots{display:flex;justify-content:center;align-items:center;gap:5px;margin:3px 0 1px;min-height:9px;pointer-events:auto}
+        .mapRankDot{display:inline-block;width:9px;height:9px;border-radius:50%;border:1px solid #fff;box-shadow:0 0 0 1px #64748b55,0 1px 3px #0003;cursor:help;flex:none}
+        .mapRankDot.pop{background:#e53e3e}.mapRankDot.house{background:#f29b32}.mapRankDot.pph{background:#e6c21d}
+        .mapRankLegend{display:flex;flex-wrap:wrap;gap:11px;margin:5px 0 7px;font-size:11px;color:#45556b}
+        .mapRankLegend>span{display:inline-flex;align-items:center;gap:5px}
+        .mapRankLegend .mapRankDot{width:9px;height:9px}
+
         #mapStatus { min-height:18px; margin-top:8px; }
         .tabNav {
             display: flex;
@@ -891,6 +900,7 @@
             
                 <div class="boundaryModeBar"><label class="boundaryCheck"><input type="checkbox" id="showOutsideShade" checked> 선택 지역 외부 음영</label><label class="boundaryCheck">농도 <select id="shadeOpacity" style="width:auto;padding:4px 7px"><option value="60">60%</option><option value="65" selected>65%</option><option value="70">70%</option></select></label><label class="boundaryCheck"><input type="checkbox" id="showBoundary" checked> 경계선 표시</label><label class="boundaryCheck"><input type="checkbox" id="showAreaLabels" checked> 지역명 표시</label><span id="populationBasisText">인구 통계·아이콘은 행정동 기준입니다.</span></div><span class="muted" id="mapOriginHelp"></span><div id="mapStatus" class="status" aria-live="polite"></div>
                 <div id="mapLegend" class="mapLegend"></div>
+                <div class="mapRankLegend" aria-label="상위 5개 지역 표시 범례"><strong>상위 5개 지역</strong><span><i class="mapRankDot pop"></i> 인구</span><span><i class="mapRankDot house"></i> 세대수</span><span><i class="mapRankDot pph"></i> 세대당 인구</span><span>※ 선택 지역 내 각 지표 TOP 5, 중복 가능</span></div>
                 <div id="populationMapWrap">
                     <div id="populationMap"></div>
                     <div class="mapFloatingControls">
@@ -3682,6 +3692,51 @@ function renderAdultAgeChart() {
                 return {city:city,gu:list[i]};
             return null;
         }
+
+        // 지도에 표시되는 지역 단위별 전체 원천행을 기준으로 TOP5 선정.
+        // 연령대 평균 이상 필터 및 표시 지역 수(Top N) 적용 전의 전체 지역을 비교한다.
+        function mapRankMetrics(){
+            var sido=$('#mapSido').val(),sg=$('#mapSigungu').val(),city=selectedMapCity();
+            var chosenGu=(!city&&sg)?mapChosenGu(sg,sido):null;
+            var raw=rawRows.filter(function(r){return r.sido===sido && !!r.sigungu;});
+            var rows;
+            if(city||chosenGu||sg){
+                rows=raw.filter(function(r){return !!r.emd;});
+            }else{
+                rows=raw.filter(function(r){return !r.emd;});
+                if(!rows.length)rows=raw.filter(function(r){return !!r.emd;});
+            }
+            var metric=new Map();
+            rows.forEach(function(r){
+                var parts=mapRowGuParts(r),name='';
+                if(city){if(!parts||parts.city!==city)return;name=parts.gu;}
+                else if(chosenGu){if(!parts||parts.city!==chosenGu.city||parts.gu!==chosenGu.gu)return;name=parts.dong;}
+                else if(sg){if(!mapDistrictMatches(r.sigungu,sg,sido))return;name=r.emd;}
+                else {name=r.sigungu;}
+                if(!name)return;
+                var key=mapNorm(name);
+                if(!metric.has(key))metric.set(key,{name:name,pop:0,house:0,pph:0});
+                var o=metric.get(key);o.pop+=Number(r.pop)||0;o.house+=Number(r.house)||0;
+            });
+            var all=Array.from(metric.values());
+            all.forEach(function(x){x.pph=x.house?x.pop/x.house:0;x.rank={};});
+            ['pop','house','pph'].forEach(function(k){
+                all.filter(function(x){return x[k]>0;}).sort(function(a,b){return b[k]-a[k]||a.name.localeCompare(b.name,'ko');})
+                    .slice(0,5).forEach(function(x,i){x.rank[k]=i+1;});
+            });
+            return metric;
+        }
+        function mapRankDotsHtml(item){
+            var m=item.mapRanks;
+            if(!m)return '';
+            var defs=[['pop','인구','pop','명'],['house','세대수','house','세대'],['pph','세대당 인구','pph','명/세대']];
+            var html=defs.filter(function(d){return !!m.rank[d[0]];}).map(function(d){
+                var n=d[0]==='pph'?m[d[0]].toFixed(2):fmt(m[d[0]]);
+                var title=d[1]+' '+m.rank[d[0]]+'위 · '+n+' '+d[3];
+                return '<span class="mapRankDot '+d[2]+'" title="'+htmlEscape(title)+'" aria-label="'+htmlEscape(title)+'"></span>';
+            }).join('');
+            return html?'<div class="mapRankDots" aria-label="상위 5개 지표">'+html+'</div>':'';
+        }
         function getMapItems(){
             var sido=$('#mapSido').val(),sg=$('#mapSigungu').val(),city=selectedMapCity();
             if(!sido)return [];
@@ -3710,6 +3765,8 @@ function renderAdultAgeChart() {
             });
             var selected=$('#mapAge').val();
             var items=Array.from(byKey.values());
+            var rankMetrics=mapRankMetrics();
+            items.forEach(function(x){x.mapRanks=rankMetrics.get(mapNorm(x.name))||null;});
             items.forEach(function(x){
                 x.total=MAP_AGES.reduce(function(sum,t){return sum+(x.raw[t.key]||0);},0);
                 x.familyCount=(x.raw.a0_9||0)+(x.raw.a10_19||0)+(x.raw.a30||0)+(x.raw.a40||0)+(x.raw.a50||0);
@@ -3815,10 +3872,10 @@ function renderAdultAgeChart() {
                         +'<span class="ageMultiGlyph">'+t.icon+'</span><b>'+htmlEscape(t.short)+'</b></span>';
                 }).join('');
                 if(!chips) return;
-                markerHtml='<div class="mapMultiMarker"><div class="mapMultiIcons">'+chips+'</div><div class="name">'+htmlEscape(item.name)+'</div></div>';
+                markerHtml='<div class="mapMultiMarker"><div class="mapMultiIcons">'+chips+'</div>'+mapRankDotsHtml(item)+'<div class="name">'+htmlEscape(item.name)+'</div></div>';
             } else {
                 var familyMini='';
-                markerHtml='<div class="mapMarker"><div class="pin" style="--marker-color:'+age.color+'"><div class="glyph">'+(age.icon||'👤')+'</div><div class="chip">'+htmlEscape(age.short||age.label||'')+'</div>'+familyMini+'</div><div class="name">'+htmlEscape(item.name)+' · '+((item.age&&item.age.key==='family')?item.shares.pFamily.toFixed(1)+'%':(item.activeShare||0).toFixed(1)+'%')+'</div></div>';
+                markerHtml='<div class="mapMarker"><div class="pin" style="--marker-color:'+age.color+'"><div class="glyph">'+(age.icon||'👤')+'</div><div class="chip">'+htmlEscape(age.short||age.label||'')+'</div>'+familyMini+'</div>'+mapRankDotsHtml(item)+'<div class="name">'+htmlEscape(item.name)+' · '+((item.age&&item.age.key==='family')?item.shares.pFamily.toFixed(1)+'%':(item.activeShare||0).toFixed(1)+'%')+'</div></div>';
             }
             var position=new kakao.maps.LatLng(coords[0],coords[1]);
             var lines='';
