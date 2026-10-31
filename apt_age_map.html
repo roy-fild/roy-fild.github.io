@@ -28,10 +28,17 @@
 .ageIconChip{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:30px;padding:2px 4px;background:white;border:2px solid var(--age-color);border-radius:7px;font-size:17px;line-height:1.1}
 .ageIconChip b{font-size:9px;line-height:1.25;color:#263648;margin-top:2px}
 .ageIconTitle{background:white;border:1px solid #cbd5e1;border-radius:5px;margin-top:3px;padding:2px 5px;color:#20374c;font-size:11px;font-weight:800}
+
+/* 인구지도와 동일한 3색 TOP5 점 */
+.ageRankDots{display:flex;justify-content:center;align-items:center;gap:5px;margin:3px 0 1px;min-height:9px;pointer-events:auto}
+.ageRankDot{display:inline-block;width:9px;height:9px;border-radius:50%;border:1px solid white;box-shadow:0 0 0 1px #64748b55,0 1px 3px #0003;cursor:help;pointer-events:auto}
+.ageRankDot.pop{background:#e53e3e}.ageRankDot.house{background:#f29b32}.ageRankDot.pph{background:#e6c21d}
+.ageRankLegend{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px;font-size:12px;color:#475569}
+.ageRankLegend span{display:inline-flex;align-items:center;gap:5px}.ageRankLegend .ageRankDot{pointer-events:none}
 </style></head><body><main class="shell"><section class="panel top"><div><h1>전국 아파트 연식 지도</h1><div class="muted">카카오맵 · 아파트 단지 실제 부지 외곽선 색칠 · GitHub Pages</div></div><div id="counter" class="stats">자료 준비 중</div></section>
 <section class="panel"><div class="filters"><div><label>시·도</label><select id="sido"><option value="">전국</option></select></div><div><label>시·군·구</label><select id="sigungu"><option value="">전체 시·군·구</option></select></div><div><label id="dongSelectLabel">행정동 · 읍 · 면</label><select id="dong"><option value="">전체</option></select></div><div><label>입주 연식</label><select id="decade"><option value="">전체 연식</option><option value="2020">2020년대 이후</option><option value="2010">2010년대</option><option value="2000">2000년대</option><option value="1990">1990년대</option><option value="1980">1980년대</option><option value="old">1980년 이전</option></select></div><div><label>단지명 검색</label><input id="query" type="text" placeholder="예: 래미안, 롯데캐슬"/></div></div>
 <div class="toolbar"><strong style="font-size:13px">세대수</strong><label class="toggle"><input name="units" type="radio" value="0" checked>전체</label><label class="toggle"><input name="units" type="radio" value="200">200세대 이상</label><label class="toggle"><input name="units" type="radio" value="300">300세대 이상</label><label class="toggle"><input id="showPolygons" type="checkbox" checked>단지 부지 색칠</label><label class="toggle"><input id="showMissing" type="checkbox" checked>외곽선 없는 단지 점</label><label class="toggle"><input id="showPopulation" type="checkbox"> 인구 표시 (연령대별)</label><label class="toggle"><input id="showBoundary" type="checkbox" checked>행정구역 경계</label><label class="toggle"><input id="showLabels" type="checkbox" checked>행정구역 이름</label><label class="toggle"><input id="shadeOutside" type="checkbox" checked>선택 지역 외부 음영</label><label class="toggle" style="gap:7px">음영 농도 <select id="shadeStrength" style="width:76px;height:32px;padding:4px"><option value="0.60">60%</option><option value="0.65" selected>65%</option><option value="0.70">70%</option></select></label><button id="searchBtn" class="primary">선택 지역 보기</button><button id="resetBtn">필터 초기화</button></div></section>
-<section class="panel"><div class="legend"><b style="font-size:12px">입주시기</b><span><i class="sw" style="background:#ed5b63"></i>2020년대~</span><span><i class="sw" style="background:#f6a33c"></i>2010년대</span><span><i class="sw" style="background:#f5df58"></i>2000년대</span><span><i class="sw" style="background:#a5d778"></i>1990년대</span><span><i class="sw" style="background:#49a880"></i>1980년대</span><span><i class="sw" style="background:#4aa7a8"></i>1980년 이전</span><span><i class="sw" style="background:#64748b"></i>외곽 미확보 단지</span></div><div id="boundaryInfo" style="font-size:12px;color:#33558b;margin:3px 0">행정구역 경계 준비 중…</div><div id="status" role="status">카카오맵 및 GitHub 데이터 연결 중…</div><div class="mapBox" id="mapBox"><div id="map"></div><div class="measureBar" id="measureBar"><b>📏 거리 측정</b><button id="measureStart" type="button">측정 시작</button><button id="measureUndo" type="button" disabled>↶ 뒤로</button><button id="measureFinish" type="button" disabled>측정 종료</button><button id="measureClear" type="button" disabled>전체 지우기</button><label class="measureToggle"><input type="checkbox" id="measureShowLabels" checked> 거리 표시</label><span class="measureTotal" id="measureTotal">0 m</span><span class="measureHint" id="measureHint">우클릭 / Backspace: 현재 경로 뒤로</span></div><div class="floating"><button id="fullscreen">⛶ 전체화면</button><button id="cadastralToggle" type="button" aria-pressed="false">▦ 지적편집도 OFF</button><div class="mode"><button class="active" data-mode="admin">행정동</button><button data-mode="legal">법정동</button></div><button id="fit">⊡ 선택 지역 맞춤</button></div></div><div class="foot">경계 표시 단계: 시·도 선택 시 시·군·구, 일반구가 있는 시 전체 선택 시 해당 시의 구, 구 선택 시 읍·면·동, 특정 동 선택 시 해당 동 경계를 표시합니다. 행정동/법정동 모드에 따라 경계와 이름이 변경됩니다. 입주연도는 업로드하신 apt.json의 입주시기 기준입니다. 실제 건물 형태가 아닌 <b>아파트 단지 부지 경계</b>입니다. 외부 음영은 행정구역을 선택한 경우에만 나타나며 기본 65%입니다. 전국 데이터는 화면에 보이는 단지만 그리며, 지도 확대 시 세부 색칠이 나타납니다.</div></section>
+<section class="panel"><div class="legend"><b style="font-size:12px">입주시기</b><span><i class="sw" style="background:#ed5b63"></i>2020년대~</span><span><i class="sw" style="background:#f6a33c"></i>2010년대</span><span><i class="sw" style="background:#f5df58"></i>2000년대</span><span><i class="sw" style="background:#a5d778"></i>1990년대</span><span><i class="sw" style="background:#49a880"></i>1980년대</span><span><i class="sw" style="background:#4aa7a8"></i>1980년 이전</span><span><i class="sw" style="background:#64748b"></i>외곽 미확보 단지</span></div><div class="ageRankLegend"><strong>인구 표시 ON 시 TOP 5</strong><span><i class="ageRankDot pop"></i> 인구</span><span><i class="ageRankDot house"></i> 세대수</span><span><i class="ageRankDot pph"></i> 세대당 인구</span></div><div id="boundaryInfo" style="font-size:12px;color:#33558b;margin:3px 0">행정구역 경계 준비 중…</div><div id="status" role="status">카카오맵 및 GitHub 데이터 연결 중…</div><div class="mapBox" id="mapBox"><div id="map"></div><div class="measureBar" id="measureBar"><b>📏 거리 측정</b><button id="measureStart" type="button">측정 시작</button><button id="measureUndo" type="button" disabled>↶ 뒤로</button><button id="measureFinish" type="button" disabled>측정 종료</button><button id="measureClear" type="button" disabled>전체 지우기</button><label class="measureToggle"><input type="checkbox" id="measureShowLabels" checked> 거리 표시</label><span class="measureTotal" id="measureTotal">0 m</span><span class="measureHint" id="measureHint">우클릭 / Backspace: 현재 경로 뒤로</span></div><div class="floating"><button id="fullscreen">⛶ 전체화면</button><button id="cadastralToggle" type="button" aria-pressed="false">▦ 지적편집도 OFF</button><div class="mode"><button class="active" data-mode="admin">행정동</button><button data-mode="legal">법정동</button></div><button id="fit">⊡ 선택 지역 맞춤</button></div></div><div class="foot">경계 표시 단계: 시·도 선택 시 시·군·구, 일반구가 있는 시 전체 선택 시 해당 시의 구, 구 선택 시 읍·면·동, 특정 동 선택 시 해당 동 경계를 표시합니다. 행정동/법정동 모드에 따라 경계와 이름이 변경됩니다. 입주연도는 업로드하신 apt.json의 입주시기 기준입니다. 실제 건물 형태가 아닌 <b>아파트 단지 부지 경계</b>입니다. 외부 음영은 행정구역을 선택한 경우에만 나타나며 기본 65%입니다. 전국 데이터는 화면에 보이는 단지만 그리며, 지도 확대 시 세부 색칠이 나타납니다.</div></section>
 <section class="panel"><div class="top"><strong>조건에 해당하는 아파트</strong><span id="listCount" class="muted"></span></div><div id="resultList" class="muted">데이터 불러오는 중…</div></section></main>
 <script>
 'use strict';
@@ -393,8 +400,58 @@ function ageCountsForArea(district,dong=''){
  const sums=Array(11).fill(0);for(const r of rows)for(let i=0;i<11;i++)sums[i]+=r.n[i];
  const total=sums.reduce((a,b)=>a+b,0);if(!total)return null;
  const teen=(sums[0]+sums[1])/total*100;
- return {teen,a20:sums[2]/total*100,a30:sums[3]/total*100,a40:sums[4]/total*100,a50:sums[5]/total*100,a60:sums.slice(6).reduce((a,b)=>a+b,0)/total*100,
+ return {pop:total,teen,a20:sums[2]/total*100,a30:sums[3]/total*100,a40:sums[4]/total*100,a50:sums[5]/total*100,a60:sums.slice(6).reduce((a,b)=>a+b,0)/total*100,
    family:(sums[0]+sums[1]+sums[3]+sums[4]+sums[5])/total*100};
+}
+
+const POPULATION_TOTAL_CSV='https://roy-fild.github.io/file/people/ingu_202605.csv';
+let householdRows=null, householdPromise=null;
+async function loadHouseholds(){
+ if(householdRows)return householdRows;
+ if(householdPromise)return householdPromise;
+ householdPromise=(async()=>{
+  const response=await fetch(POPULATION_TOTAL_CSV,{cache:'no-store'});
+  if(!response.ok)throw Error('세대수 CSV HTTP '+response.status);
+  const buf=await response.arrayBuffer();
+  for(const encoding of ['utf-8','euc-kr']){
+   const csv=new TextDecoder(encoding).decode(buf);
+   const result=Papa.parse(csv,{header:true,skipEmptyLines:true});
+   const cols=result.meta.fields||[];
+   const pop=cols.find(c=>/총인구/.test(c)),house=cols.find(c=>/세대수/.test(c));
+   if(!pop||!house||cols[0].includes('�'))continue;
+   const number=x=>Number(txt(x).replace(/,/g,''))||0;
+   householdRows=result.data.map(r=>({sido:txt(r[cols[0]]).trim(),gu:txt(r[cols[1]]).trim(),dong:txt(r[cols[2]]).trim(),pop:number(r[pop]),house:number(r[house])})).filter(r=>r.sido);
+   return householdRows;
+  }
+  throw Error('세대수 CSV 열 구조를 읽지 못했습니다');
+ })();
+ try{return await householdPromise}finally{householdPromise=null}
+}
+function householdsForArea(district,dong=''){
+ if(!householdRows)return null;
+ const target=popDistrictName(district), dn=popDongName(dong),sd=$id('sido').value;
+ let rows=householdRows.filter(r=>popSidoMatches(r.sido,sd));
+ const modern=HWASEONG_GUS.find(g=>target.endsWith(g)&&target.includes('화성시'));
+ if(modern){
+  const allowed=new Set(hwaseongModernFeatures.filter(f=>hwaseongFeatureGu(f)===modern).map(f=>popDongName(shortDong(f))));
+  rows=rows.filter(r=>(popDistrictName(r.gu)==='화성시'||popDistrictName(r.gu)===target)&&r.dong&&allowed.has(popDongName(r.dong)));
+ }else{
+  rows=rows.filter(r=>popDistrictName(r.gu)===target);
+  if(!rows.length&&target.startsWith('화성시'))rows=householdRows.filter(r=>popSidoMatches(r.sido,sd)&&popDistrictName(r.gu)==='화성시');
+ }
+ if(dong)rows=rows.filter(r=>popDongName(r.dong)===dn);
+ else if(!modern){const detail=rows.filter(r=>r.dong);rows=detail.length?detail:rows.filter(r=>!r.dong)}
+ if(!rows.length)return null;
+ return {pop:rows.reduce((v,r)=>v+r.pop,0),house:rows.reduce((v,r)=>v+r.house,0)};
+}
+function makeRankDots(g){
+ if(!g.ranks)return '';
+ const defs=[['pop','인구','명'],['house','세대수','세대'],['pph','세대당 인구','명/세대']];
+ const dots=defs.filter(([k])=>g.ranks[k]).map(([k,name,unit])=>{
+  const value=k==='pph'?g.metrics[k].toFixed(2):fmt(g.metrics[k]);
+  return '<span class="ageRankDot '+k+'" title="'+esc(name+' '+g.ranks[k]+'위 · '+value+' '+unit)+'" aria-label="'+esc(name+' '+g.ranks[k]+'위')+'"></span>';
+ }).join('');
+ return dots?'<div class="ageRankDots">'+dots+'</div>':'';
 }
 function drawPopulation(){
  clearLayer(populationLayers);
@@ -416,7 +473,13 @@ function drawPopulation(){
  }else{
   for(const f of fs){const paths=geoPolys(f);if(!paths.length)continue;groups.push({name:shortDong(f),district:getDistrict(f),dong:shortDong(f),paths,center:featureCenter(f)});}
  }
- const entries=groups.map(g=>({...g,shares:ageCountsForArea(g.district,g.dong||'')})).filter(g=>g.shares);
+ const entries=groups.map(g=>({...g,shares:ageCountsForArea(g.district,g.dong||''),metrics:householdsForArea(g.district,g.dong||'')})).filter(g=>g.shares);
+ // TOP5는 지도 화면에 보이는 곳만이 아니라 선택 범위 전체를 대상으로 산출.
+ for(const g of entries){if(!g.metrics)g.metrics={pop:g.shares.pop||0,house:0};g.metrics.pph=g.metrics.house?g.metrics.pop/g.metrics.house:0;g.ranks={};}
+ for(const metric of ['pop','house','pph']){
+  entries.filter(g=>g.metrics[metric]>0).sort((a,b)=>b.metrics[metric]-a.metrics[metric]||a.name.localeCompare(b.name,'ko'))
+    .slice(0,5).forEach((g,i)=>{g.ranks[metric]=i+1});
+ }
  if(!entries.length)return;
  const means={};for(const type of AGE_TYPES)means[type.key]=entries.reduce((n,g)=>n+g.shares[type.key],0)/entries.length;
  let drawn=0;
@@ -427,7 +490,7 @@ function drawPopulation(){
   const preferred=above.some(t=>t.key==='family')?above.filter(t=>t.key==='family'):above;
   const pos=labelPositionInViewport(g.paths,bounds,g.center);if(!pos)continue;
   const el=document.createElement('div');el.className='ageIconsLabel';
-  el.innerHTML='<div class="ageIconsRow">'+preferred.map(t=>'<span class="ageIconChip" style="--age-color:'+t.color+'" title="'+esc(t.label)+': '+g.shares[t.key].toFixed(1)+'% / 평균 '+means[t.key].toFixed(1)+'%"><span>'+t.icon+'</span><b>'+esc(t.short)+'</b></span>').join('')+'</div><span class="ageIconTitle">'+esc(g.name)+'</span>';
+  el.innerHTML='<div class="ageIconsRow">'+preferred.map(t=>'<span class="ageIconChip" style="--age-color:'+t.color+'" title="'+esc(t.label)+': '+g.shares[t.key].toFixed(1)+'% / 평균 '+means[t.key].toFixed(1)+'%"><span>'+t.icon+'</span><b>'+esc(t.short)+'</b></span>').join('')+'</div>'+makeRankDots(g)+'<span class="ageIconTitle">'+esc(g.name)+'</span>';
   populationLayers.push(new kakao.maps.CustomOverlay({map,position:pos,content:el,zIndex:95,yAnchor:.5,clickable:false}));drawn++;
  }
 }
@@ -614,7 +677,7 @@ function bindMeasurement(){
   $id('cadastralToggle').textContent='▦ 지적편집도 '+(cadastralOn?'ON':'OFF');
  });
 }
-function events(){$('#showPopulation').on('change',async()=>{if(!$id('showPopulation').checked){clearLayer(populationLayers);return}try{status('인구 통계 불러오는 중…');await loadPopulation();drawPopulation();status('연령대별 평균 이상 아이콘 ON · 2026년 5월 통계 (행정동 기준)')}catch(e){console.error(e);$id('showPopulation').checked=false;clearLayer(populationLayers);status('인구 데이터 불러오기 실패: '+e.message,true)}});$('#sido').on('change',()=>{refreshDistricts();updateFilters();fitFiltered()});$('#sigungu').on('change',()=>{refreshDongs();updateFilters();fitFiltered()});$('#dong').on('change',()=>{updateFilters();if($id('dong').value){let f=regionFeatures().find(f=>matchRegion(f)&&shortDong(f)===$id('dong').value);if(f){const paths=geoPolys(f);let b=new kakao.maps.LatLngBounds();for(const poly of paths)for(const ring of poly)for(const p of ring)b.extend(p);map.setBounds(b)}}});$('#decade,input[name="units"],#showPolygons,#showMissing,#showBoundary,#showLabels').on('change',updateFilters);$('#shadeOutside,#shadeStrength').on('change',drawOutsideShade);$('#query').on('input',()=>{clearTimeout(redrawTimer);redrawTimer=setTimeout(updateFilters,300)});$('#searchBtn').on('click',()=>{updateFilters();fitFiltered()});$('#fit').on('click',fitFiltered);$('#resetBtn').on('click',()=>{const seoul=[...$id('sido').options].find(o=>canonicalSido(o.value)==='서울');$id('sido').value=seoul?seoul.value:'';refreshDistricts();$id('decade').value='';$id('query').value='';$('input[name="units"][value="0"]').prop('checked',true);updateFilters();fitFiltered()});$('.mode button').on('click',async function(){
+function events(){$('#showPopulation').on('change',async()=>{if(!$id('showPopulation').checked){clearLayer(populationLayers);return}try{status('인구 통계 불러오는 중…');await loadPopulation();await loadHouseholds();drawPopulation();status('연령대별 평균 이상 아이콘 + 인구/세대/세대당 인구 TOP 5 · 2026년 5월 통계')}catch(e){console.error(e);$id('showPopulation').checked=false;clearLayer(populationLayers);status('인구 데이터 불러오기 실패: '+e.message,true)}});$('#sido').on('change',()=>{refreshDistricts();updateFilters();fitFiltered()});$('#sigungu').on('change',()=>{refreshDongs();updateFilters();fitFiltered()});$('#dong').on('change',()=>{updateFilters();if($id('dong').value){let f=regionFeatures().find(f=>matchRegion(f)&&shortDong(f)===$id('dong').value);if(f){const paths=geoPolys(f);let b=new kakao.maps.LatLngBounds();for(const poly of paths)for(const ring of poly)for(const p of ring)b.extend(p);map.setBounds(b)}}});$('#decade,input[name="units"],#showPolygons,#showMissing,#showBoundary,#showLabels').on('change',updateFilters);$('#shadeOutside,#shadeStrength').on('change',drawOutsideShade);$('#query').on('input',()=>{clearTimeout(redrawTimer);redrawTimer=setTimeout(updateFilters,300)});$('#searchBtn').on('click',()=>{updateFilters();fitFiltered()});$('#fit').on('click',fitFiltered);$('#resetBtn').on('click',()=>{const seoul=[...$id('sido').options].find(o=>canonicalSido(o.value)==='서울');$id('sido').value=seoul?seoul.value:'';refreshDistricts();$id('decade').value='';$id('query').value='';$('input[name="units"][value="0"]').prop('checked',true);updateFilters();fitFiltered()});$('.mode button').on('click',async function(){
  const next=this.dataset.mode;
  if(mode===next)return;
  mode=next;
