@@ -154,7 +154,9 @@
         table.result-table {
             width: 100%;
             border-collapse: collapse;
-            table-layout: fixed;       /* 열 너비 균등 분배 */
+            table-layout: fixed;       /* 각 데이터 열에 충분한 폭을 확보 */
+            width: max-content;
+            min-width: 100%;
             font-size: 11px;
         }
 
@@ -171,7 +173,9 @@
             text-align: center;
             vertical-align: top;
             white-space: normal;
-            word-break: keep-all;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            line-height: 1.55;
         }
 
         table.result-table thead th {
@@ -186,6 +190,36 @@
 
         table.result-table tbody tr:hover {
             background: #eef2ff;
+        }
+
+
+        /* 투자금 축은 작게, 라벨 열은 넓게 배치해 겹침 방지 */
+        table.result-table th:first-child,
+        table.result-table td:first-child {
+            width: 76px;
+            min-width: 76px;
+            position: sticky;
+            left: 0;
+            background: #fff;
+            z-index: 1;
+        }
+        table.result-table thead th:first-child { z-index: 3; background: #f9fafb; }
+        table.result-table th:not(:first-child),
+        table.result-table td:not(:first-child) {
+            width: 230px;
+            min-width: 230px;
+        }
+        table.result-table td .cell-entry {
+            display: block;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            padding: 3px 0;
+            text-align: left;
+        }
+        table.result-table td .cell-entry + .cell-entry {
+            border-top: 1px dashed #dbe2eb;
+            margin-top: 5px;
+            padding-top: 8px;
         }
 
         /* 헤더(첫 행) 고정 스타일: 실제로는 <thead>로 캐치 */
@@ -250,8 +284,8 @@
                         var ju = rows[key][subKeys[1]];    // 전세가
                         var label = rows[key][subKeys[2]]; // 라벨
 
-                        var txt = me + "|" + ju + "|" + label;
-                        aptArr.push(txt);
+                        // 문자열 구분자(|)를 사용하지 않아 라벨 안의 |도 그대로 유지
+                        aptArr.push({ me: me, ju: ju, label: label == null ? '' : String(label) });
                     }
 
                     convertAptInfo(aptArr, fileName);
@@ -342,11 +376,11 @@
             for (var j = 1; j <= 15; j++) {
                 var label = "";
                 for (var i = 0; i < aptArr.length; i++) {
-                    var info = aptArr[i].split('|');
+                    var info = aptArr[i];
 
-                    var me = info[0]; // 매매가
-                    var ju = info[1]; // 전세가
-                    var la = info[2]; // 라벨                        
+                    var me = info.me; // 매매가
+                    var ju = info.ju; // 전세가
+                    var la = info.label; // 라벨                        
 
                     // 차액
                     var s = Number(me) - Number(ju);
@@ -371,11 +405,11 @@
             for (var j = 1; j <= 15; j++) {
                 var label = "";
                 for (var i = 0; i < aptArr.length; i++) {
-                    var info = aptArr[i].split('|');
+                    var info = aptArr[i];
 
-                    var me = info[0]; // 매매가
-                    var ju = info[1]; // 전세가
-                    var la = info[2]; // 라벨        
+                    var me = info.me; // 매매가
+                    var ju = info.ju; // 전세가
+                    var la = info.label; // 라벨        
 
                     // 차액
                     var s = Number(me) - Number(ju);
@@ -401,11 +435,11 @@
             for (var j = 0.1; j <= 3; j += 0.1) {
                 var label = "";
                 for (var i = 0; i < aptArr.length; i++) {
-                    var info = aptArr[i].split('|');
+                    var info = aptArr[i];
 
-                    var me = info[0]; // 매매가
-                    var ju = info[1]; // 전세가
-                    var la = info[2]; // 라벨                        
+                    var me = info.me; // 매매가
+                    var ju = info.ju; // 전세가
+                    var la = info.label; // 라벨                        
 
                     // 차액
                     var s = Number(me) - Number(ju);
@@ -430,11 +464,11 @@
             for (var j = 0.1; j <= 3; j += 0.1) {
                 var label = "";
                 for (var i = 0; i < aptArr.length; i++) {
-                    var info = aptArr[i].split('|');
+                    var info = aptArr[i];
 
-                    var me = info[0]; // 매매가
-                    var ju = info[1]; // 전세가
-                    var la = info[2]; // 라벨        
+                    var me = info.me; // 매매가
+                    var ju = info.ju; // 전세가
+                    var la = info.label; // 라벨        
 
                     // 차액
                     var s = Number(me) - Number(ju);
@@ -451,6 +485,12 @@
                 rowArr.push(label);
             }
             return rowArr;
+        }
+
+        function escapeHTML(value) {
+            return String(value).replace(/[&<>"']/g, function(c) {
+                return {'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[c];
+            });
         }
 
         // 화면에 테이블과 엑셀 버튼 렌더링
@@ -483,11 +523,15 @@
                 for (var j = 0; j < contentsArr[i].length; j++) {
                     var rawValue = contentsArr[i][j] == null ? "" : String(contentsArr[i][j]);
                     // 개행 문자(\n)를 <br>로 치환해서 UI에서도 줄바꿈으로 보이게
-                    var cellValue = rawValue.replace(/\r?\n/g, '<br/>');
+                    var cellValue = escapeHTML(rawValue).replace(/\r?\n/g, '<br/>');
 
                     if (i === 0) {
                         html += '<th>' + cellValue + '</th>';
                     } else {
+                        var entries = rawValue.split(/\r?\n/);
+                        cellValue = entries.map(function(entry) {
+                            return entry ? '<span class="cell-entry">' + escapeHTML(entry) + '</span>' : '';
+                        }).join('');
                         html += '<td>' + cellValue + '</td>';
                     }
                 }
@@ -540,7 +584,7 @@
                     }));
                     return Math.max(max, maxLineWidth);
                 }, 10); // 최소 너비 10 설정
-                return { wch: maxWidth + 2 }; // 여백을 추가하여 가독성 향상
+                return { wch: Math.min(maxWidth + 2, 55) }; // 너무 긴 라벨은 줄바꿈
             });
             worksheet['!cols'] = colWidths;
 
