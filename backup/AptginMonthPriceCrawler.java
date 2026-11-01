@@ -110,6 +110,18 @@ public class AptginMonthPriceCrawler {
         System.out.println();
         System.out.println("완료: " + Paths.get(outName).toAbsolutePath());
         System.out.println("총 행 수: " + allRows.size());
+
+        for (MarketRow r : allRows) {
+            if ("서울".equals(r.region()) && r.area().startsWith("성북구(")) {
+                System.out.println("[성북구 검증] people=" + r.people()
+                        + " / 수요=" + r.demand()
+                        + " / 입주=" + r.moveIn()
+                        + " / 매매=" + r.sale()
+                        + " / 전세=" + r.jeonse()
+                        + " / 전세가율=" + r.ratio() + "%");
+                break;
+            }
+        }
     }
 
     private static List<MarketRow> scrapeRenderedTable(WebDriver driver, String region) {
@@ -117,13 +129,16 @@ public class AptginMonthPriceCrawler {
 
         for (WebElement tr : driver.findElements(By.cssSelector("tr"))) {
             List<WebElement> cells = tr.findElements(By.cssSelector("th,td"));
-            if (cells.size() < 11) continue;
+            if (cells.size() < 8) continue;
 
             List<String> text = new ArrayList<>();
             for (WebElement c : cells) text.add(norm(c.getText()));
 
             int areaIdx = findAreaCell(text);
-            if (areaIdx < 0 || areaIdx + 10 >= text.size()) continue;
+            if (areaIdx < 0) continue;
+
+            // 지역 뒤쪽 구조: 시장강도2, 인구, 수요, 입주, 거래량2, 시세3
+            if (areaIdx + 5 >= text.size()) continue;
 
             String areaCell = text.get(areaIdx);
             Integer complexCnt = extractComplexCount(areaCell);
@@ -133,18 +148,26 @@ public class AptginMonthPriceCrawler {
             Integer people = firstInteger(text.get(areaIdx + 3));
             Integer demand = firstInteger(text.get(areaIdx + 4));
             Integer moveIn = firstInteger(text.get(areaIdx + 5));
-            Integer sale = firstInteger(text.get(areaIdx + 8));
-            Integer jeonse = firstInteger(text.get(areaIdx + 9));
-            Integer ratio = firstInteger(text.get(areaIdx + 10));
+
+            // 핵심 수정:
+            // 매매/전세/전세가율은 행의 마지막 3개 셀을 사용.
+            int n = text.size();
+            Integer sale = firstInteger(text.get(n - 3));
+            Integer jeonse = firstInteger(text.get(n - 2));
+            Integer ratio = firstInteger(text.get(n - 1));
 
             if (people == null || demand == null || moveIn == null ||
                 sale == null || jeonse == null || ratio == null) continue;
 
-            rows.add(new MarketRow(region, area, people, demand, moveIn, sale, jeonse, ratio));
+            rows.add(new MarketRow(
+                    region, area, people, demand, moveIn, sale, jeonse, ratio
+            ));
         }
 
         LinkedHashMap<String, MarketRow> dedup = new LinkedHashMap<>();
-        for (MarketRow r : rows) dedup.putIfAbsent(r.region() + "|" + r.area(), r);
+        for (MarketRow r : rows) {
+            dedup.putIfAbsent(r.region() + "|" + r.area(), r);
+        }
         return new ArrayList<>(dedup.values());
     }
 
@@ -188,6 +211,7 @@ public class AptginMonthPriceCrawler {
     }
 
     private static String norm(String s) {
-        return s == null ? "" : s.replace('\u00A0', ' ').replaceAll("\\s+", " ").trim();
+        return s == null ? "" : s.replace('\u00A0', ' ')
+                .replaceAll("\\s+", " ").trim();
     }
 }
