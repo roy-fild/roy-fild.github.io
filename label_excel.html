@@ -344,6 +344,9 @@ html, body {
     .type-filter-option input { margin:0; accent-color:#4f46e5; cursor:pointer; }
     .type-filter-option:has(input:checked) { background:#eef2ff; border-color:#818cf8; color:#3730a3; }
 
+    /* 라벨만 보기: 기존 검정 헤더만 남기고 가격 행은 숨김 */
+    #apt_tables.label-only tbody { display: none !important; }
+
     /* PPT 복사 크기 선택 */
     .sizebox{
         background: var(--panel);
@@ -410,7 +413,7 @@ html, body {
                 if (type !== null) types.add(type);
             });
             const sorted = Array.from(types).sort((a, b) => Number(a) - Number(b));
-            if (selectedType !== "all" && !types.has(selectedType)) selectedType = "all";
+            if (selectedType !== "all" && selectedType !== "labelOnly" && !types.has(selectedType)) selectedType = "all";
             const $holder = $("#typeFilters").empty();
             const createOption = (value, label) => {
                 const $label = $("<label>").addClass("type-filter-option");
@@ -420,22 +423,27 @@ html, body {
                 $holder.append($label);
             };
             createOption("all", "전체보기");
+             createOption("labelOnly", "라벨만");
             sorted.forEach(type => createOption(type, type));
         }
 
         function applyTypeFilter() {
+            const labelOnly = selectedType === "labelOnly";
+            // 가격 행은 화면뿐 아니라 PPT 캡처에서도 제외한다.
+            $("#apt_tables").toggleClass("label-only", labelOnly);
             let visibleCount = 0;
             $("#apt_tables table").each(function() {
-                let hasVisible = false;
+                let hasVisible = labelOnly;
                 $(this).find("tbody tr").each(function() {
-                    const matches = selectedType === "all" || getLabelType($(this).text()) === selectedType;
+                    const matches = labelOnly || selectedType === "all" || getLabelType($(this).text()) === selectedType;
                     $(this).toggle(matches);
                     if (matches) hasVisible = true;
                 });
                 $(this).toggle(hasVisible);
                 if (hasVisible) visibleCount++;
             });
-            $("#apt_cnt").text("단지 개수: " + visibleCount + (selectedType === "all" ? "" : " (" + selectedType + " 유형)"));
+            const suffix = labelOnly ? " (라벨만)" : (selectedType === "all" ? "" : " (" + selectedType + " 유형)");
+            $("#apt_cnt").text("단지 개수: " + visibleCount + suffix);
         }
 
         $(document).on("change", 'input[name="labelType"]', function() {
