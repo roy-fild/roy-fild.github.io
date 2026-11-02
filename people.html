@@ -383,20 +383,72 @@
         .btnDanger { border:1px solid #e2b4b4; background:#fff7f7; }
         .compareOnly { display:none !important; }
 
+
+        /* 상단 제목과 전환 탭을 한 줄로 배치해 본문 공간 확보 */
+        body > .wrap { padding-top: 8px; padding-bottom: 0; }
+        .compactHeader {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px 18px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #e6e6e6;
+        }
+        .compactHeader h1 {
+            display: flex;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 4px 8px;
+            margin: 0;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        .compactHeader h1 .muted { font-size: 11px; font-weight: 400; }
+        .compactHeader .tabNav { gap: 3px; margin: 0; }
+        .compactHeader .tabBtn {
+            padding: 5px 9px;
+            border-color: transparent;
+            border-radius: 4px;
+            background: transparent;
+            font-size: 12px;
+            line-height: 1.4;
+            font-weight: 500;
+        }
+        .compactHeader .tabBtn:hover { background: #ededed; }
+        .compactHeader .tabBtn.active {
+            background: #111;
+            color: #fff;
+            border-color: #111;
+            font-weight: 700;
+        }
+        .compactHeader + .tabPage > .panel { margin-top: 8px; }
+        #tab-map > .panel:first-child { margin-top: 4px; padding-top: 8px; }
+        @media (max-width: 600px) {
+            .compactHeader { column-gap: 10px; }
+            .compactHeader h1 { font-size: 15px; }
+            .compactHeader .tabBtn { padding: 5px 7px; }
+        }
+
+        /* 지도 범례와 TOP 5 안내를 하나의 정보 줄로 표시 */
+        .mapInfoLine { display:flex; align-items:center; gap:16px; margin:5px 0 7px; overflow-x:auto; white-space:nowrap; }
+        .mapInfoLine .mapLegend, .mapInfoLine .mapRankLegend { flex:none; align-items:center; flex-wrap:nowrap; margin:0; }
+        .mapInfoLine .mapLegend { gap:6px; }
+        .mapInfoLine .mapLegend > span { padding:3px 6px; }
+        .mapInfoLine .mapRankLegend { gap:9px; }
     </style>
 </head>
 
 <body>
     <div class="wrap">
-        <h1>인구 통계 그래프(26.08)
-            <div class="muted">by 필디</div>
-        </h1>
-
+        <header class="compactHeader">
+        <h1>인구 통계 그래프(26.08) <span class="muted">by 필디</span></h1>
         <div class="tabNav">
             <button type="button" class="tabBtn active" data-tab="analysis">기본 분석</button>
             <button type="button" class="tabBtn" data-tab="custom">사용자 지정 비교</button>
             <button type="button" class="tabBtn" data-tab="map">연령별 인구 지도</button>
         </div>
+
+        </header>
 
         <div class="tabPage active" id="tab-analysis">
 
@@ -886,9 +938,7 @@
 
         <div class="tabPage" id="tab-map">
             <div class="panel">
-                <div style="font-weight:700;margin-bottom:6px">연령별 인구 분포 지도</div>
-                
-                <div class="row" style="margin-top:12px">
+                <div class="row" style="margin-top:0">
                     <div class="col"><label>시/도</label><select id="mapSido"><option value="">시/도 선택</option></select></div>
                     <div class="col"><label>시/군/구 (선택)</label><select id="mapSigungu"><option value="">(전체 시/군/구)</option></select></div>
                     <div class="col"><label>연령대</label><select id="mapAge">
@@ -899,8 +949,10 @@
                 </div>
             
                 <div class="boundaryModeBar"><label class="boundaryCheck"><input type="checkbox" id="showOutsideShade" checked> 선택 지역 외부 음영</label><label class="boundaryCheck">농도 <select id="shadeOpacity" style="width:auto;padding:4px 7px"><option value="60">60%</option><option value="65" selected>65%</option><option value="70">70%</option></select></label><label class="boundaryCheck"><input type="checkbox" id="showBoundary" checked> 경계선 표시</label><label class="boundaryCheck"><input type="checkbox" id="showAreaLabels" checked> 지역명 표시</label><span id="populationBasisText">인구 통계·아이콘은 행정동 기준입니다.</span></div><span class="muted" id="mapOriginHelp"></span><div id="mapStatus" class="status" aria-live="polite"></div>
+                <div class="mapInfoLine">
                 <div id="mapLegend" class="mapLegend"></div>
                 <div class="mapRankLegend" aria-label="상위 5개 지역 표시 범례"><strong>상위 5개 지역</strong><span><i class="mapRankDot pop"></i> 인구</span><span><i class="mapRankDot house"></i> 세대수</span><span><i class="mapRankDot pph"></i> 세대당 인구</span><span>※ 선택 지역 내 각 지표 TOP 5, 중복 가능</span></div>
+                </div>
                 <div id="populationMapWrap">
                     <div id="populationMap"></div>
                     <div class="mapFloatingControls">
