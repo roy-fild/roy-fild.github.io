@@ -3944,7 +3944,12 @@ function renderAdultAgeChart() {
             el.addEventListener('click',function(e){
                 e.stopPropagation(); closeAgePopup();
                 var card=document.createElement('div');card.className='ageInfoCard';
-                card.innerHTML='<button type="button" class="ageInfoClose" aria-label="팝업 닫기">×</button><b>'+htmlEscape(item.full)+'</b><div style="margin:5px 0">전체 '+fmt(item.total)+'명</div>'+lines;
+                var metrics=item.mapRanks;
+                var summary='<div style="margin:6px 0 9px;padding:6px 0;border-bottom:1px solid #ddd">'
+                    +'<div style="display:flex;justify-content:space-between;gap:12px"><span>인구</span><b>'+fmt(metrics?metrics.pop:item.total)+'명</b></div>'
+                    +'<div style="display:flex;justify-content:space-between;gap:12px"><span>세대수</span><b>'+(metrics?fmt(metrics.house)+'세대':'자료 없음')+'</b></div>'
+                    +'<div style="display:flex;justify-content:space-between;gap:12px"><span>세대당 인구</span><b>'+(metrics&&metrics.house>0?metrics.pph.toFixed(2)+'명/세대':'자료 없음')+'</b></div></div>';
+                card.innerHTML='<button type="button" class="ageInfoClose" aria-label="팝업 닫기">×</button><b>'+htmlEscape(item.full)+'</b>'+summary+lines;
                 card.querySelector('.ageInfoClose').addEventListener('click',function(ev){ev.stopPropagation();closeAgePopup();});
                 agePopup=new kakao.maps.CustomOverlay({map:ageMap,position:position,content:card,yAnchor:1.08,zIndex:10000});
             });
