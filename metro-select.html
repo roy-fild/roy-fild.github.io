@@ -746,6 +746,14 @@
         #metroMapStatus.error{color:#b91c1c}
         #metroRegionMap{height:min(78vh, 840px);min-height:640px;width:100%;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;background:#eff6fb}
         .metro-map-wrap{position:relative;width:100%}
+        /* 지도 자체만 전체화면: 상단 필터와 페이지는 그대로 두고 지도 영역만 확장 */
+        .metro-map-expand{position:absolute;right:14px;top:14px;z-index:705;border:1px solid #cbd5e1;border-radius:8px;background:rgba(255,255,255,.97);color:#0f172a;padding:9px 13px;font-size:12px;font-weight:750;cursor:pointer;box-shadow:0 2px 9px #0002}
+        .metro-map-expand:hover{background:#eff6ff}
+        .metro-map-wrap:fullscreen{background:#fff;padding:0;width:100vw;height:100vh;border-radius:0}
+        .metro-map-wrap:fullscreen #metroRegionMap{width:100%;height:100vh;min-height:0;max-height:none;border:0;border-radius:0}
+        .metro-map-wrap:fullscreen .metro-map-loading{border-radius:0}
+        .metro-map-wrap:fullscreen .metro-map-expand{top:18px;right:18px}
+
         .metro-map-loading{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(255,255,255,.78);z-index:710;border-radius:12px;backdrop-filter:blur(1.5px)}
         .metro-map-loading-card{width:min(360px,calc(100% - 36px));padding:14px 16px;border-radius:14px;background:rgba(255,255,255,.96);box-shadow:0 10px 30px rgba(15,23,42,.18);border:1px solid #dbe4f0}
         .metro-map-loading-text{font-size:13px;font-weight:700;color:#0f172a;margin-bottom:10px;text-align:center}
@@ -1607,11 +1615,12 @@
                     <label><input type="checkbox" id="metroShowBoundaryLines" checked> 행정구역 경계선 표시</label>
                     <label><input type="checkbox" id="metroShowStationNames" checked> 역 이름 표시 (호선 색상)</label>
                     <label><input type="checkbox" id="metroShowRouteLines" checked> 전체 노선 / 선택 역 노선 표시</label>
-                    <span style="color:#64748b">연결선은 역 선택 시 나타나는 참고 직선입니다.</span>
+                    <span style="color:#64748b">연결선은 참고 직선이며, 역 순서 미확인 노선의 2.7km 이상 추정 연결은 점선입니다.</span>
                 </div>
                 <div id="metroMapStatus" role="status" aria-live="polite">지도를 보려면 구를 선택해 주세요.</div>
                 <div class="metro-map-wrap" id="metroMapWrap">
                     <div id="metroRegionMap"></div>
+                    <button type="button" id="metroExpandMap" class="metro-map-expand" aria-label="지도 전체화면 전환">⛶ 전체화면</button>
                     <div id="metroMapLoading" class="metro-map-loading" aria-hidden="true">
                         <div class="metro-map-loading-card">
                             <div class="metro-map-loading-text">지도 데이터 로딩중…</div>
@@ -1890,7 +1899,7 @@
    }
    const b=geoBounds(features);if(b)map.setBounds(b);
  }
- function lineColor(line){let x=String(line||'').replace(/\s/g,'');let m=x.match(/(\d+)호선/);if(activeCity==='seoul'&&m)return COLORS[m[1]+'호선']||'#64748b';if(m)return COLORS[cityState[activeCity].name+' '+m[1]+'호선']||COLORS[m[1]+'호선']||'#64748b';return Object.keys(COLORS).find(k=>norm(k)===norm(line))?COLORS[Object.keys(COLORS).find(k=>norm(k)===norm(line))]:'#64748b';}
+ function lineColor(line){let x=String(line||'').replace(/\s/g,'');if(x.includes('공항철도'))return COLORS['공항철도'];if(x.startsWith('GTX-'))return COLORS[x]||'#64748b';let m=x.match(/(\d+)호선/);if(activeCity==='seoul'&&m)return COLORS[m[1]+'호선']||'#64748b';if(m)return COLORS[cityState[activeCity].name+' '+m[1]+'호선']||COLORS[m[1]+'호선']||'#64748b';return Object.keys(COLORS).find(k=>norm(k)===norm(line))?COLORS[Object.keys(COLORS).find(k=>norm(k)===norm(line))]:'#64748b';}
  function matchStationRows(name,all){const key=norm(name);return all.filter(r=>norm(r[state().stationField])===key);}
  function monthlyRows(){const st=state(),month=$id('metroMapMonth').value,line=$id('metroMapLine').value;if(!st.loaded||!month)return [];
    return st.data.filter(r=>String(r[st.monthField])===month&&(!line||String(r[st.lineField])===line));}
@@ -1956,9 +1965,72 @@
    }
    return staticStationsPromise;
  }
+ // 검증된 역 순서에 따라 본선/지선을 따로 그립니다. 다른 호선 역이 섞이지 않도록 소속도 검증합니다.
+ // 원본 좌표는 역 중심의 참고 좌표이며 실제 철도 곡선은 아닙니다.
+ const VERIFIED_LINE_PATHS={
+  '2호선':[
+   '시청|을지로입구|을지로3가|을지로4가|동대문역사문화공원|신당|상왕십리|왕십리|한양대|뚝섬|성수|건대입구|구의|강변|잠실나루|잠실|잠실새내|종합운동장|삼성|선릉|역삼|강남|교대|서초|방배|사당|낙성대|서울대입구|봉천|신림|신대방|구로디지털단지|대림|신도림|문래|영등포구청|당산|합정|홍대입구|신촌|이대|아현|충정로|시청',
+   '성수|용답|신답|용두|신설동',
+   '신도림|도림천|양천구청|신정네거리|까치산'
+  ],
+  '5호선':[
+   '방화|개화산|김포공항|송정|마곡|발산|우장산|화곡|까치산|신정|목동|오목교|양평|영등포구청|영등포시장|신길|여의도|여의나루|마포|공덕|애오개|충정로|서대문|광화문|종로3가|을지로4가|동대문역사문화공원|청구|신금호|행당|왕십리|마장|답십리|장한평|군자|아차산|광나루|천호|강동|길동|굽은다리|명일|고덕|상일동|강일|미사|하남풍산|하남시청|하남검단산',
+   '강동|둔촌동|올림픽공원|방이|오금|개롱|거여|마천'
+  ],
+  '7호선':[
+   '장암|도봉산|수락산|마들|노원|중계|하계|공릉|태릉입구|먹골|중화|상봉|면목|사가정|용마산|중곡|군자|어린이대공원|건대입구|자양|청담|강남구청|학동|논현|반포|고속터미널|내방|이수|남성|숭실대입구|상도|장승배기|신대방삼거리|보라매|신풍|대림|남구로|가산디지털단지|철산|광명사거리|천왕|온수|까치울|부천종합운동장|춘의|신중동|부천시청|상동|삼산체육관|굴포천|부평구청|산곡|석남'
+  ]
+ };
+ // 노선별 역 순서를 통해 공항철도 장거리 구간 및 지선의 임의 연결을 막습니다.
+ // 이 경로는 인접 역 중심을 잇는 참고 직선이며, 실제 철도 선형(곡선)을 의미하지 않습니다.
+ Object.assign(VERIFIED_LINE_PATHS,{
+  '공항철도':[
+   '서울역|공덕|홍대입구|디지털미디어시티|마곡나루|김포공항|계양|검암|청라국제도시|영종|운서|공항화물청사|인천공항1터미널|인천공항2터미널'
+  ],
+  '3호선':[
+   '대화|주엽|정발산|마두|백석|대곡|화정|원당|원흥|삼송|지축|구파발|연신내|불광|녹번|홍제|무악재|독립문|경복궁|안국|종로3가|을지로3가|충무로|동대입구|약수|금호|옥수|압구정|신사|잠원|고속터미널|교대|남부터미널|양재|매봉|도곡|대치|학여울|대청|일원|수서|가락시장|경찰병원|오금'
+  ],
+  '4호선':[
+   '진접|오남|별내별가람|당고개|상계|노원|창동|쌍문|수유|미아|미아사거리|길음|성신여대입구|한성대입구|혜화|동대문|동대문역사문화공원|충무로|명동|회현|서울역|숙대입구|삼각지|신용산|이촌|동작|총신대입구|사당|남태령|선바위|경마공원|대공원|과천|정부과천청사|인덕원|평촌|범계|금정|산본|수리산|대야미|반월|상록수|한대앞|중앙|고잔|초지|안산|신길온천|정왕|오이도'
+  ],
+  '6호선':[
+   '응암|역촌|불광|독바위|연신내|구산|응암|새절|증산|디지털미디어시티|월드컵경기장|마포구청|망원|합정|상수|광흥창|대흥|공덕|효창공원앞|삼각지|녹사평|이태원|한강진|버티고개|약수|청구|신당|동묘앞|창신|보문|안암|고려대|월곡|상월곡|돌곶이|석계|태릉입구|화랑대|봉화산|신내'
+  ],
+  '8호선':[
+   '별내|다산|동구릉|구리|장자호수공원|암사역사공원|암사|천호|강동구청|몽촌토성|잠실|석촌|송파|가락시장|문정|장지|복정|남위례|산성|남한산성입구|단대오거리|신흥|수진|모란'
+  ],
+  '9호선':[
+   '개화|김포공항|공항시장|신방화|마곡나루|양천향교|가양|증미|등촌|염창|신목동|선유도|당산|국회의사당|여의도|샛강|노량진|노들|흑석|동작|구반포|신반포|고속터미널|사평|신논현|언주|선정릉|삼성중앙|봉은사|종합운동장|삼전|석촌고분|석촌|송파나루|한성백제|올림픽공원|둔촌오륜|중앙보훈병원'
+  ],
+  '신분당선':[
+   '신사|논현|신논현|강남|양재|양재시민의숲|청계산입구|판교|정자|미금|동천|수지구청|성복|상현|광교중앙|광교'
+  ],
+  '경강선':[
+   '판교|이매|삼동|경기광주|초월|곤지암|신둔도예촌|이천|부발|세종대왕릉|여주'
+  ]
+ });
+ const STATION_ALIASES={
+   '뚝섬유원지':'자양', '총신대입구':'이수', '총신대입구(이수)':'이수',
+   '서울대입구(관악구청)':'서울대입구','신촌(지하)':'신촌','신길온천':'능길','공항철도인천공항1터미널':'인천공항1터미널','공항철도인천공항2터미널':'인천공항2터미널','국제업무지구':'인천공항1터미널'
+ };
+ const canonicalName=n=>{const raw=String(n||'').trim();return norm(STATION_ALIASES[raw]||raw).replace(/인천국제공항/g,'인천공항1터미널');};
+ const VERIFIED_STATION_SETS=Object.fromEntries(Object.entries(VERIFIED_LINE_PATHS).map(([line,paths])=>[line,new Set(paths.flatMap(path=>path.split('|').map(canonicalName)))]));
+ function isVerifiedLine(line){return activeCity==='seoul'&&Object.hasOwn(VERIFIED_LINE_PATHS,line);}
+ function validatedLineLabel(name,label){
+   if(activeCity!=='seoul')return true;
+   const key=normLineKey(label);
+   let line=null;
+   const m=/^수도권:(\d+)호선$/.exec(key);
+   if(m)line=m[1]+'호선';
+   else if(VERIFIED_STATION_SETS[key])line=key;
+   if(!line||!VERIFIED_STATION_SETS[line])return true;
+   return VERIFIED_STATION_SETS[line].has(canonicalName(name));
+ }
  // CSV/정적 역 데이터에는 정식 역 순서와 선로 형상이 없으므로, 강조선은 근접 역 간 참고 연결입니다.
  function normLineKey(v){
    let s=norm(v).replace(/^(서울|부산|대구|대전)(광역시|도시철도)?/,'');
+   if(s.includes('공항철도'))return '공항철도';
+   if(s.startsWith('GTX-'))return s;
    const m=s.match(/(\d+)호선/);
    return m ? (activeCity==='seoul'?'수도권:':activeCity+':')+m[1]+'호선' : s;
  }
@@ -1985,16 +2057,47 @@
      }
      if(!best)break;
      visited.add(best.j);
-     // 너무 먼 역은 억지로 잇지 않는다. 분기 또는 결측역으로 발생할 수 있다.
-     if(best.km<=4.5)edges.push(best);
+     // 역 순서가 확인되지 않은 기타 노선은 장거리 가짜 연결을 만들지 않습니다.
+     if(best.km<=3.2)edges.push(best);
    }
    for(const e of edges){
      const a=points[e.i],b=points[e.j];
      const path=[new kakao.maps.LatLng(a.lat,a.lng),new kakao.maps.LatLng(b.lat,b.lng)];
-     routeLayer.add(new kakao.maps.Polyline({map,path,strokeWeight:weight+3,strokeColor:'#fff',strokeOpacity:.8,zIndex:z}));
-     routeLayer.add(new kakao.maps.Polyline({map,path,strokeWeight:weight,strokeColor:color,strokeOpacity:.92,zIndex:z+1}));
+     const inferred=e.km>2.7;
+     routeLayer.add(new kakao.maps.Polyline({map,path,strokeWeight:weight+3,strokeColor:'#fff',strokeOpacity:.8,strokeStyle:inferred?'shortdash':'solid',zIndex:z}));
+     routeLayer.add(new kakao.maps.Polyline({map,path,strokeWeight:weight,strokeColor:color,strokeOpacity:inferred?.75:.92,strokeStyle:inferred?'shortdash':'solid',zIndex:z+1}));
    }
  }
+ function drawVerifiedLine(line,points,color,weight=5){
+   if(!routeLayer||!points.length)return;
+   const lookup=new Map();
+   for(const p of points){
+     const key=canonicalName(p.name);
+     if(VERIFIED_STATION_SETS[line].has(key)&&!lookup.has(key))lookup.set(key,p);
+   }
+   for(const pathText of VERIFIED_LINE_PATHS[line]){
+     const names=pathText.split('|').map(canonicalName);
+     const drawn=new Set();
+     for(let i=0;i<names.length-1;i++){
+       const a=lookup.get(names[i]);if(!a)continue;
+       let j=i+1;
+       while(j<names.length&&!lookup.has(names[j])&&j-i<=3)j++;
+       if(j>=names.length||j-i>3)continue;
+       const b=lookup.get(names[j]);if(!b||a===b)continue;
+       const distance=routeKm(a,b),missing=j-i-1;
+       // 역 데이터에 누락된 역이 1~2개라면 가까운 경우에만 점선으로 보완.
+       // 길게 끊기는 공항철도는 공식 역 순서에 한해 더 긴 구간을 허용.
+       const maxDistance=line==='공항철도'?19:(missing?6.8:5.5);
+       if(distance>maxDistance||distance<.05)continue;
+       const k=names[i]+'|'+names[j];if(drawn.has(k))continue;drawn.add(k);
+       const inferred=missing>0,style=inferred?'shortdash':'solid';
+       const path=[new kakao.maps.LatLng(a.lat,a.lng),new kakao.maps.LatLng(b.lat,b.lng)];
+       routeLayer.add(new kakao.maps.Polyline({map,path,strokeWeight:weight+2,strokeColor:'#fff',strokeOpacity:.83,strokeStyle:style,zIndex:3}));
+       routeLayer.add(new kakao.maps.Polyline({map,path,strokeWeight:weight,strokeColor:color,strokeOpacity:inferred?.78:.95,strokeStyle:style,zIndex:4}));
+     }
+   }
+ }
+
  function highlightRoute(){
    if(routeLayer)routeLayer.clearLayers();
    // 호선 색상 역명 라벨이 역 마커 역할을 한다. 역을 선택한 경우 다른 호선의 선은 완전히 숨긴다.
@@ -2014,7 +2117,13 @@
        byLine.get(key).points.push(p);
      }
    }
-   for(const [key,group] of byLine)if(!key.startsWith('GTX-'))drawLineEdges(group.points,lineColor(group.label),active?6:5,3);
+   for(const [key,group] of byLine){
+     if(key.startsWith('GTX-'))continue;
+     const match=/^수도권:(\d+)호선$/.exec(key);
+     const verified=match?match[1]+'호선':key;
+     if(activeCity==='seoul'&&VERIFIED_LINE_PATHS[verified])drawVerifiedLine(verified,group.points,lineColor(group.label),active?6:5);
+     else drawLineEdges(group.points,lineColor(group.label),active?6:5,3);
+   }
    drawGTXRouteSegments(active);
  }
  function drawGTXRouteSegments(active){
@@ -2057,8 +2166,8 @@
      if(!containedInSelected(x.lat,x.lng))continue;
      const name=norm(x.tags['name:ko']||x.tags.name_ko||x.tags.name||'');
      const csv=byName.get(name)||[];
-     const candidates=x.lines||[];
-     const matched=csv.filter(r=>!candidates.length||candidates.some(l=>normLineKey(l)===normLineKey(r[st.lineField])));
+     const candidates=(x.lines||[]).filter(label=>validatedLineLabel(name,label));
+     const matched=csv.filter(r=>validatedLineLabel(name,r[st.lineField])&&(!candidates.length||candidates.some(l=>normLineKey(l)===normLineKey(r[st.lineField]))));
      const labels=new Set([...candidates,...(matched.length?matched:(!candidates.length?csv:[])).map(r=>String(r[st.lineField]||''))]);
      for(const label of labels){
        if(!label)continue;
@@ -2116,8 +2225,9 @@
      const name=x.tags['name:ko']||x.tags.name_ko||x.tags.name||'',key=norm(name);
      const poskey=key+':'+Math.round(x.lat*10000)+':'+Math.round(x.lng*10000);
      if(used.has(poskey))continue;
-     const csvRows=byName.get(key)||[];
-     const candidateLines=x.lines||[];
+     const csvRows=(byName.get(key)||[]).filter(r=>validatedLineLabel(name,r[st.lineField]));
+     const candidateLines=(x.lines||[]).filter(label=>validatedLineLabel(name,label));
+     if((x.lines||[]).length && !candidateLines.length && !csvRows.length)continue;
      const filtered=csvRows.filter(r=>!candidateLines.length||candidateLines.some(line=>norm(line)===norm(r[st.lineField])));
      // 공개 역 이름과 호선 표기의 차이는 지나치게 느슨하게 매칭하지 않는다.
      const mr=filtered.length?filtered:(!candidateLines.length?csvRows:[]);
@@ -2127,7 +2237,8 @@
      used.add(poskey);found++;
      if(mr.length){matched++;for(const r of mr)lset.set(String(r[st.lineField]),lineColor(r[st.lineField]));}
      const shownGTX=candidateLines.filter(l=>String(l).startsWith('GTX-')&&mapCheckedLineKeys.has(normLineKey(l)));
-     const line=shownGTX.length?shownGTX[0]:(mr.length?String(mr[0][st.lineField]):(candidateLines[0]||''));
+     const visibleChecked=visibilityLines.find(l=>mapCheckedLineKeys.has(normLineKey(l)));
+     const line=shownGTX.length?shownGTX[0]:(visibleChecked||'');
      const pos=new kakao.maps.LatLng(x.lat,x.lng);
      const badges=shownGTX.map(l=>'<span class="metro-gtx-badge '+(x.gtxStatuses?.[l]==='open'?'':'planned')+'" style="background:'+lineColor(l)+'">'+esc(l)+'</span>').join('');
      const marker=overlayHtml(pos,'<div class="metro-kakao-station '+(shownGTX.length?'metro-gtx-station':'')+'" style="--line-color:'+lineColor(line)+'"><span class="metro-station-name">'+esc(name)+'</span>'+(badges?'<span class="metro-gtx-badges">'+badges+'</span>':'')+'</div>',9,0);
@@ -2213,6 +2324,21 @@
    $id('metroMapMonth').addEventListener('change',()=>{updateMetroMapMonthLine();});
    $id('metroMapLine').addEventListener('change',()=>{});
    const mapSearchBtn=$id('btnMetroMapSearch');if(mapSearchBtn)mapSearchBtn.addEventListener('click',()=>{if(mapVisible)renderFromSelectors();});
+   const expandBtn=$id('metroExpandMap');
+   expandBtn.addEventListener('click',async()=>{
+     const wrap=$id('metroMapWrap');
+     try{
+       if(document.fullscreenElement===wrap){await document.exitFullscreen();}
+       else if(wrap.requestFullscreen){await wrap.requestFullscreen();}
+       else{setStatus('이 브라우저에서는 전체화면을 지원하지 않습니다.',true);}
+     }catch(err){setStatus('전체화면 전환 오류: '+err.message,true);}
+   });
+   document.addEventListener('fullscreenchange',()=>{
+     const fullscreen=document.fullscreenElement===$id('metroMapWrap');
+     expandBtn.textContent=fullscreen?'⤢ 전체화면 종료':'⛶ 전체화면';
+     expandBtn.setAttribute('aria-label',fullscreen?'지도 전체화면 종료':'지도 전체화면 전환');
+     if(map){const center=map.getCenter();const level=map.getLevel();setTimeout(()=>{map.relayout();map.setCenter(center);map.setLevel(level);},100);}
+   });
    window.addEventListener('resize',()=>{if(mapVisible&&map)setTimeout(()=>map.relayout(),120);});
    optionList($id('metroMapSido'),[NATIONWIDE,...CITY_SIDOS.seoul]);$id('metroMapSido').value='서울특별시';optionList($id('metroMapGu'),[],'구 선택');optionList($id('metroMapDong'),[],'전체 읍·면·동');
  };
