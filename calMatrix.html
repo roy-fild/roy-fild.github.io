@@ -103,6 +103,18 @@
             margin-top: 4px;
         }
 
+        .investment-options {
+            gap: 8px 13px;
+        }
+        .investment-options .investment-all {
+            font-weight: 700;
+            padding-right: 8px;
+            border-right: 1px solid var(--border);
+        }
+        .investment-options input[type="checkbox"] {
+            accent-color: var(--primary);
+        }
+
         /* 결과 영역 */
         .result-wrapper {
             margin-top: 16px;
@@ -270,6 +282,11 @@
         // 결과 테이블 데이터 & 파일명을 전역으로 저장
         var currentTableData = null;
         var currentFileName = null;
+        var selectedAreaType = "all";
+        var selectedInvestmentColumns = new Set();
+        var currentAptRecords = [];
+        var currentRegion = '1';
+        var investmentViewMode = 'basic';
 
         $(function () {
             // 기존 코드 유지 (txt_region이 없어도 에러는 안 남)
@@ -380,8 +397,59 @@
 
             // 전역 변수에 저장 후 화면에 테이블과 버튼을 그린다.
             currentTableData = contentsArr;
+            currentAptRecords = aptArr.slice();
+            currentRegion = selectedValue;
+            investmentViewMode = 'basic';
+            $('input[name="investmentViewMode"][value="basic"]').prop('checked', true);
+            $('#investmentViewModeOptions').show();
             currentFileName = fileName;
+            selectedAreaType = "all";  // 새 파일을 조회하면 전체보기로 초기화
+            renderAreaTypeOptions(contentsArr);
+            renderInvestmentOptions(contentsArr);
             renderTable(contentsArr);
+        }
+
+        // 기본: 기존 억대별 집계 그대로 사용. 상세: 원본 매매가-전세가 차액을
+        // 0.1억원 단위로 반올림한 값에 따라 1.0, 1.1, ... 15.9 열로 구분.
+        // 상세 전환 시 원본으로 다시 계산하여 기본 모드에서 버려진 소수점 정보를 복원합니다.
+        function buildDetailedTable() {
+            if (currentRegion !== '1') return currentTableData;
+            var headers = [' '];
+            for (var tenth = 10; tenth <= 159; tenth++) {
+                headers.push((tenth / 10).toFixed(1));
+            }
+            var matrix = [headers];
+            var rowLookup = new Map();
+            for (var priceTenth = 200; priceTenth >= 15; priceTenth--) {
+                var row = Array(headers.length).fill('');
+                row[0] = (priceTenth / 10).toFixed(1);
+                rowLookup.set(priceTenth, row);
+                matrix.push(row);
+            }
+            currentAptRecords.forEach(function(item) {
+                var me = Number(item.me), ju = Number(item.ju);
+                if (!Number.isFinite(me) || !Number.isFinite(ju)) return;
+                var diffTenth = Math.round((me - ju) * 10);
+                if (diffTenth < 10 || diffTenth > 159) return;
+                var priceTenth = me > 19.9 ? 200 : Math.round(me * 10);
+                var targetRow = rowLookup.get(priceTenth);
+                if (!targetRow) return;
+                var col = diffTenth - 9;
+                var label = String(item.label == null ? '' : item.label);
+                if (!label) return;
+                if (targetRow[col]) targetRow[col] += '\n';
+                targetRow[col] += label;
+            });
+            return matrix;
+        }
+
+        function changeInvestmentViewMode(mode) {
+            investmentViewMode = mode === 'detail' ? 'detail' : 'basic';
+            refreshTableVisibility();
+        }
+
+        function getActiveTableData() {
+            return investmentViewMode === 'detail' ? buildDetailedTable() : currentTableData;
         }
 
         /******************수도권*********************/
@@ -508,9 +576,119 @@
             });
         }
 
+        // 라벨: 아파트명/연식/기타정보/면적유형/기타정보...
+        // '/' 구분자 중 네 번째 필드에 면적(59, 74, 84 등)이 있습니다.
+        function getAreaType(entry) {
+            var parts = String(entry || '').split('/');
+            if (parts.length < 5) return null;
+            var area = parts[3].trim();
+            return /^\d{1,3}(?:\.\d+)?$/.test(area) ? area : null;
+        }
+
+        // 실제 조회 결과에서 발견되는 유형만 라디오 버튼으로 생성합니다.
+        function renderAreaTypeOptions(data) {
+            var types = new Set();
+            data.slice(1).forEach(function(row) {
+                row.slice(1).forEach(function(cell) {
+                    String(cell == null ? '' : cell).split(/\r?\n/).forEach(function(entry) {
+                        var type = getAreaType(entry);
+                        if (type !== null) types.add(type);
+                    });
+                });
+            });
+            var sorted = Array.from(types).sort(function(a, b) { return Number(a) - Number(b); });
+            var $options = $('#areaTypeOptions');
+            if (!sorted.length) {
+                $options.empty().hide();
+                return;
+            }
+            var html = '<span class="hint-text">면적 유형</span>';
+            html += '<label><input type="radio" name="areaType" value="all" checked onchange="changeAreaType(this.value)"> 전체보기</label>';
+            sorted.forEach(function(type) {
+                html += '<label><input type="radio" name="areaType" value="' + escapeHTML(type) + '" onchange="changeAreaType(this.value)"> ' + escapeHTML(type) + '</label>';
+            });
+            $options.html(html).show();
+        }
+
+        function changeAreaType(type) {
+            selectedAreaType = type;
+            refreshTableVisibility();
+        }
+
+        // 복수 유형이 한 셀에 함께 있는 경우에도 해당 유형의 라벨만 남깁니다.
+        function getAreaFilteredTableData(data) {
+            if (!data || selectedAreaType === 'all') return data;
+            return data.map(function(row, i) {
+                if (i === 0) return row.slice();
+                return row.map(function(cell, j) {
+                    if (j === 0) return cell;
+                    return String(cell == null ? '' : cell).split(/\r?\n/).filter(function(entry) {
+                        return getAreaType(entry) === selectedAreaType;
+                    }).join('\n');
+                });
+            });
+        }
+
+        // 조회 결과의 투자금 헤더 기준으로 체크박스를 만들고 모두 선택합니다.
+        function renderInvestmentOptions(data) {
+            var headers = data && data.length ? data[0].slice(1) : [];
+            selectedInvestmentColumns = new Set(headers.map(function(_, i) { return i + 1; }));
+            var html = '<span class="hint-text">투자금 범위</span>';
+            html += '<label class="investment-all"><input type="checkbox" id="investmentSelectAll" checked onchange="toggleAllInvestments(this.checked)"> 전체선택</label>';
+            headers.forEach(function(header, i) {
+                html += '<label><input type="checkbox" class="investment-option" value="' + (i + 1) + '" checked onchange="toggleInvestment(' + (i + 1) + ', this.checked)"> ' + escapeHTML(header) + '</label>';
+            });
+            $('#investmentOptions').html(html).show();
+        }
+
+        function toggleAllInvestments(checked) {
+            selectedInvestmentColumns.clear();
+            $('.investment-option').each(function() {
+                this.checked = checked;
+                if (checked) selectedInvestmentColumns.add(Number(this.value));
+            });
+            updateInvestmentSelectAll();
+            refreshTableVisibility();
+        }
+
+        function toggleInvestment(index, checked) {
+            if (checked) selectedInvestmentColumns.add(index);
+            else selectedInvestmentColumns.delete(index);
+            updateInvestmentSelectAll();
+            refreshTableVisibility();
+        }
+
+        function updateInvestmentSelectAll() {
+            var options = $('.investment-option');
+            var checkedCount = options.filter(':checked').length;
+            var selectAll = $('#investmentSelectAll').get(0);
+            if (selectAll) {
+                selectAll.checked = options.length > 0 && checkedCount === options.length;
+                selectAll.indeterminate = checkedCount > 0 && checkedCount < options.length;
+            }
+        }
+
+        // 체크 해제한 투자금 열은 데이터에서도 제외하므로 빈 행도 다시 계산됩니다.
+        function getInvestmentFilteredTableData(data) {
+            var columns = [0];
+            for (var i = 1; i < data[0].length; i++) {
+                var groupIndex = i;
+                // 수도권 상세 모드의 1.0~1.9는 1억대, 2.0~2.9는 2억대 체크에 연결.
+                if (investmentViewMode === 'detail' && currentRegion === '1') {
+                    groupIndex = Math.floor(Number(data[0][i])) || 0;
+                }
+                if (selectedInvestmentColumns.has(groupIndex)) columns.push(i);
+            }
+            return data.map(function(row) {
+                return columns.map(function(i) { return row[i] == null ? '' : row[i]; });
+            });
+        }
+
         // 비어 있는 가격 행과 투자금 열을 표시 옵션에 따라 제외합니다.
         function getVisibleTableData(data) {
             if (!data || !data.length) return data;
+            data = getInvestmentFilteredTableData(getAreaFilteredTableData(data));
+            if (data[0].length === 1) return [data[0]];
             if ($('input[name="emptyItems"]:checked').val() === 'show') return data;
 
             var occupiedColumns = [0];
@@ -530,7 +708,7 @@
         }
 
         function refreshTableVisibility() {
-            if (currentTableData) renderTable(currentTableData);
+            if (currentTableData) renderTable(getActiveTableData());
         }
 
         // 과거 사용하던 가격대별 팔레트 (매매가 기준, 억원)
@@ -562,6 +740,11 @@
             if (!contentsArr || contentsArr.length === 0) {
                 html = "<p style='font-size:13px; color:#6b7280;'>표시할 데이터가 없습니다.</p>";
                 $('#resultArea').html(html);
+                return;
+            }
+
+            if (contentsArr[0].length === 1) {
+                $('#resultArea').html('<p class="hint-text">투자금 범위를 하나 이상 선택해 주세요.</p>');
                 return;
             }
 
@@ -617,7 +800,14 @@
                 alert("다운로드할 데이터가 없습니다.");
                 return;
             }
-            downloadCSV(getVisibleTableData(currentTableData), currentFileName);
+            var visible = getVisibleTableData(getActiveTableData());
+            if (!visible || !visible.length || visible[0].length < 2) {
+                alert('투자금 범위를 하나 이상 선택해 주세요.');
+                return;
+            }
+            var suffix = selectedAreaType === 'all' ? '' : '_' + selectedAreaType;
+            if (investmentViewMode === 'detail') suffix += '_상세';
+            downloadCSV(visible, currentFileName + suffix);
         }
 
         // 화면과 동일한 색상/서식을 실제 XLSX 셀 스타일로 저장합니다.
@@ -727,6 +917,14 @@
                 <span class="hint-text">빈 항목</span>
                 <label><input type="radio" name="emptyItems" value="show" onchange="refreshTableVisibility()"> 없는 항목 표시</label>
                 <label><input type="radio" name="emptyItems" value="hide" checked onchange="refreshTableVisibility()"> 없는 항목 표시안함</label>
+            </div>
+
+            <div id="areaTypeOptions" class="option-row" style="display:none" aria-label="조회된 면적 유형 선택"></div>
+            <div id="investmentOptions" class="option-row investment-options" style="display:none" aria-label="투자금 범위 선택"></div>
+            <div id="investmentViewModeOptions" class="option-row" style="display:none" aria-label="투자금 보기 방식">
+                <span class="hint-text">투자금 보기 방식</span>
+                <label><input type="radio" name="investmentViewMode" value="basic" checked onchange="changeInvestmentViewMode(this.value)"> 기본</label>
+                <label><input type="radio" name="investmentViewMode" value="detail" onchange="changeInvestmentViewMode(this.value)"> 상세 (0.1억 단위)</label>
             </div>
 
             <div class="hint-text">엑셀 형식: 매매가 / 전세가 / 라벨 (3열)</div>
