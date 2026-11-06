@@ -798,8 +798,6 @@
         #metroRegionMap .metro-gtx-badge{font-size:10px;font-weight:800;color:#fff;border-radius:4px;padding:2px 4px;line-height:1.2}
         #metroRegionMap .metro-gtx-badge.planned{opacity:.7;border:1px dashed #fff}
         #metroRegionMap .metro-gtx-station .metro-station-name{border-width:2px}
-        .metro-gtx-guide{color:#475569;font-size:11px;line-height:1.6;margin:3px 0 8px}
-        .metro-gtx-guide b{color:#0f172a}
         .metro-line-dot{width:11px;height:11px;border-radius:3px;display:inline-block}
         .metro-map-key{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;font-size:12px}
         .metro-map-key span{display:inline-flex;align-items:center;gap:5px;background:#f8fafc;padding:3px 7px;border:1px solid #e2e8f0;border-radius:20px}
@@ -1603,12 +1601,6 @@
                     <div><label for="metroMapLine">호선</label><select id="metroMapLine"><option value="">전체 호선</option></select></div>
                     <div class="map-query-action"><button type="button" id="btnMetroMapSearch" class="btn-search">조회</button></div>
                 </div>
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;font-size:12px;color:#475569">
-                    <label for="metroLocalStationFile" style="margin:0">역 좌표 파일 직접 선택(선택)</label>
-                    <input type="file" id="metroLocalStationFile" accept=".json,.json5,.csv" style="width:auto;max-width:270px;font-size:11px" />
-                    <span>기본은 온라인 정적 목록을 읽고, 파일을 선택하면 해당 좌표를 우선 사용합니다.</span>
-                </div>
-                <div class="metro-gtx-guide"><b>GTX-A · B · C 포함</b> · A 일부 역 운영 중 / B·C 계획·공사 중 · 점선은 미개통 구간의 참고 연결선 · GTX 승하차는 원본 CSV에 실제 수치가 있을 때만 표시</div>
                 <div id="metroLineCheckboxes" class="metro-lines-filter" aria-label="지도에 표시할 호선"><strong>호선 표시</strong><span>역 위치 데이터 로딩 후 자동 표시됩니다.</span></div>
                 <div class="metro-visual-controls" aria-label="지도 표시 옵션">
                     <strong>지도 표시</strong>
@@ -2294,15 +2286,6 @@
      }).catch(e=>{kakaoReadyPromise=null;throw e;});return kakaoReadyPromise;
    }
    $id('metroMapView').addEventListener('click',showMap);$id('metroTableView').addEventListener('click',showTable);
-   $id('metroLocalStationFile').addEventListener('change',async ev=>{
-     const file=ev.target.files?.[0];if(!file)return;
-     try{
-       const content=await file.text();
-       const rows=file.name.toLowerCase().endsWith('.csv')?parseCsvStations(content):parseStationList(content);
-       if(!rows.length)throw new Error('유효한 역 좌표가 없습니다.');
-       manualStations=rows;setStatus('직접 선택한 역 좌표 '+rows.length+'곳을 불러왔습니다.');renderFromSelectors();
-     }catch(e){setStatus('역 좌표 파일 오류: '+e.message,true);}
-   });
    $id('metroShowBoundaryLines').addEventListener('change',()=>{refreshBoundaryVisibility();});
    $id('metroShowStationNames').addEventListener('change',ev=>{
      $id('metroRegionMap').classList.toggle('metro-hide-station-names',!ev.target.checked);
