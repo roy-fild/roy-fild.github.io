@@ -1891,7 +1891,13 @@
    }
    const b=geoBounds(features);if(b)map.setBounds(b);
  }
- function lineColor(line){let x=String(line||'').replace(/\s/g,'');if(x.includes('공항철도'))return COLORS['공항철도'];if(x.startsWith('GTX-'))return COLORS[x]||'#64748b';let m=x.match(/(\d+)호선/);if(activeCity==='seoul'&&m)return COLORS[m[1]+'호선']||'#64748b';if(m)return COLORS[cityState[activeCity].name+' '+m[1]+'호선']||COLORS[m[1]+'호선']||'#64748b';return Object.keys(COLORS).find(k=>norm(k)===norm(line))?COLORS[Object.keys(COLORS).find(k=>norm(k)===norm(line))]:'#64748b';}
+ function lineColor(line){
+   const key=normLineKey(line);
+   if(key.startsWith('수도권:'))return COLORS[key.slice(4)]||'#64748b';
+   if(COLORS[key])return COLORS[key];
+   const v=String(line||'').trim();
+   return COLORS[v]||'#64748b';
+ }
  function matchStationRows(name,all){const key=norm(name);return all.filter(r=>norm(r[state().stationField])===key);}
  function monthlyRows(){const st=state(),month=$id('metroMapMonth').value,line=$id('metroMapLine').value;if(!st.loaded||!month)return [];
    return st.data.filter(r=>String(r[st.monthField])===month&&(!line||String(r[st.lineField])===line));}
@@ -2021,7 +2027,19 @@
  // CSV/정적 역 데이터에는 정식 역 순서와 선로 형상이 없으므로, 강조선은 근접 역 간 참고 연결입니다.
  function normLineKey(v){
    let s=norm(v).replace(/^(서울|부산|대구|대전)(광역시|도시철도)?/,'');
-   if(s.includes('공항철도'))return '공항철도';
+   if(activeCity==='seoul'){
+     // 원본 CSV는 철도 구간명으로 분리되어 있지만 지도는 통합 노선명을 사용함.
+     // 단, 정확히 알려진 노선명만 변환하며 다른 노선을 임의 합산하지 않음.
+     const aliases={
+       '경부선':'수도권:1호선','경인선':'수도권:1호선','경원선':'수도권:1호선','장항선':'수도권:1호선',
+       '일산선':'수도권:3호선','과천선':'수도권:4호선','안산선':'수도권:4호선',
+       '경의선':'경의중앙선','중앙선':'경의중앙선',
+       '수인선':'수인분당선','분당선':'수인분당선',
+       '9호선2~3단계':'수도권:9호선'
+     };
+     if(aliases[s])return aliases[s];
+     if(s.includes('공항철도'))return '공항철도';
+   }
    if(s.startsWith('GTX-'))return s;
    const m=s.match(/(\d+)호선/);
    return m ? (activeCity==='seoul'?'수도권:':activeCity+':')+m[1]+'호선' : s;
@@ -2149,14 +2167,14 @@
  function availableStationLines(stations){
    const st=state(),byName=new Map();
    for(const r of monthlyRows()){
-     const key=norm(r[st.stationField]);
+     const key=canonicalName(r[st.stationField]);
      if(!byName.has(key))byName.set(key,[]);
      byName.get(key).push(r);
    }
    const found=new Map();
    for(const x of stations){
      if(!containedInSelected(x.lat,x.lng))continue;
-     const name=norm(x.tags['name:ko']||x.tags.name_ko||x.tags.name||'');
+     const name=canonicalName(x.tags['name:ko']||x.tags.name_ko||x.tags.name||'');
      const csv=byName.get(name)||[];
      const candidates=(x.lines||[]).filter(label=>validatedLineLabel(name,label));
      const matched=csv.filter(r=>validatedLineLabel(name,r[st.lineField])&&(!candidates.length||candidates.some(l=>normLineKey(l)===normLineKey(r[st.lineField]))));
@@ -2211,23 +2229,34 @@
    resetRoute();hideBubble();stationLayer.clearLayers();const st=state(),rows=monthlyRows(),byName=new Map();
    for(const r of rows){const k=norm(r[st.stationField]);if(!byName.has(k))byName.set(k,[]);byName.get(k).push(r);}
    let found=0,matched=0,used=new Set(),lset=new Map();
+   const matchedCSVKeys=new Set();
    const selectedLine=$id('metroMapLine').value;
    for(const x of stations){
      if(!containedInSelected(x.lat,x.lng))continue;
-     const name=x.tags['name:ko']||x.tags.name_ko||x.tags.name||'',key=norm(name);
+     const name=x.tags['name:ko']||x.tags.name_ko||x.tags.name||'',key=canonicalName(name);
      const poskey=key+':'+Math.round(x.lat*10000)+':'+Math.round(x.lng*10000);
      if(used.has(poskey))continue;
      const csvRows=(byName.get(key)||[]).filter(r=>validatedLineLabel(name,r[st.lineField]));
      const candidateLines=(x.lines||[]).filter(label=>validatedLineLabel(name,label));
      if((x.lines||[]).length && !candidateLines.length && !csvRows.length)continue;
-     const filtered=csvRows.filter(r=>!candidateLines.length||candidateLines.some(line=>norm(line)===norm(r[st.lineField])));
-     // 공개 역 이름과 호선 표기의 차이는 지나치게 느슨하게 매칭하지 않는다.
-     const mr=filtered.length?filtered:(!candidateLines.length?csvRows:[]);
-     if(selectedLine && !mr.length && candidateLines.length && !candidateLines.some(l=>norm(l)===norm(selectedLine)))continue;
+     const candidateKeys=new Set(candidateLines.map(normLineKey));
+     // 환승역의 다른 호선 인원을 섞지 않도록 역명 + 표준화한 호선을 동시에 확인한다.
+     const mr=csvRows.filter(r=>candidateKeys.has(normLineKey(r[st.lineField])));
+     // 원본 좌표에 호선 정보가 없는 역은, 정확히 하나의 CSV 역-호선 조합일 때만 연결한다.
+     // 복수 노선이면 추측 매칭 대신 미매칭으로 남겨 정확도를 우선한다.
+     if(!candidateKeys.size && csvRows.length===1 && !x.gtxStatuses)mr.push(csvRows[0]);
+     if(selectedLine && !mr.some(r=>r[st.lineField]===selectedLine)&&
+        !candidateLines.some(l=>normLineKey(l)===normLineKey(selectedLine)))continue;
      const visibilityLines=[...mr.map(r=>String(r[st.lineField]||'')),...candidateLines];
      if(!visibilityLines.some(l=>mapCheckedLineKeys.has(normLineKey(l))))continue;
      used.add(poskey);found++;
-     if(mr.length){matched++;for(const r of mr)lset.set(String(r[st.lineField]),lineColor(r[st.lineField]));}
+     if(mr.length){
+       matched++;
+       for(const r of mr){
+         lset.set(String(r[st.lineField]),lineColor(r[st.lineField]));
+         matchedCSVKeys.add([r[st.monthField],r[st.lineField],r[st.stationField]].join('|'));
+       }
+     }
      const shownGTX=candidateLines.filter(l=>String(l).startsWith('GTX-')&&mapCheckedLineKeys.has(normLineKey(l)));
      const visibleChecked=visibilityLines.find(l=>mapCheckedLineKeys.has(normLineKey(l)));
      const line=shownGTX.length?shownGTX[0]:(visibleChecked||'');
@@ -2245,7 +2274,7 @@
    }
    $id('metroMapLegend').innerHTML=[...lset].sort((a,b)=>a[0].localeCompare(b[0],'ko')).map(([line,color])=>'<span><i style="background:'+color+'"></i>'+esc(line)+'</span>').join('');
    highlightRoute();
-   return {found,matched};
+   return {found,matched,matchedCSV:matchedCSVKeys.size,monthlyCSV:rows.length};
  }
  async function redraw(){if(!mapVisible)return;let token=++latestRun;setMapLoading(true,'지도 데이터 로딩중…');try{
    if(!admin.length){setStatus('행정동 경계 데이터 다운로드 중… (처음 한 번 약 33MB)');setMapLoading(true,'행정동 경계 데이터 로딩중…');await getAdmin();if(token!==latestRun)return;populateSido();}
@@ -2262,7 +2291,7 @@
    mapStationCache=arr;
    refreshLineCheckboxes(arr);
    let result=drawStops(arr);
-   setStatus(sido+(gu?' '+gu:'')+($id('metroMapDong').value?' '+$id('metroMapDong').value:'')+' · 지도상 역 '+result.found+'곳 · CSV 매칭 '+result.matched+'곳.'+(isNationwide()?' 전국보기는 전국 역 좌표를 표시하며 승하차 실적은 현재 선택 도시의 CSV 기준입니다.':'')+(result.found&&!result.matched?' (역명 표기/데이터 범위를 확인해 주세요.)':''));
+   setStatus(sido+(gu?' '+gu:'')+($id('metroMapDong').value?' '+$id('metroMapDong').value:'')+' · 지도상 역 '+result.found+'곳 · 승하차 연결 역 '+result.matched+'곳 (CSV 행 '+result.matchedCSV+'건).'+(isNationwide()?' 전국보기는 전국 역 좌표를 표시하며 승하차 실적은 현재 선택 도시의 CSV 기준입니다.':'')+(result.found&&!result.matched?' (역명 표기/데이터 범위를 확인해 주세요.)':''));
  }catch(e){console.error(e);if(token===latestRun)setStatus('지도 데이터 로딩 오류: '+e.message,true);}
  finally{if(token===latestRun)setMapLoading(false);}}
  function renderFromSelectors(){if(!mapVisible)return;clearTimeout(window._metroRedrawTimer);window._metroRedrawTimer=setTimeout(redraw,140);}
