@@ -1864,14 +1864,61 @@
      labelLayer.add(ov);
    }
  }
+ // 전국보기에서도 경계선 토글이 동작하도록 지도 레벨에 맞춰 경계를 그린다.
+ // 많은 행정동 다각형을 개별 오버레이로 만드는 대신 묶어서 렌더링한다.
+ let nationwideBoundaryCache=null;
+ function simplifiedRing(ring,step){
+   if(!Array.isArray(ring)||ring.length<3)return [];
+   const points=[];
+   let prev=null;
+   for(const c of ring){
+     if(!Array.isArray(c)||c.length<2)continue;
+     const x=Number(c[0]),y=Number(c[1]);
+     if(!Number.isFinite(x)||!Number.isFinite(y))continue;
+     if(!prev||Math.abs(x-prev[0])>=step||Math.abs(y-prev[1])>=step){points.push([x,y]);prev=[x,y];}
+   }
+   if(points.length<3)return [];
+   // 폐합 링의 끝점 보전
+   if(points[0][0]!==points.at(-1)[0]||points[0][1]!==points.at(-1)[1])points.push(points[0]);
+   return points.map(c=>new kakao.maps.LatLng(c[1],c[0]));
+ }
+ function nationwideBoundaryPaths(){
+   if(nationwideBoundaryCache)return nationwideBoundaryCache;
+   const all=[];
+   for(const entry of admin){
+     const g=entry.feature?.geometry;
+     if(!g)continue;
+     const polygons=g.type==='Polygon'?[g.coordinates]:g.type==='MultiPolygon'?g.coordinates:[];
+     for(const polygon of polygons){
+       // 전국 축척에서 과도하게 세밀한 곡선 및 작은 도서는 간소화
+       const outer=simplifiedRing(polygon[0],0.006);
+       if(outer.length>=4)all.push(outer);
+     }
+   }
+   nationwideBoundaryCache=all;
+   return all;
+ }
+ function drawNationwideBoundaries(){
+   const paths=nationwideBoundaryPaths();
+   // 여러 다각형을 묶어 SDK 객체 수를 줄임 (수천 개별 오버레이 생성 방지)
+   for(let i=0;i<paths.length;i+=70){
+     const batch=paths.slice(i,i+70);
+     areaLayer.add(new kakao.maps.Polygon({map,path:batch,strokeWeight:1.15,
+       strokeColor:'#2563eb',strokeOpacity:.52,fillColor:'#60a5fa',fillOpacity:0,zIndex:2}));
+   }
+ }
  function refreshBoundaryVisibility(){
-   if(!areaLayer||!labelLayer)return;
-   const on=$id('metroShowBoundaryLines')?.checked!==false;
+   if(!map||!areaLayer||!labelLayer)return;
    areaLayer.clearLayers();
    labelLayer.clearLayers();
-   if(on&&selectedFeatures.length){
-     for(const f of selectedFeatures)addGeoPolygon(f,areaLayer);
-     drawRegionLabels();
+   if($id('metroShowBoundaryLines')?.checked===false)return;
+   if(isNationwide()){
+     if(admin.length)drawNationwideBoundaries();
+   }else{
+     // 시도/시군구/읍면동 선택에 맞는 경계를 최신 상태로 재계산
+     const features=selectedRegion();
+     for(const f of features)addGeoPolygon(f,areaLayer);
+     if(features.length)drawRegionLabels();
    }
  }
  function initMap(){
@@ -2291,7 +2338,7 @@
    mapStationCache=arr;
    refreshLineCheckboxes(arr);
    let result=drawStops(arr);
-   setStatus(sido+(gu?' '+gu:'')+($id('metroMapDong').value?' '+$id('metroMapDong').value:'')+' · 지도상 역 '+result.found+'곳 · 승하차 연결 역 '+result.matched+'곳 (CSV 행 '+result.matchedCSV+'건).'+(isNationwide()?' 전국보기는 전국 역 좌표를 표시하며 승하차 실적은 현재 선택 도시의 CSV 기준입니다.':'')+(result.found&&!result.matched?' (역명 표기/데이터 범위를 확인해 주세요.)':''));
+   setStatus(sido+(gu?' '+gu:'')+($id('metroMapDong').value?' '+$id('metroMapDong').value:'')+' · 지도상 역 '+result.found+'곳 · 승하차 연결 역 '+result.matched+'곳 (CSV 행 '+result.matchedCSV+'건).'+(isNationwide()?' 전국보기는 전국 역·행정구역 경계를 표시하며 승하차 실적은 현재 선택 도시의 CSV 기준입니다.':'')+(result.found&&!result.matched?' (역명 표기/데이터 범위를 확인해 주세요.)':''));
  }catch(e){console.error(e);if(token===latestRun)setStatus('지도 데이터 로딩 오류: '+e.message,true);}
  finally{if(token===latestRun)setMapLoading(false);}}
  function renderFromSelectors(){if(!mapVisible)return;clearTimeout(window._metroRedrawTimer);window._metroRedrawTimer=setTimeout(redraw,140);}
