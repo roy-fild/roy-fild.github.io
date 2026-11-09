@@ -28,6 +28,7 @@ td, th { padding: 4px 7px; border-bottom: 1px solid #e3eaf1; text-align: left; }
 th { position: sticky; top: 0; background: #e8eff6; z-index: 1; }
 .price-sort { padding: 0; border: 0; background: transparent; font-weight: inherit; }
 .price-sort::after { content: attr(data-arrow); margin-left: 4px; color: #15554b; }
+.complex-link { color: #15554b; text-underline-offset: 2px; }
 td.num { text-align: right; font-variant-numeric: tabular-nums; }
 td.active { background: #e5f4ee; color: #154b3d; font-weight: 700; }
 td.description { white-space: normal; min-width: 160px; max-width: 350px; overflow-wrap: anywhere; }
@@ -185,6 +186,7 @@ function parseWorkbook(workbook, file, sheetUtils) {
     const units = column('세대','세대수');
     const type = column('타입');
     const layout = column('유형');
+    const sizeKey = column('key','KEY','szKey');
     const saleCount = column('매','매매건수','매매개수');
     const rentCount = column('전','전세건수','전세개수');
     const saleFloor = column('매/층','매매층','매매/층');
@@ -197,6 +199,7 @@ function parseWorkbook(workbook, file, sheetUtils) {
       if (salePrice === null && rentPrice === null) continue;
       rows.push({
         file, region:rowRegion(file.key, String(row[district])), district:row[district],
+        complexId:String(row[id]).trim(), sizeKey:String(row[sizeKey] ?? '').trim(),
         name:row[name], dong:row[dong], year:row[year], units:row[units],
         type:row[type], layout:String(row[layout] ?? '').trim(),
         saleFloor:row[saleFloor], rentFloor:row[rentFloor], description:row[description],
@@ -234,6 +237,16 @@ function rowMatches(row, allowed, metric, low, high) {
   return (!allowed || allowed.includes(row.region)) && value !== null && value >= low && value < high;
 }
 
+function complexUrl(item) {
+  const url = new URL('https://fin.land.naver.com/complexes/' + encodeURIComponent(item.complexId));
+  url.search = new URLSearchParams({
+    tradeTypes:'A1', sortingType:'낮은가격순', tab:'article',
+    articleSortingType:'price_asc', articleTradeTypes:'A1'
+  });
+  if (item.sizeKey) url.searchParams.set('articlePyeongTypeNumbers', item.sizeKey);
+  return url.href;
+}
+
 function render() {
   const pages = Math.ceil(matches.length / pageSize);
   const body = $('tbody').empty();
@@ -245,8 +258,13 @@ function render() {
   $('#next').prop('disabled', page + 1 >= pages);
   for (const item of matches.slice(page * pageSize, (page + 1) * pageSize)) {
     const row = $('<tr>');
-    for (const value of [regionLabels[item.region], item.district, item.dong,
-      item.name, item.year, item.units, item.type, item.layout]) {
+    for (const value of [regionLabels[item.region], item.district, item.dong]) {
+      row.append($('<td>').text(value ?? ''));
+    }
+    row.append($('<td>').append($('<a>', {
+      class:'complex-link', href:complexUrl(item), target:'_blank', rel:'noopener', text:item.name
+    })));
+    for (const value of [item.year, item.units, item.type, item.layout]) {
       row.append($('<td>').text(value ?? ''));
     }
     for (const metric of Object.keys(metricLabels)) {
