@@ -5,11 +5,13 @@ import java.io.ByteArrayInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.HttpURLConnection;
+import java.net.SocketException;
 import java.net.URI;
 import java.net.URL;
 import java.net.http.HttpClient;
@@ -88,15 +90,15 @@ public class NaverLikeBrowser {
     private static boolean warmupAttempted;
 
     // 한 번만 쿠키 초기화를 시도하고, 준비 요청이 지연돼도 실제 조회를 시도한다.
-    static void warmup() throws java.io.IOException, InterruptedException {
+    static void warmup() throws InterruptedException {
         if (warmupAttempted) return;
         warmupAttempted = true;
         HttpRequest request = base("https://fin.land.naver.com/")
                 .timeout(Duration.ofSeconds(8)).GET().build();
         try {
             client.send(request, HttpResponse.BodyHandlers.discarding());
-        } catch (HttpTimeoutException e) {
-            log.warn("네이버 준비 요청 시간 초과. 단지 상세 조회를 계속합니다.");
+        } catch (IOException e) {
+            log.warn("네이버 준비 요청 실패. 단지 상세 조회를 계속합니다: {}", e.toString());
         }
     }
 
@@ -268,7 +270,7 @@ public class NaverLikeBrowser {
 //	                nvl(info.dealCount), nvl(info.leaseCount)));
 
 	    } catch (Exception e) {
-	        e.printStackTrace();
+	        throw new IllegalStateException("단지 기본정보 수집 실패: " + id, e);
 	    }
 	}
 
@@ -762,16 +764,19 @@ public class NaverLikeBrowser {
 	    }
 	}
 
-	/** 시간 초과 및 429/5xx 재시도 (Retry-After 존중 + 지수 백오프 + 지터) */
+	/** 연결 오류, 시간 초과 및 429/5xx 재시도 (Retry-After 존중 + 지수 백오프 + 지터) */
 	private static HttpResponse<String> sendWithRetry(HttpRequest req, int maxRetry) throws Exception {
 	    long base = 1200L;
 	    for (int attempt = 0; attempt <= maxRetry; attempt++) {
 	        HttpResponse<String> res;
             try {
                 res = client.send(req, HttpResponse.BodyHandlers.ofString());
-            } catch (HttpTimeoutException e) {
-                if (attempt == maxRetry) throw e;
-                log.warn("네이버 조회 시간 초과. 재시도 {}/{}: {}", attempt + 1, maxRetry, req.uri());
+            } catch (IOException e) {
+                boolean retryable = e instanceof HttpTimeoutException
+                        || e instanceof SocketException || e.getCause() instanceof SocketException;
+                if (!retryable || attempt == maxRetry) throw e;
+                log.warn("네이버 연결 오류. 재시도 {}/{}: {} ({})",
+                        attempt + 1, maxRetry, req.uri(), e.toString());
                 Thread.sleep(base * (1L << attempt));
                 continue;
             }
