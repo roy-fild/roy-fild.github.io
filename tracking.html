@@ -9,421 +9,138 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
-         :root {
-            --thead-h: 0px;
-            /* JS에서 동적으로 계산해서 채움 */
-            --bg: #f5f5f5;
-            --text: #73685d;
-            --thead: #73685d;
-            --thead-text: #fff;
-            --radius: 4px;
-            /* 둥근 정도도 살짝 줄임 */
-            --shadow: 0 1px 3px rgba(0, 0, 0, .2);
-            --toolbar-h: 30px;
-            /* 툴바 높이 더 축소 */
+        :root {
+            color-scheme: light;
+            --canvas: #eef3f8;
+            --surface: #fff;
+            --ink: #172b40;
+            --muted: #52677b;
+            --line: #d7e2eb;
+            --accent: #15554b;
         }
-        
-        * {
-            box-sizing: border-box
-        }
-        
-        html,
+
+        * { box-sizing: border-box; }
+
         body {
-            height: 100%
-        }
-        
-        body {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            height: 100vh;
+            height: 100dvh;
             margin: 0;
-            padding: .35rem;
-            /* .5rem → .35rem */
-            background: var(--bg);
-            font-size: .85rem;
-            /* 전체 기본 폰트도 약간 축소 */
+            padding: 8px;
+            background: var(--canvas);
+            color: var(--ink);
+            font: 13px/1.4 system-ui, sans-serif;
         }
-        
-        #loadingBar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 5px;
-            background: #f3f3f3;
-            z-index: 9999
-        }
-        
-        #loadingProgress {
-            height: 100%;
-            width: 0;
-            background: #4caf50;
-            transition: width .4s ease
-        }
-        /* 버튼 색상 기존 유지 */
-        
-        .red_btn {
-            background: red;
-            color: #e5e5e5
-        }
-        
-        .orange_btn {
-            background: #FFA500
-        }
-        
-        .lightSalmon_btn {
-            background: lightsalmon;
-        }
-        
-        .yellow_btn {
-            background: yellow
-        }
-        
-        .green_btn {
-            background: green;
-            color: #e5e5e5
-        }
-        
-        .skyblue_btn {
-            background: skyblue
-        }
-        
-        .purple_btn {
-            background: rgb(128, 0, 128);
-            color: #e5e5e5
-        }
-        
-        .darkslategrey_btn {
-            background: rgb(47, 79, 79);
-            color: #e5e5e5
-        }
-        
-        .darkgoldenrod_btn {
-            background: rgb(233, 172, 17)
-        }
-        
-        .olivedrab_btn {
-            background: rgb(107, 142, 35);
-            color: #e5e5e5
-        }
-        
-        .ligthseagreen_btn {
-            background: rgb(32, 178, 170)
-        }
-        
-        .grey_btn {
-            background: rgb(128, 128, 128);
-            color: #fff
-        }
-        
-        .table-badges {
-            position: relative;
-            margin: 0 0 6px 4px;
-            /* 아래쪽 여백이 헤더와 table 사이 간격 */
+
+        .masthead, .excel-container, .btn-row, .left-span, .right-btns, .table-badges {
             display: flex;
             align-items: center;
-            gap: .4rem;
-            pointer-events: none;
+            flex-wrap: wrap;
+            gap: 5px 8px;
         }
-        
-        button {
-            border: 0;
-            padding: .25rem .4rem;
-            /* .35 .5 → .25 .4 */
-            border-radius: 4px;
-            /* 6px → 4px */
-            margin: 1px;
-            font-size: .8rem;
-            /* .85rem → .8rem */
+
+        .masthead { min-height: 28px; padding: 0 4px; gap: 4px 10px; }
+        .masthead h1 { margin: 0; font-size: 21px; line-height: 1.2; letter-spacing: -.045em; }
+        .masthead span { color: var(--muted); font-size: 12px; }
+
+        #loadingBar { position: fixed; inset: 0 0 auto; height: 4px; z-index: 10; }
+        #loadingProgress { width: 0; height: 100%; background: #24a28b; transition: width .4s ease; }
+
+        #btn-wrapper, .excel-container, .table-wrap {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 9px;
         }
-        
-        button:active {
-            transform: translateY(1px)
-        }
-        
-        .btn-row {
-            gap: .2rem;
-            /* .25rem → .2rem */
-            margin: .2rem 0 .35rem;
-            /* .25rem 0 .5rem → .2rem 0 .35rem */
-        }
-        
-        .excel-container {
-            display: flex;
-            /* 추가 */
-            align-items: center;
-            /* 추가 */
-            justify-content: space-between;
-            /* 추가 */
-            flex-wrap: nowrap;
-            /* 추가: 줄바꿈 방지 */
-            gap: .35rem;
-            padding: .2rem .2rem;
-            min-height: var(--toolbar-h);
+
+        #btn-wrapper { padding: 3px 8px; }
+        .btn-row { padding: 4px 0; gap: 4px; }
+        .btn-row + .btn-row { border-top: 1px solid #edf2f6; }
+        .btn-row > b:first-child { min-width: 76px; color: var(--ink); font-size: 12px; }
+        #div_metro > b:not(:first-child) { margin-left: 4px; color: var(--muted); font-size: 11px; }
+        .btn-row label, .filter-row label { display: inline-flex; align-items: center; gap: 4px; }
+
+        button, input { font: inherit; }
+        button, .btn-row label {
+            padding: 4px 8px;
+            border: 1px solid var(--chip-line, var(--line));
+            border-radius: 6px;
+            background: var(--chip-bg, #f8fafc);
+            color: var(--chip-ink, var(--ink));
+            cursor: pointer;
             white-space: nowrap;
-            /* 추가: 내부 요소 줄바꿈 방지 */
         }
-        
-        .left-span {
-            flex: 1;
-            /* 추가: 오른쪽 버튼 밀어내기 */
-            min-width: 0;
-            /* 추가: ellipsis 작동 */
-            overflow: hidden;
-            /* 추가 */
-            text-overflow: ellipsis;
-            /* 추가 */
-            white-space: nowrap;
-            /* 추가 */
-            font-size: .95rem;
-            color: #333;
+        button:hover { border-color: currentColor; }
+        button:active { transform: translateY(1px); }
+        :is(button, input, a):focus-visible { outline: 2px solid #187b6d; outline-offset: 2px; }
+        input[type=radio], input[type=checkbox] { accent-color: var(--accent); margin: 0; }
+        .btn-row label:has(:checked) { background: #e8f4ef; border-color: #9ac9bb; color: #124d43; }
+        .red_btn { --chip-bg: #fceced; --chip-ink: #8f3542; }
+        .orange_btn { --chip-bg: #fff0e1; --chip-ink: #864c23; }
+        .yellow_btn { --chip-bg: #fff6d7; --chip-ink: #6c5313; }
+        .green_btn, .olivedrab_btn { --chip-bg: #e9f4e9; --chip-ink: #2c6142; }
+        .skyblue_btn { --chip-bg: #e9f3fc; --chip-ink: #285b82; }
+        .lightSalmon_btn, .ligthseagreen_btn { --chip-bg: #e8f4f1; --chip-ink: #18594d; }
+        .purple_btn { --chip-bg: #f0ebfa; --chip-ink: #594181; }
+        .darkslategrey_btn { --chip-bg: #edf2fa; --chip-ink: #345380; }
+        .darkgoldenrod_btn { --chip-bg: #faf0dd; --chip-ink: #735118; }
+
+        .excel-container { padding: 5px 8px; }
+        .right-btns { margin-left: auto; }
+        #excelDownload { --chip-bg: #15554b; --chip-line: #15554b; --chip-ink: white; font-weight: 650; }
+        .table-badges { gap: 4px; color: var(--muted); font-size: 12px; }
+        #aptCntBadge, #update { border-radius: 5px; padding: 3px 7px; background: #eff4f8; }
+        #aptCntBadge { color: #15554b; background: #e8f4ef; font-weight: 700; }
+        .table-badges :empty { display: none; }
+
+        .table-wrap { flex: 1; min-height: 140px; width: 100%; overflow: auto; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; white-space: nowrap; }
+        thead { position: sticky; top: 0; z-index: 2; background: #e5eef6; }
+        th, td { padding: 4px 7px; border-bottom: 1px solid #e6edf3; text-align: left; }
+        th { font-size: 12px; }
+        td { background: #fff; }
+        tbody tr:nth-child(even) td { background: #f7fafd; }
+        tbody tr:hover td { background: #edf6f5; }
+        tbody td:nth-child(n+5):nth-child(-n+15), tbody td:nth-child(n+19) {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
         }
-        
-        .right-btns {
-            margin-left: auto;
-            /* 추가: 우측 정렬 */
-            display: flex;
-            /* 추가 */
-            align-items: center;
-            /* 추가 */
-            gap: .35rem;
-            /* 추가 */
-            white-space: nowrap;
-            /* 추가 */
+        thead tr:not(.filter-row) th:nth-child(n+10):nth-child(-n+12) { background: #d7e9e8; }
+        tbody td:nth-child(10), tbody td:nth-child(11), tbody td:nth-child(12) {
+            color: #154f46;
+            font-weight: 700;
         }
-        
-        .table-wrap {
+        tbody td:nth-child(12) { border-left: 2px solid #d9eae7; }
+        tbody td:nth-child(4), tbody td:nth-child(18) {
+            min-width: 125px;
+            max-width: 270px;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+        tbody a { color: #1c6559; text-underline-offset: 2px; }
+        tbody td:first-child a { color: var(--muted); }
+        tbody td:nth-child(4) a { font-weight: 650; }
+        .filter-row { background: #f1f6fa; }
+        thead input:not([type=checkbox]) {
             width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
+            min-width: 44px;
+            padding: 3px 4px;
+            border: 1px solid #aebfce;
+            border-radius: 5px;
+            color: var(--ink);
             background: #fff;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
         }
-        
-        table {
-            min-width: 1040px;
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        thead {
-            position: sticky;
-            top: 0;
-            z-index: 5;
-            background: var(--thead);
-            color: var(--thead-text);
-        }
-        
-        th,
-        td {
-            padding: .35rem .35rem;
-            /* .5 .45 → .35 .35 */
-            font-size: .82rem;
-            /* .93rem → .82rem */
-        }
-        
-        td {
-            background: #fff;
-            color: #222
-        }
-        
-        a {
-            color: var(--text);
-            text-decoration: none
-        }
-        
-        a:hover {
-            text-decoration: underline
-        }
-        
-        thead input {
-            max-width: 140px;
-            /* 160px → 140px */
-            padding: .25rem .3rem;
-            /* .3 .35 → .25 .3 */
-            font-size: .8rem;
-            /* .88rem → .8rem */
-        }
-        
-        .table-wrap {
-            position: relative;
-            /* 배지 절대배치 기준 */
-        }
-        /* TOTAL 배지 */
-        
-        #aptCntBadge,
-        #update {
-            background: #fff;
-            border: 1px solid #e5e5e5;
-            border-radius: 12px;
-            padding: .15rem .45rem;
-            font-size: .78rem;
-            color: #555;
-            box-shadow: var(--shadow);
-        }
-        
+        .empty-results { display: none; padding: 30px 10px; color: var(--muted); text-align: center; }
+        .table-wrap:has(tbody:empty) .empty-results { display: block; }
+
         @media (max-width: 768px) {
-            body {
-                padding: .35rem;
-            }
-            /* .75rem → .5rem */
-            table {
-                min-width: 960px
-            }
-        }
-        
-        @media (max-width: 480px) {
-            table {
-                min-width: 900px
-            }
-        }
-        /* ▼ 모바일(≤768px): 겹침 방지 - 가로 스크롤 허용 + 줄바꿈 */
-        
-        @media (max-width: 768px) {
-            .table-wrap {
-                overflow-x: auto;
-                /* 필요할 때만 가로 스크롤 */
-            }
-            table {
-                min-width: 0 !important;
-                /* 강제 최소폭 제거 */
-                width: auto;
-                /* 내용에 맞게 */
-                table-layout: auto;
-                /* 글자 길이에 따라 폭 자동 */
-            }
-            th,
-            td {
-                padding: .36rem .34rem;
-                font-size: .82rem;
-                line-height: 1.3;
-                vertical-align: top;
-                white-space: nowrap;
-                /* 기본은 줄바꿈 안 함 */
-            }
-            /* 동, 단지명은 줄바꿈 허용 */
-            #tbl_aptInfo thead tr th:nth-child(3),
-            #tbl_aptInfo thead tr th:nth-child(4),
-            #tbl_aptInfo tbody tr td:nth-child(3),
-            #tbl_aptInfo tbody tr td:nth-child(4) {
-                white-space: normal;
-                word-break: keep-all;
-            }
-            /* ─ 숨길 칼럼은 그대로 유지 ─ */
-            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(1),
-            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(2),
-            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(8),
-            /*#tbl_aptInfo thead tr:not(.filter-row) th:nth-child(9),
-            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(14),
-            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(15),
-            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(16),*/
-            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(17),
-            #tbl_aptInfo thead tr:not(.filter-row) th:nth-child(18),
-            #tbl_aptInfo tbody tr td:nth-child(1),
-            #tbl_aptInfo tbody tr td:nth-child(2),
-            #tbl_aptInfo tbody tr td:nth-child(8),
-            /*#tbl_aptInfo tbody tr td:nth-child(9),
-            #tbl_aptInfo tbody tr td:nth-child(14),
-            #tbl_aptInfo tbody tr td:nth-child(15),
-            #tbl_aptInfo tbody tr td:nth-child(16),*/
-            #tbl_aptInfo tbody tr td:nth-child(17),
-            #tbl_aptInfo tbody tr td:nth-child(18) {
+            body { gap: 5px; padding: 5px; }
+            .masthead h1 { font-size: 18px; }
+            .btn-row > b:first-child { min-width: 62px; }
+            th, td { padding: 4px 5px; }
+            #tbl_aptInfo :is(th, td):is(:nth-child(1), :nth-child(2), :nth-child(8), :nth-child(17), :nth-child(18)) {
                 display: none;
-            }
-            #tbl_aptInfo thead tr.filter-row th:nth-child(1),
-            #tbl_aptInfo thead tr.filter-row th:nth-child(2),
-            #tbl_aptInfo thead tr.filter-row th:nth-child(8),
-            /*#tbl_aptInfo thead tr.filter-row th:nth-child(9),
-            #tbl_aptInfo thead tr.filter-row th:nth-child(14),
-            #tbl_aptInfo thead tr.filter-row th:nth-child(15),
-            #tbl_aptInfo thead tr.filter-row th:nth-child(16),*/
-            #tbl_aptInfo thead tr.filter-row th:nth-child(17),
-            #tbl_aptInfo thead tr.filter-row th:nth-child(18) {
-                display: none;
-            }
-            /* 동 */
-            #tbl_aptInfo thead tr th:nth-child(3),
-            #tbl_aptInfo tbody tr td:nth-child(3) {
-                width: 60px;
-                /* 기본 폭 */
-                max-width: 70px;
-                /* 상한 */
-                white-space: normal;
-                /* 줄바꿈 허용 */
-                word-break: keep-all;
-                text-align: center;
-            }
-            /* 단지명: 조금 더 좁게, 최대 2줄 */
-            #tbl_aptInfo thead tr th:nth-child(4),
-            #tbl_aptInfo tbody tr td:nth-child(4) {
-                width: 110px;
-                /* 이전보다 더 줄임 */
-                max-width: 120px;
-                white-space: normal;
-                word-break: keep-all;
-            }
-            #tbl_aptInfo tbody tr td:nth-child(4) a {
-                display: -webkit-box;
-                -webkit-line-clamp: 2;
-                /* 최대 2줄 */
-                -webkit-box-orient: vertical;
-                overflow: hidden;
-            }
-            /* 세대 */
-            #tbl_aptInfo thead tr th:nth-child(6),
-            #tbl_aptInfo tbody tr td:nth-child(6) {
-                width: 50px;
-                /* 좁게 */
-                max-width: 50px;
-                text-align: right;
-                /* 숫자 우측정렬 */
-                white-space: nowrap;
-                text-align: center;
-            }
-            /* 타입 */
-            #tbl_aptInfo thead tr th:nth-child(7),
-            #tbl_aptInfo tbody tr td:nth-child(7) {
-                width: 56px;
-                /* 더 좁게 */
-                max-width: 64px;
-                text-align: center;
-                white-space: nowrap;
-                /* 타입은 한 줄 유지 */
-            }
-            /* thead 필터 input 공통 */
-            #tbl_aptInfo thead input {
-                font-size: .75rem;
-                /* 글자 크기 살짝 축소 */
-                padding: .2rem .25rem;
-                /* 안쪽 여백 줄임 */
-            }
-            /* 동 */
-            #filterDong {
-                max-width: 60px !important;
-            }
-            /* 단지명 */
-            #filterAptNm {
-                max-width: 120px !important;
-            }
-            /* 타입 */
-            #filterSize {
-                max-width: 50px !important;
-            }
-            /* 매매가 */
-            #filterPrice {
-                max-width: 60px !important;
-            }
-            /* 차액 */
-            #filterGap {
-                max-width: 60px !important;
-            }
-            #update {
-                font-size: .65rem;
-            }
-            #aptCnt {
-                font-size: .65rem;
-            }
-            #aptCntBadge,
-            #update {
-                font-size: .7rem;
             }
         }
     </style>
@@ -433,6 +150,11 @@
     <div id="loadingBar" style="display:none;">
         <div id="loadingProgress"></div>
     </div>
+
+    <header class="masthead">
+        <h1>네이버 시세 트래킹</h1>
+        <span>지역별 아파트 시세</span>
+    </header>
 
     <div id="btn-wrapper">
         <div class="btn-row">
@@ -524,6 +246,10 @@
             <button id="btn_sort" class="grey_btn" data-no-loading="true">정렬 ▼</button>
 
         </div>
+        <div class="table-badges">
+            <div id="aptCntBadge"></div>
+            <span id="update"></span>
+        </div>
         <div class="right-btns">
             <button id="excelDownload" class="green_btn">EXCEL</button>
             <button id="btn_init" class="grey_btn" data-no-loading="true">초기화</button>
@@ -531,18 +257,12 @@
         </div>
     </div>
 
-    <div class="table-badges">
-        <div id="aptCntBadge"></div>
-        <span id="update"></span>
-    </div>
-
-
     <div id="result" class="table-wrap">
         <table id="tbl_aptInfo">
             <thead>
                 <!-- ▼ 필터 입력 행 (복구됨) -->
                 <tr class="filter-row">
-                    <th style="width:80px"><label style="display:flex;align-items:center;gap:.35rem;"></th>
+                    <th style="width:80px"></th>
                     <th></th>
                     <th><input id="filterDong" type="text" placeholder="동" style="max-width:50px;"></th>
                     <th><input id="filterAptNm" type="text" placeholder="단지명" style="max-width:130px;"></th>
@@ -600,6 +320,7 @@
             </thead>
             <tbody></tbody>
         </table>
+        <p class="empty-results">지역을 선택하면 여기에 시세가 표시됩니다.</p>
     </div>
 
     <script>
