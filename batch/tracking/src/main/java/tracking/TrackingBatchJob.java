@@ -91,7 +91,7 @@ public class TrackingBatchJob extends DefaultBatchConfiguration {
         return new StepBuilder("collectTrackingFiles", repository)
                 .tasklet((contribution, context) -> {
                     String regions = System.getenv().getOrDefault("TRACKING_REGIONS", DEFAULT_REGIONS);
-                    Path output = Path.of(System.getenv().getOrDefault("TRACKING_OUTPUT_DIR", "../../file"));
+                    Path output = Path.of(System.getenv().getOrDefault("TRACKING_OUTPUT_DIR", "../../tracking/result"));
                     String date = LocalDate.now(ZoneId.of("Asia/Seoul"))
                             .format(DateTimeFormatter.BASIC_ISO_DATE);
 
