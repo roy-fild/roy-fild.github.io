@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>아파트 시세 통합 검색</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; background: #f1f5f9; color: #162436; font: 13px/1.4 system-ui, sans-serif; }
+main { height: 100vh; height: 100dvh; display: flex; flex-direction: column; gap: 6px; padding: 6px 8px; }
+h1 { margin: 0; font-size: 21px; letter-spacing: -.04em; }
+p { margin: 0; color: #485a70; }
+.panel { background: white; border: 1px solid #d9e2ec; border-radius: 8px; padding: 6px 8px; }
+.controls, .range, .toolbar, .pager { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.controls > label, .range label { display: flex; gap: 5px; align-items: center; font-weight: 600; }
+select, input, button, #typeFilter > summary { font: inherit; border: 1px solid #a9b9cb; border-radius: 6px; padding: 4px 7px; background: white; color: inherit; }
+input[type=number] { width: 84px; }
+button, summary, #typeOptions label { cursor: pointer; }
+button.primary { background: #15554b; color: white; border-color: #15554b; font-weight: 700; }
+button:disabled { opacity: .5; cursor: default; }
+.hint { font-size: 12px; margin-top: 3px; }
+.result-panel { flex: 1; min-height: 90px; display: flex; flex-direction: column; gap: 4px; }
+.table-wrap { flex: 1; min-height: 0; overflow: auto; }
+table { border-collapse: separate; border-spacing: 0; width: 100%; white-space: nowrap; }
+td, th { padding: 4px 7px; border-bottom: 1px solid #e3eaf1; text-align: left; }
+th { position: sticky; top: 0; background: #e8eff6; z-index: 1; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.active { background: #e5f4ee; color: #154b3d; font-weight: 700; }
+td.description { white-space: normal; min-width: 160px; max-width: 350px; overflow-wrap: anywhere; }
+tr:nth-child(even) { background: #f8fafc; }
+.pager { margin-left: auto; }
+.error { color: #9b291e; }
+#typeFilter { position: relative; }
+#typeOptions { position: absolute; z-index: 3; top: calc(100% + 4px); left: 0; width: min(290px, 85vw); max-height: 34dvh; overflow: auto; background: white; border: 1px solid #a9b9cb; border-radius: 8px; padding: 8px; box-shadow: 0 4px 14px #16243626; }
+#typeOptions label { display: inline-flex; align-items: center; gap: 3px; }
+#typeOptions input { accent-color: #15554b; }
+#typeChoices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+#typeChoices label { overflow-wrap: anywhere; }
+#issues ul { max-height: 18vh; overflow: auto; margin: 4px 0; }
+@media (max-width: 620px) { #typeOptions { position: fixed; top: auto; left: 8px; } }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>아파트 시세 통합 검색</h1>
+</header>
+<form class="panel" id="search">
+<div class="controls">
+<label>지역 범위
+<select id="region">
+<option value="all">전체</option>
+<option value="capital">수도권 · 서울 / 경기</option>
+<option value="seoul">서울</option>
+<option value="gyeonggi">경기</option>
+<option value="local">지방 · 광역시 / 중소도시</option>
+<option value="metro">광역시 · 인천 포함</option>
+<option value="city">중소도시</option>
+</select></label>
+<label>가격 기준
+<select id="metric"><option value="sale">매매가</option><option value="rent">전세가</option><option value="gap">투자금</option></select>
+</label>
+<label>가격 범위
+<select id="price"><option value="all">가격 전체</option><option value="custom">직접 입력</option></select>
+</label>
+<div class="range" id="custom" hidden>
+<label>최소 (이상)<input id="min" type="number" step="any" placeholder="예: 1.2"></label>
+<label>최대 (미만)<input id="max" type="number" step="any" placeholder="예: 1.8"></label>
+</div>
+<details id="typeFilter">
+<summary id="typeSummary">유형 · 전체</summary>
+<div id="typeOptions">
+<label><input type="checkbox" id="allTypes" checked>전체 보기</label>
+<p id="typeHint" class="hint">검색 후 유형 목록이 표시됩니다.</p>
+<div id="typeChoices"></div>
+</div>
+</details>
+<button class="primary" type="submit" id="run">검색</button>
+</div>
+<p class="hint" id="rule"></p>
+
+</form>
+
+<section class="panel result-panel" aria-label="검색 결과">
+<div class="toolbar">
+<p id="status" role="status">조건을 선택하고 검색을 눌러주세요.</p>
+<label id="sortWrap" hidden>정렬 <select id="sort"><option value="low">선택 가격 낮은 순</option><option value="high">선택 가격 높은 순</option></select></label>
+<button type="button" id="download" hidden>엑셀 다운로드</button>
+<div class="pager" id="pager" hidden>
+<button type="button" id="prev">이전</button><span id="page"></span><button type="button" id="next">다음</button>
+</div>
+</div>
+<details id="issues" hidden><summary>읽지 못한 파일</summary><ul id="failures"></ul></details>
+<p class="hint" id="unclassified" hidden></p>
+<div class="table-wrap" id="results" hidden>
+<table>
+<thead><tr><th scope="col">권역</th><th scope="col">구·시</th><th scope="col">동</th><th scope="col">단지</th><th scope="col">연식</th><th scope="col">세대</th><th scope="col">타입</th><th scope="col">유형</th><th scope="col">매매가 (억)</th><th scope="col">전세가 (억)</th><th scope="col">투자금 (억)</th><th scope="col">전세가율</th><th scope="col">매매 건수</th><th scope="col">전세 건수</th><th scope="col">매매층</th><th scope="col">전세층</th><th scope="col">설명</th></tr></thead>
+<tbody></tbody>
+</table>
+</div>
+</section>
+</main>
+<script>
+'use strict';
+const baseUrl = 'https://roy-fild.github.io/tracking/result/';
+const regionKeys = {
+  seoul: 'gangnam-gu seocho-gu songpa-gu seongdong-gu gwangjin-gu yangcheon-gu jongno-jung-gu dongjak-gu yeongdeungpo-gu seong-buk-gu dongdaemun-gu seodaemun-gu gwanak-gu eunpyeong-gu jungnang-gu guro-gu',
+  gyeonggi: 'bundang-gu suji-gu giheung-gu dongtan sujeong-jungwon-gu anyang-si-dongan-gu anyang-si-manan-gu suwon-si-yeongtong-gu bu-cheon gunpo-si guri-si',
+  metro: 'yeonsu-gu bupyeong-gu busanjin-gu daegu-suseong-gu daejeon-seo-gu daejeon-yuseong-gu gwangju-buk-gu',
+  city: 'cheongju jeonju cheonan pohang-si-buk-gu'
+};
+const regionLabels = {seoul:'서울', gyeonggi:'경기', metro:'광역시', city:'중소도시', unknown:'미분류'};
+const groups = {capital:['seoul','gyeonggi'], local:['metro','city']};
+const regionByKey = new Map(Object.entries(regionKeys).flatMap(([region, keys]) =>
+  keys.split(' ').map(key => [key, region])));
+const excludedKeys = new Set(['tracking-list','tracking-jibang','case-test']);
+const metricLabels = {sale:'매매가', rent:'전세가', gap:'투자금'};
+const formatter = new Intl.NumberFormat('ko-KR', {maximumFractionDigits: 8});
+const pageSize = 100;
+const cache = new Map();
+let matches = [];
+let priceMatches = [];
+let selectedTypes = new Set();
+let fileSummary = '';
+const typeCollator = new Intl.Collator('ko-KR', {numeric:true});
+let activeMetric = 'sale';
+let page = 0;
+
+function selectFiles(names) {
+  const files = [];
+  for (const name of new Set(names)) {
+    if (typeof name !== 'string') continue;
+    const match = /^([^/\\]+)_(\d{8})\.xlsx$/i.exec(name);
+    if (match && !excludedKeys.has(match[1])) {
+      files.push({name, key:match[1], date:match[2]});
+    }
+  }
+  files.sort((a,b) => b.date.localeCompare(a.date) || a.name.localeCompare(b.name));
+  const latest = new Map();
+  for (const file of files) {
+    if (!latest.has(file.key)) latest.set(file.key, file);
+  }
+  return [...latest.values()];
+}
+
+function rowRegion(key, district) {
+  if (key === 'gwangmyeong-si-geumcheon-gu') {
+    if (district.includes('광명')) return 'gyeonggi';
+    if (district.includes('금천')) return 'seoul';
+  }
+  return regionByKey.get(key) || 'unknown';
+}
+
+function parsePrice(raw) {
+  const value = String(raw ?? '').trim().replace(/,/g, '').replace(/\s*억\s*$/, '');
+  if (!/^\+?(?:\d+(?:\.\d+)?|\.\d+)$/.test(value)) return null;
+  const price = Number(value);
+  return Number.isFinite(price) && price > 0 ? price : null;
+}
+
+function parseWorkbook(workbook, file, sheetUtils) {
+  const rows = [];
+  let validSheets = 0;
+  for (const sheetName of workbook.SheetNames) {
+    const [header = [], ...data] = sheetUtils.sheet_to_json(workbook.Sheets[sheetName], {
+      header: 1, defval: '', blankrows: false
+    });
+    const names = header.map(cell => String(cell).replace(/\s/g, ''));
+    const column = (...aliases) => names.findIndex(name => aliases.includes(name));
+    const id = column('ID','id');
+    const district = column('구','구·시','시군구');
+    const name = column('단지','단지명','아파트명');
+    const sale = column('매매가','매매');
+    const rent = column('전세가','전세');
+    if ([id,district,name,sale,rent].includes(-1)) continue;
+    validSheets++;
+    const dong = column('동');
+    const year = column('연식');
+    const units = column('세대','세대수');
+    const type = column('타입');
+    const layout = column('유형');
+    const saleCount = column('매','매매건수','매매개수');
+    const rentCount = column('전','전세건수','전세개수');
+    const saleFloor = column('매/층','매매층','매매/층');
+    const rentFloor = column('전/층','전세층','전세/층');
+    const description = column('설명','Description','description','비고');
+    for (const row of data) {
+      if (!row[id] || !row[name]) continue;
+      const salePrice = parsePrice(row[sale]);
+      const rentPrice = parsePrice(row[rent]);
+      if (salePrice === null && rentPrice === null) continue;
+      rows.push({
+        file, region:rowRegion(file.key, String(row[district])), district:row[district],
+        name:row[name], dong:row[dong], year:row[year], units:row[units],
+        type:row[type], layout:String(row[layout] ?? '').trim(),
+        saleFloor:row[saleFloor], rentFloor:row[rentFloor], description:row[description],
+        sale:salePrice, rent:rentPrice,
+        saleCount:row[saleCount], rentCount:row[rentCount],
+        rentRatio:salePrice !== null && rentPrice !== null ? rentPrice / salePrice * 100 : null,
+        gap:salePrice !== null && rentPrice !== null ? Number((salePrice-rentPrice).toFixed(8)) : null
+      });
+    }
+  }
+  if (!validSheets) throw new Error('시트에서 필수 열을 찾을 수 없습니다');
+  return rows;
+}
+
+async function loadFile(file) {
+  if (cache.has(file.name)) return cache.get(file.name);
+  const blob = await $.ajax({
+    url:baseUrl + encodeURIComponent(file.name),
+    xhrFields:{responseType:'blob'}, timeout:30000
+  });
+  const workbook = XLSX.read(await blob.arrayBuffer(), {type:'array'});
+  const rows = parseWorkbook(workbook, file, XLSX.utils);
+  cache.set(file.name, rows);
+  return rows;
+}
+
+function getBounds(price, min, max) {
+  if (price === 'all') return [-Infinity, Infinity];
+  if (price !== 'custom') return [Number(price), Number(price) + 1];
+  return [min === '' ? -Infinity : Number(min), max === '' ? Infinity : Number(max)];
+}
+
+function rowMatches(row, allowed, metric, low, high) {
+  const value = row[metric];
+  return (!allowed || allowed.includes(row.region)) && value !== null && value >= low && value < high;
+}
+
+function render() {
+  const pages = Math.ceil(matches.length / pageSize);
+  const body = $('tbody').empty();
+  $('#results, #sortWrap, #download').prop('hidden', !pages);
+  document.querySelector('#results').scrollTop = 0;
+  $('#pager').prop('hidden', pages < 2);
+  $('#page').text(pages ? `${page + 1} / ${pages} 페이지` : '');
+  $('#prev').prop('disabled', page === 0);
+  $('#next').prop('disabled', page + 1 >= pages);
+  for (const item of matches.slice(page * pageSize, (page + 1) * pageSize)) {
+    const row = $('<tr>');
+    for (const value of [regionLabels[item.region], item.district, item.dong,
+      item.name, item.year, item.units, item.type, item.layout]) {
+      row.append($('<td>').text(value ?? ''));
+    }
+    for (const metric of Object.keys(metricLabels)) {
+      row.append($('<td>').addClass('num').toggleClass('active', metric === activeMetric)
+        .text(item[metric] === null ? '—' : formatter.format(item[metric])));
+    }
+    row.append(
+      $('<td>').addClass('num').text(item.rentRatio === null ? '—' : item.rentRatio.toFixed(1) + '%'),
+      $('<td>').addClass('num').text(item.saleCount === '' ? '—' : item.saleCount ?? '—'),
+      $('<td>').addClass('num').text(item.rentCount === '' ? '—' : item.rentCount ?? '—')
+    );
+    row.append($('<td>').text(item.saleFloor || '—'), $('<td>').text(item.rentFloor || '—'),
+      $('<td>').addClass('description').text(item.description || '—'));
+    body.append(row);
+  }
+}
+
+function makeExportSheet(headers, rows) {
+  const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows.map(item => [
+    regionLabels[item.region], item.district, item.dong, item.name, item.year,
+    item.units, item.type, item.layout, item.sale, item.rent, item.gap,
+    item.rentRatio === null ? null : item.rentRatio / 100,
+    item.saleCount === '' || item.saleCount == null ? null : Number(item.saleCount),
+    item.rentCount === '' || item.rentCount == null ? null : Number(item.rentCount),
+    item.saleFloor, item.rentFloor, item.description
+  ])]);
+  const ratioColumn = headers.indexOf('전세가율');
+  for (let index = 0; index < rows.length; index++) {
+    const cell = sheet[XLSX.utils.encode_cell({r:index + 1, c:ratioColumn})];
+    if (cell) cell.z = '0.0%';
+  }
+  sheet['!cols'] = [9,18,14,32,9,9,9,9,13,13,13,12,11,11,15,15,48]
+    .map(width => ({wch:width}));
+  sheet['!autofilter'] = {ref:sheet['!ref']};
+  return sheet;
+}
+
+function downloadResults() {
+  if (!matches.length) return;
+  const headers = $('#results th').map((_, th) => th.textContent).get();
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, makeExportSheet(headers, matches), '검색 결과');
+  const date = new Intl.DateTimeFormat('sv-SE', {timeZone:'Asia/Seoul'}).format(new Date());
+  XLSX.writeFile(workbook, `아파트_시세_검색결과_${date}.xlsx`, {compression:true});
+}
+
+function typeGroup(layout) {
+  return /^\d+/.exec(layout)?.[0] ?? '';
+}
+
+function populateTypes() {
+  const types = [...new Set(priceMatches.map(row => typeGroup(row.layout)).filter(Boolean))]
+    .sort(typeCollator.compare);
+  selectedTypes = new Set(types.filter(type => selectedTypes.has(type)));
+  const choices = $('#typeChoices').empty();
+  for (const type of types) {
+    choices.append($('<label>').append(
+      $('<input>', {type:'checkbox', value:type, checked:selectedTypes.has(type)}),
+      $('<span>').text(type)
+    ));
+  }
+  $('#typeHint').prop('hidden', !!types.length).text('검색 결과에 표시할 유형이 없습니다.');
+}
+
+function applyTypes() {
+  const count = selectedTypes.size;
+  $('#allTypes').prop('checked', !count);
+  $('#typeSummary').text(count ? `유형 · ${count}개 선택` : '유형 · 전체');
+  matches = count ? priceMatches.filter(row => selectedTypes.has(typeGroup(row.layout))) : [...priceMatches];
+  $('#status').text(`${metricLabels[activeMetric]} 검색 결과 ${matches.length.toLocaleString('ko-KR')}건` + fileSummary);
+  sortResults();
+}
+
+function sortResults() {
+  const sort = $('#sort').val();
+  matches.sort((a,b) => {
+    const newest = b.file.date.localeCompare(a.file.date);
+    const difference = a[activeMetric] - b[activeMetric];
+    return (sort === 'high' ? -difference : difference) || newest;
+  });
+  page = 0;
+  render();
+}
+
+function updateRule() {
+  const price = $('#price').val();
+  $('#custom').prop('hidden', price !== 'custom');
+  const range = price === 'all' ? '선택한 가격 기준에 값이 있는 매물 전체'
+    : price === 'custom' ? '최소 이상 · 최대 미만. 한쪽을 비우면 해당 한도 없이 검색합니다.'
+    : `${price}억 이상 · ${Number(price) + 1}억 미만`;
+  $('#rule').text(range + ' / 투자금은 같은 행의 매매가 − 전세가입니다.');
+}
+
+async function runSearch() {
+  const region = $('#region').val();
+  const allowed = region === 'all' ? null : groups[region] || [region];
+  const price = $('#price').val();
+  const min = $('#min').val();
+  const max = $('#max').val();
+  const [low, high] = getBounds(price, min, max);
+  if (low >= high || (price === 'custom' && min === '' && max === '')) {
+    $('#status').addClass('error').text('범위를 입력해주세요. 최대값은 최소값보다 커야 합니다.');
+    return;
+  }
+  activeMetric = $('#metric').val();
+  $('#typeFilter').prop('open', false);
+  $('#search :input').prop('disabled', true);
+  $('#status').removeClass('error').text('파일 목록 확인 중…');
+  $('#issues, #unclassified').prop('hidden', true);
+  $('#failures').empty();
+  matches = [];
+  page = 0;
+  render();
+  try {
+    const names = await $.ajax({url:baseUrl + 'fileList.json', dataType:'json', cache:false, timeout:20000});
+    if (!Array.isArray(names)) throw new Error('Invalid file list');
+    const candidates = selectFiles(names);
+    const files = candidates.filter(file => !allowed || allowed.includes(regionByKey.get(file.key))
+      || (file.key === 'gwangmyeong-si-geumcheon-gu' && allowed.some(key => groups.capital.includes(key))));
+    const unknown = [...new Set(candidates.filter(file =>
+      !regionByKey.has(file.key) && file.key !== 'gwangmyeong-si-geumcheon-gu').map(file => file.key))];
+    if (unknown.length) {
+      $('#unclassified').prop('hidden', false).text('전체에서 조회 가능한 미분류 지역 파일 · ' + unknown.join(', '));
+    }
+    let cursor = 0;
+    let done = 0;
+    const failures = [];
+    const collected = [];
+    async function scan() {
+      while (cursor < files.length) {
+        const file = files[cursor++];
+        try {
+          const rows = await loadFile(file);
+          for (const row of rows) {
+            if (rowMatches(row, allowed, activeMetric, low, high)) collected.push(row);
+          }
+        } catch (error) {
+          failures.push(file.name);
+          console.warn(file.name, error);
+        }
+        $('#status').text(`파일 검색 중 · ${++done} / ${files.length}`);
+      }
+    }
+    await Promise.all(Array.from({length:Math.min(5, files.length)}, scan));
+    priceMatches = collected;
+    fileSummary = ` · 파일 ${done-failures.length}/${files.length}개 읽음`
+      + (failures.length ? ` · 실패 ${failures.length}개` : '');
+    if (failures.length) {
+      $('#issues').prop('hidden', false);
+      for (const name of failures.sort()) $('#failures').append($('<li>').text(name));
+    }
+    populateTypes();
+    applyTypes();
+  } catch (error) {
+    console.warn(error);
+    priceMatches = [];
+    fileSummary = '';
+    populateTypes();
+    $('#allTypes').prop('checked', true);
+    $('#typeSummary').text('유형 · 전체');
+    $('#status').addClass('error').text('파일 목록을 불러오지 못했습니다. 인터넷 연결을 확인하고 다시 검색해주세요.');
+  } finally {
+    $('#search :input').prop('disabled', false);
+  }
+}
+
+if (typeof jQuery === 'undefined' || typeof XLSX === 'undefined') {
+  document.querySelector('#status').textContent = '검색에 필요한 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인해주세요.';
+  document.querySelectorAll('#search input, #search select, #search button').forEach(element => element.disabled = true);
+} else {
+  $(() => {
+    for (let amount = 0; amount <= 30; amount++) {
+      $('#price').append($('<option>', {value:String(amount),text:`${amount}억대`}));
+    }
+    $('#price').on('change', updateRule);
+    $('#search').on('submit', event => { event.preventDefault(); runSearch(); });
+    $('#sort').on('change', sortResults);
+    $('#download').on('click', downloadResults);
+    $('#allTypes').on('change', () => {
+      selectedTypes.clear();
+      $('#typeChoices input').prop('checked', false);
+      if (fileSummary) applyTypes();
+      else $('#allTypes').prop('checked', true);
+    });
+    $('#typeChoices').on('change', 'input', () => {
+      selectedTypes = new Set($('#typeChoices input:checked').map((_, input) => input.value).get());
+      applyTypes();
+    });
+    $(document).on('click', event => {
+      if (!$(event.target).closest('#typeFilter').length) $('#typeFilter').prop('open', false);
+    });
+    $('#prev').on('click', () => { page--; render(); });
+    $('#next').on('click', () => { page++; render(); });
+    updateRule();
+  });
+}
+</script>
+</body>
+</html>
