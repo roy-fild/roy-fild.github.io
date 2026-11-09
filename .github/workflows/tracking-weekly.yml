@@ -31,12 +31,12 @@ jobs:
       - name: Run Spring Batch
         working-directory: batch/tracking
         env:
-          TRACKING_OUTPUT_DIR: ${{ github.workspace }}/file
+          TRACKING_OUTPUT_DIR: ${{ github.workspace }}/tracking/result
         run: gradle --no-daemon run
       - name: Commit dated spreadsheets
         shell: bash
         run: |
-          git add -- ':(glob)file/*_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].xlsx'
+          git add -- ':(glob)tracking/result/*_[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].xlsx'
           if git diff --cached --quiet; then
             exit 0
           fi
