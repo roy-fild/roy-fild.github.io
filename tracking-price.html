@@ -26,6 +26,8 @@ button:disabled { opacity: .5; cursor: default; }
 table { border-collapse: separate; border-spacing: 0; width: 100%; white-space: nowrap; }
 td, th { padding: 4px 7px; border-bottom: 1px solid #e3eaf1; text-align: left; }
 th { position: sticky; top: 0; background: #e8eff6; z-index: 1; }
+.price-sort { padding: 0; border: 0; background: transparent; font-weight: inherit; }
+.price-sort::after { content: attr(data-arrow); margin-left: 4px; color: #15554b; }
 td.num { text-align: right; font-variant-numeric: tabular-nums; }
 td.active { background: #e5f4ee; color: #154b3d; font-weight: 700; }
 td.description { white-space: normal; min-width: 160px; max-width: 350px; overflow-wrap: anywhere; }
@@ -87,7 +89,7 @@ tr:nth-child(even) { background: #f8fafc; }
 <section class="panel result-panel" aria-label="검색 결과">
 <div class="toolbar">
 <p id="status" role="status">조건을 선택하고 검색을 눌러주세요.</p>
-<label id="sortWrap" hidden>정렬 <select id="sort"><option value="low">선택 가격 낮은 순</option><option value="high">선택 가격 높은 순</option></select></label>
+<label id="sortWrap" hidden>정렬 <select id="sort"><option value="header" disabled hidden>열 헤더 기준</option><option value="low">선택 가격 낮은 순</option><option value="high">선택 가격 높은 순</option></select></label>
 <button type="button" id="download" hidden>엑셀 다운로드</button>
 <div class="pager" id="pager" hidden>
 <button type="button" id="prev">이전</button><span id="page"></span><button type="button" id="next">다음</button>
@@ -97,7 +99,7 @@ tr:nth-child(even) { background: #f8fafc; }
 <p class="hint" id="unclassified" hidden></p>
 <div class="table-wrap" id="results" hidden>
 <table>
-<thead><tr><th scope="col">권역</th><th scope="col">구·시</th><th scope="col">동</th><th scope="col">단지</th><th scope="col">연식</th><th scope="col">세대</th><th scope="col">타입</th><th scope="col">유형</th><th scope="col">매매가 (억)</th><th scope="col">전세가 (억)</th><th scope="col">투자금 (억)</th><th scope="col">전세가율</th><th scope="col">매매 건수</th><th scope="col">전세 건수</th><th scope="col">매매층</th><th scope="col">전세층</th><th scope="col">설명</th></tr></thead>
+<thead><tr><th scope="col">권역</th><th scope="col">구·시</th><th scope="col">동</th><th scope="col">단지</th><th scope="col">연식</th><th scope="col">세대</th><th scope="col">타입</th><th scope="col">유형</th><th scope="col"><button type="button" class="price-sort" data-metric="sale" data-arrow="↕">매매가 (억)</button></th><th scope="col"><button type="button" class="price-sort" data-metric="rent" data-arrow="↕">전세가 (억)</button></th><th scope="col">투자금 (억)</th><th scope="col">전세가율</th><th scope="col">매매 건수</th><th scope="col">전세 건수</th><th scope="col">매매층</th><th scope="col">전세층</th><th scope="col">설명</th></tr></thead>
 <tbody></tbody>
 </table>
 </div>
@@ -127,6 +129,7 @@ let selectedTypes = new Set();
 let fileSummary = '';
 const typeCollator = new Intl.Collator('ko-KR', {numeric:true});
 let activeMetric = 'sale';
+let headerSort = null;
 let page = 0;
 
 function selectFiles(names) {
@@ -317,12 +320,27 @@ function applyTypes() {
   sortResults();
 }
 
+function comparePrices(a, b, metric, descending) {
+  const first = a[metric];
+  const second = b[metric];
+  if (first !== second) {
+    if (first === null) return 1;
+    if (second === null) return -1;
+    return descending ? second - first : first - second;
+  }
+  return b.file.date.localeCompare(a.file.date);
+}
+
 function sortResults() {
-  const sort = $('#sort').val();
-  matches.sort((a,b) => {
-    const newest = b.file.date.localeCompare(a.file.date);
-    const difference = a[activeMetric] - b[activeMetric];
-    return (sort === 'high' ? -difference : difference) || newest;
+  const metric = headerSort?.metric ?? activeMetric;
+  const descending = headerSort?.descending ?? ($('#sort').val() === 'high');
+  matches.sort((a, b) => comparePrices(a, b, metric, descending));
+  $('.price-sort').each((_, button) => {
+    const selected = button.dataset.metric === metric;
+    button.dataset.arrow = selected ? (descending ? '↓' : '↑') : '↕';
+    const heading = button.closest('th');
+    if (selected) heading.setAttribute('aria-sort', descending ? 'descending' : 'ascending');
+    else heading.removeAttribute('aria-sort');
   });
   page = 0;
   render();
@@ -420,7 +438,18 @@ if (typeof jQuery === 'undefined' || typeof XLSX === 'undefined') {
     }
     $('#price').on('change', updateRule);
     $('#search').on('submit', event => { event.preventDefault(); runSearch(); });
-    $('#sort').on('change', sortResults);
+    $('#sort').on('change', () => {
+      headerSort = null;
+      sortResults();
+    });
+    $('.price-sort').on('click', event => {
+      const metric = event.currentTarget.dataset.metric;
+      const currentMetric = headerSort?.metric ?? activeMetric;
+      const descending = headerSort?.descending ?? ($('#sort').val() === 'high');
+      headerSort = {metric, descending:metric === currentMetric && !descending};
+      $('#sort').val('header');
+      sortResults();
+    });
     $('#download').on('click', downloadResults);
     $('#allTypes').on('change', () => {
       selectedTypes.clear();
