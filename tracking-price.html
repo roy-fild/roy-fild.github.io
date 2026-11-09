@@ -74,10 +74,10 @@ tr:nth-child(even) { background: #f8fafc; }
 <label>최대 (미만)<input id="max" type="number" step="any" placeholder="예: 1.8"></label>
 </div>
 <details id="typeFilter">
-<summary id="typeSummary">유형 · 전체</summary>
+<summary id="typeSummary">타입 · 전체</summary>
 <div id="typeOptions">
 <label><input type="checkbox" id="allTypes" checked>전체 보기</label>
-<p id="typeHint" class="hint">검색 후 유형 목록이 표시됩니다.</p>
+<p id="typeHint" class="hint">검색 후 타입 목록이 표시됩니다.</p>
 <div id="typeChoices"></div>
 </div>
 </details>
@@ -100,7 +100,7 @@ tr:nth-child(even) { background: #f8fafc; }
 <p class="hint" id="unclassified" hidden></p>
 <div class="table-wrap" id="results" hidden>
 <table>
-<thead><tr><th scope="col">권역</th><th scope="col">구·시</th><th scope="col">동</th><th scope="col">단지</th><th scope="col">연식</th><th scope="col">세대</th><th scope="col">타입</th><th scope="col">유형</th><th scope="col"><button type="button" class="price-sort" data-metric="sale" data-arrow="↕">매매가 (억)</button></th><th scope="col"><button type="button" class="price-sort" data-metric="rent" data-arrow="↕">전세가 (억)</button></th><th scope="col">투자금 (억)</th><th scope="col">전세가율</th><th scope="col">매매 건수</th><th scope="col">전세 건수</th><th scope="col">매매층</th><th scope="col">전세층</th><th scope="col">설명</th></tr></thead>
+<thead><tr><th scope="col">권역</th><th scope="col">구·시</th><th scope="col">동</th><th scope="col">단지</th><th scope="col">연식</th><th scope="col">세대</th><th scope="col">타입</th><th scope="col">유형</th><th scope="col">방</th><th scope="col"><button type="button" class="price-sort" data-metric="sale" data-arrow="↕">매매가 (억)</button></th><th scope="col"><button type="button" class="price-sort" data-metric="rent" data-arrow="↕">전세가 (억)</button></th><th scope="col">투자금 (억)</th><th scope="col">전세가율</th><th scope="col">매매 건수</th><th scope="col">전세 건수</th><th scope="col">매매층</th><th scope="col">전세층</th><th scope="col">설명</th></tr></thead>
 <tbody></tbody>
 </table>
 </div>
@@ -186,6 +186,7 @@ function parseWorkbook(workbook, file, sheetUtils) {
     const units = column('세대','세대수');
     const type = column('타입');
     const layout = column('유형');
+    const rooms = column('방');
     const sizeKey = column('key','KEY','szKey');
     const saleCount = column('매','매매건수','매매개수');
     const rentCount = column('전','전세건수','전세개수');
@@ -202,7 +203,7 @@ function parseWorkbook(workbook, file, sheetUtils) {
         complexId:String(row[id]).trim(), sizeKey:String(row[sizeKey] ?? '').trim(),
         name:row[name], dong:row[dong], year:row[year], units:row[units],
         type:row[type], layout:String(row[layout] ?? '').trim(),
-        saleFloor:row[saleFloor], rentFloor:row[rentFloor], description:row[description],
+        rooms:row[rooms], saleFloor:row[saleFloor], rentFloor:row[rentFloor], description:row[description],
         sale:salePrice, rent:rentPrice,
         saleCount:row[saleCount], rentCount:row[rentCount],
         rentRatio:salePrice !== null && rentPrice !== null ? rentPrice / salePrice * 100 : null,
@@ -264,7 +265,7 @@ function render() {
     row.append($('<td>').append($('<a>', {
       class:'complex-link', href:complexUrl(item), target:'_blank', rel:'noopener', text:item.name
     })));
-    for (const value of [item.year, item.units, item.type, item.layout]) {
+    for (const value of [item.year, item.units, item.type, item.layout, item.rooms]) {
       row.append($('<td>').text(value ?? ''));
     }
     for (const metric of Object.keys(metricLabels)) {
@@ -285,7 +286,7 @@ function render() {
 function makeExportSheet(headers, rows) {
   const sheet = XLSX.utils.aoa_to_sheet([headers, ...rows.map(item => [
     regionLabels[item.region], item.district, item.dong, item.name, item.year,
-    item.units, item.type, item.layout, item.sale, item.rent, item.gap,
+    item.units, item.type, item.layout, item.rooms, item.sale, item.rent, item.gap,
     item.rentRatio === null ? null : item.rentRatio / 100,
     item.saleCount === '' || item.saleCount == null ? null : Number(item.saleCount),
     item.rentCount === '' || item.rentCount == null ? null : Number(item.rentCount),
@@ -296,7 +297,7 @@ function makeExportSheet(headers, rows) {
     const cell = sheet[XLSX.utils.encode_cell({r:index + 1, c:ratioColumn})];
     if (cell) cell.z = '0.0%';
   }
-  sheet['!cols'] = [9,18,14,32,9,9,9,9,13,13,13,12,11,11,15,15,48]
+  sheet['!cols'] = [9,18,14,32,9,9,9,9,10,13,13,13,12,11,11,15,15,48]
     .map(width => ({wch:width}));
   sheet['!autofilter'] = {ref:sheet['!ref']};
   return sheet;
@@ -311,12 +312,12 @@ function downloadResults() {
   XLSX.writeFile(workbook, `아파트_시세_검색결과_${date}.xlsx`, {compression:true});
 }
 
-function typeGroup(layout) {
-  return /^\d+/.exec(layout)?.[0] ?? '';
+function typeGroup(type) {
+  return /^\d+/.exec(String(type ?? '').trim())?.[0] ?? '';
 }
 
 function populateTypes() {
-  const types = [...new Set(priceMatches.map(row => typeGroup(row.layout)).filter(Boolean))]
+  const types = [...new Set(priceMatches.map(row => typeGroup(row.type)).filter(Boolean))]
     .sort(typeCollator.compare);
   selectedTypes = new Set(types.filter(type => selectedTypes.has(type)));
   const choices = $('#typeChoices').empty();
@@ -326,14 +327,14 @@ function populateTypes() {
       $('<span>').text(type)
     ));
   }
-  $('#typeHint').prop('hidden', !!types.length).text('검색 결과에 표시할 유형이 없습니다.');
+  $('#typeHint').prop('hidden', !!types.length).text('검색 결과에 표시할 타입이 없습니다.');
 }
 
 function applyTypes() {
   const count = selectedTypes.size;
   $('#allTypes').prop('checked', !count);
-  $('#typeSummary').text(count ? `유형 · ${count}개 선택` : '유형 · 전체');
-  matches = count ? priceMatches.filter(row => selectedTypes.has(typeGroup(row.layout))) : [...priceMatches];
+  $('#typeSummary').text(count ? `타입 · ${count}개 선택` : '타입 · 전체');
+  matches = count ? priceMatches.filter(row => selectedTypes.has(typeGroup(row.type))) : [...priceMatches];
   $('#status').text(`${metricLabels[activeMetric]} 검색 결과 ${matches.length.toLocaleString('ko-KR')}건` + fileSummary);
   sortResults();
 }
@@ -439,7 +440,7 @@ async function runSearch() {
     fileSummary = '';
     populateTypes();
     $('#allTypes').prop('checked', true);
-    $('#typeSummary').text('유형 · 전체');
+    $('#typeSummary').text('타입 · 전체');
     $('#status').addClass('error').text('파일 목록을 불러오지 못했습니다. 인터넷 연결을 확인하고 다시 검색해주세요.');
   } finally {
     $('#search :input').prop('disabled', false);
