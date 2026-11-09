@@ -1,0 +1,27 @@
+plugins {
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.batch:spring-batch-core:6.0.5'
+    implementation 'org.apache.poi:poi-ooxml:5.4.1'
+    implementation 'org.json:json:20250517'
+    implementation 'org.jsoup:jsoup:1.21.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.21.0'
+    runtimeOnly 'ch.qos.logback:logback-classic:1.5.18'
+}
+
+application {
+    mainClass = 'tracking.TrackingBatchJob'
+    applicationDefaultJvmArgs = ['-Djava.awt.headless=true']
+}
