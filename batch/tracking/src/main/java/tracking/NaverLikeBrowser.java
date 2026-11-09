@@ -15,6 +15,7 @@ import java.net.URL;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.HttpTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -84,14 +85,20 @@ public class NaverLikeBrowser {
 	}
 
 
-	// 2) 웜업: 같은 도메인에서 아무 페이지 하나 먼저 열어 쿠키 확보
-	static void warmup() throws Exception {
-		String warm = "https://fin.land.naver.com/";
-		HttpRequest req = base(warm).GET().build();
-		HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
-		// 200/302여도 쿠키만 잘 받으면 OK
-//		System.out.println("warmup status=" + res.statusCode());
-	}
+    private static boolean warmupAttempted;
+
+    // 한 번만 쿠키 초기화를 시도하고, 준비 요청이 지연돼도 실제 조회를 시도한다.
+    static void warmup() throws java.io.IOException, InterruptedException {
+        if (warmupAttempted) return;
+        warmupAttempted = true;
+        HttpRequest request = base("https://fin.land.naver.com/")
+                .timeout(Duration.ofSeconds(8)).GET().build();
+        try {
+            client.send(request, HttpResponse.BodyHandlers.discarding());
+        } catch (HttpTimeoutException e) {
+            log.warn("네이버 준비 요청 시간 초과. 단지 상세 조회를 계속합니다.");
+        }
+    }
 
 	// 재사용 가능한 HttpClient
 	private static final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20)).build();
@@ -198,7 +205,7 @@ public class NaverLikeBrowser {
 	                .GET()
 	                .build();
 
-	        HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
+	        HttpResponse<String> res = sendWithRetry(req, 2);
 
 	        String body = res.body() == null ? "" : res.body();
 	        int status = res.statusCode();
@@ -542,7 +549,7 @@ public class NaverLikeBrowser {
 			HttpRequest req = base(url).header("Referer", "https://fin.land.naver.com/complexes/" + id + "?tab=article")
 					.GET().build();
 
-			HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
+			HttpResponse<String> res = sendWithRetry(req, 2);
 //			System.out.println("status=" + res.statusCode());
 			if (res.statusCode() != 200) {
 				// 원인 파악용으로 응답 일부 출력
@@ -592,7 +599,7 @@ public class NaverLikeBrowser {
 			HttpRequest req = base(url).header("Referer", "https://fin.land.naver.com/complexes/" + id + "?tab=article")
 					.GET().build();
 
-			HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
+			HttpResponse<String> res = sendWithRetry(req, 2);
 //			System.out.println("status=" + res.statusCode());
 			if (res.statusCode() != 200) {
 				// 원인 파악용으로 응답 일부 출력
@@ -673,7 +680,7 @@ public class NaverLikeBrowser {
 	                    .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
 	                    .build();
 
-	            HttpResponse<String> res = sendWithRetry429(req, 4); // 429/5xx 재시도
+	            HttpResponse<String> res = sendWithRetry(req, 4); // 429/5xx 재시도
 	            if (res.statusCode() != 200) {
 	                throw new IllegalStateException("매물 조회 HTTP " + res.statusCode());
 	            }
@@ -755,11 +762,19 @@ public class NaverLikeBrowser {
 	    }
 	}
 
-	/** 429/5xx 재시도 (Retry-After 존중 + 지수 백오프 + 지터) */
-	private static HttpResponse<String> sendWithRetry429(HttpRequest req, int maxRetry) throws Exception {
+	/** 시간 초과 및 429/5xx 재시도 (Retry-After 존중 + 지수 백오프 + 지터) */
+	private static HttpResponse<String> sendWithRetry(HttpRequest req, int maxRetry) throws Exception {
 	    long base = 1200L;
 	    for (int attempt = 0; attempt <= maxRetry; attempt++) {
-	        HttpResponse<String> res = client.send(req, HttpResponse.BodyHandlers.ofString());
+	        HttpResponse<String> res;
+            try {
+                res = client.send(req, HttpResponse.BodyHandlers.ofString());
+            } catch (HttpTimeoutException e) {
+                if (attempt == maxRetry) throw e;
+                log.warn("네이버 조회 시간 초과. 재시도 {}/{}: {}", attempt + 1, maxRetry, req.uri());
+                Thread.sleep(base * (1L << attempt));
+                continue;
+            }
 	        int code = res.statusCode();
 	        if (code == 200) return res;
 
