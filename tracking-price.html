@@ -39,9 +39,9 @@ tr:nth-child(even) { background: #f8fafc; }
 .filter-options { position: absolute; z-index: 3; top: calc(100% + 4px); left: 0; width: min(290px, 85vw); max-height: 34dvh; overflow: auto; background: white; border: 1px solid #a9b9cb; border-radius: 8px; padding: 8px; box-shadow: 0 4px 14px #16243626; }
 .filter-options label { display: inline-flex; align-items: center; gap: 3px; }
 .filter-options input { accent-color: #15554b; }
-#regionChoices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin-top: 4px; }
+#regionChoices, #districtChoices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin-top: 4px; }
 #typeChoices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
-#typeChoices label { overflow-wrap: anywhere; }
+#typeChoices label, #districtChoices label { overflow-wrap: anywhere; }
 #issues ul { max-height: 18vh; overflow: auto; margin: 4px 0; }
 @media (max-width: 620px) { .filter-options { position: fixed; top: auto; left: 8px; } }
 [hidden] { display: none !important; }
@@ -84,6 +84,13 @@ tr:nth-child(even) { background: #f8fafc; }
 <label><input type="checkbox" id="allTypes" checked>전체 보기</label>
 <p id="typeHint" class="hint">검색 후 타입 목록이 표시됩니다.</p>
 <div id="typeChoices"></div>
+</div>
+</details>
+<details id="districtFilter" class="filter-menu" hidden>
+<summary id="districtSummary">구·시 · 전체</summary>
+<div class="filter-options">
+<label><input type="checkbox" id="allDistricts" checked>전체 보기</label>
+<div id="districtChoices"></div>
 </div>
 </details>
 <button class="primary" type="submit" id="run">검색</button>
@@ -132,6 +139,7 @@ const cache = new Map();
 let matches = [];
 let priceMatches = [];
 let selectedTypes = new Set();
+let selectedDistricts = new Set();
 let fileSummary = '';
 const typeCollator = new Intl.Collator('ko-KR', {numeric:true});
 let activeMetric = 'sale';
@@ -335,11 +343,39 @@ function populateTypes() {
   $('#typeHint').prop('hidden', !!types.length).text('검색 결과에 표시할 타입이 없습니다.');
 }
 
-function applyTypes() {
+function populateDistricts() {
+  const districts = [...new Set(priceMatches.map(row => districtName(row.district)).filter(Boolean))]
+    .sort(typeCollator.compare);
+  selectedDistricts.clear();
+  const choices = $('#districtChoices').empty();
+  for (const district of districts) {
+    choices.append($('<label>').append(
+      $('<input>', {type:'checkbox', value:district}),
+      $('<span>').text(district)
+    ));
+  }
+  updateDistrictSummary();
+  $('#districtFilter').prop('hidden', !districts.length);
+}
+
+function districtName(value) {
+  return String(value ?? '').trim().replace(/\s+/g, ' ');
+}
+
+function updateDistrictSummary() {
+  const count = selectedDistricts.size;
+  $('#allDistricts').prop('checked', !count);
+  $('#districtSummary').text(count ? `구·시 · ${count}개 선택` : '구·시 · 전체');
+}
+
+function applyResultFilters() {
   const count = selectedTypes.size;
   $('#allTypes').prop('checked', !count);
   $('#typeSummary').text(count ? `타입 · ${count}개 선택` : '타입 · 전체');
-  matches = count ? priceMatches.filter(row => selectedTypes.has(typeGroup(row.type))) : [...priceMatches];
+  matches = priceMatches.filter(row =>
+    (!selectedDistricts.size || selectedDistricts.has(districtName(row.district)))
+    && (!count || selectedTypes.has(typeGroup(row.type))));
+  $('#status').removeClass('error');
   $('#status').text(`${metricLabels[activeMetric]} 검색 결과 ${matches.length.toLocaleString('ko-KR')}건` + fileSummary);
   sortResults();
 }
@@ -405,6 +441,7 @@ async function runSearch() {
   }
   activeMetric = $('#metric').val();
   $('.filter-menu').prop('open', false);
+  $('#districtFilter').prop('hidden', true);
   $('#search :input').prop('disabled', true);
   $('#status').removeClass('error').text('파일 목록 확인 중…');
   $('#issues, #unclassified').prop('hidden', true);
@@ -451,12 +488,14 @@ async function runSearch() {
       for (const name of failures.sort()) $('#failures').append($('<li>').text(name));
     }
     populateTypes();
-    applyTypes();
+    populateDistricts();
+    applyResultFilters();
   } catch (error) {
     console.warn(error);
     priceMatches = [];
     fileSummary = '';
     populateTypes();
+    populateDistricts();
     $('#allTypes').prop('checked', true);
     $('#typeSummary').text('타입 · 전체');
     $('#status').addClass('error').text('파일 목록을 불러오지 못했습니다. 인터넷 연결을 확인하고 다시 검색해주세요.');
@@ -488,15 +527,26 @@ if (typeof jQuery === 'undefined' || typeof XLSX === 'undefined') {
       sortResults();
     });
     $('#download').on('click', downloadResults);
+    $('#allDistricts').on('change', () => {
+      selectedDistricts.clear();
+      $('#districtChoices input').prop('checked', false);
+      updateDistrictSummary();
+      applyResultFilters();
+    });
+    $('#districtChoices').on('change', 'input', () => {
+      selectedDistricts = new Set($('#districtChoices input:checked').map((_, input) => input.value).get());
+      updateDistrictSummary();
+      applyResultFilters();
+    });
     $('#allTypes').on('change', () => {
       selectedTypes.clear();
       $('#typeChoices input').prop('checked', false);
-      if (fileSummary) applyTypes();
+      if (fileSummary) applyResultFilters();
       else $('#allTypes').prop('checked', true);
     });
     $('#typeChoices').on('change', 'input', () => {
       selectedTypes = new Set($('#typeChoices input:checked').map((_, input) => input.value).get());
-      applyTypes();
+      applyResultFilters();
     });
     $('#allRegions').on('change', () => {
       $('#regionChoices input').prop('checked', false);
