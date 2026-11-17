@@ -60,7 +60,7 @@ td{min-width:160px}td div+div{margin-top:4px}td a{color:inherit;text-decoration:
 <button id="reload" type="button">새로고침</button>
 </div>
 <p id="status" role="status">자료를 불러오는 중…</p>
-<p class="legend">단지별 전용 84㎡ 최저 매매가 기준 · (▲) 전월 대비 상승 · (▼) 하락 · (-) 변동 없음 · (X) 현재 가격 없음 · (비교없음) 전월 가격 없음</p>
+<p class="legend">단지별 전용 84㎡ 최저 매매가 기준 · (▲) 전월 대비 상승 · (▼) 하락 · (-) 변동 없음 · (?) 현재·전월 가격 중 하나 없음 · 목록 가격 우선 · (X) 표시할 가격 없음</p>
 <p id="notes"></p>
 <div class="frame" tabindex="0" aria-label="지역별 84㎡ 매매가 표"><table><thead></thead><tbody></tbody></table></div>
 </main>
@@ -138,23 +138,32 @@ function parseReference(workbook) {
   if (!sheet) throw Error('정찰기 시트 없음');
   const grid = XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',blankrows:true});
   return new Map((grid[1] || []).map((value,i) => [clean(value),grid.slice(2).flatMap(row =>
-    clean(row[i]).split(/\r?\n/).map(clean).filter(Boolean))]).filter(([name]) => name));
+    clean(row[i]).split(/\r?\n/).map(clean).filter(Boolean).map(info => ({info,price:parsePrice(row[0])})))]).filter(([name]) => name));
 }
 function nameFromEntry(entry) {
   return entry.replace(/\s*\/\s*\d.*$/,'');
 }
-function referenceInfo(id, live, old, entries, known) {
+function referenceEntry(id, live, old, entries, known) {
   const saved = known.find(([key]) => key === id)?.[1];
   for (const name of [live?.name,old?.name,saved && nameFromEntry(saved)].filter(Boolean)) {
-    const matches = entries.filter(entry => normalizedName(nameFromEntry(entry)) === normalizedName(name));
+    const matches = entries.filter(entry => normalizedName(nameFromEntry(entry.info)) === normalizedName(name));
     if (matches.length === 1) return matches[0];
   }
   const item = live || old;
-  return item ? [item.name,item.year,item.units].filter(Boolean).join('/') : saved || '단지 ID ' + id;
+  return {price:null,info:item ? [item.name,item.year,item.units].filter(Boolean).join('/') : saved || '단지 ID ' + id};
 }
-function statusOf(price, previous) {
+function observerItem(id, live, old, entries, aliases) {
+  const current = live?.price ?? null;
+  const previous = old?.price ?? null;
+  if (current !== null && previous !== null) {
+    return {id,price:current,current,previous,info:[live.name,live.year,live.units].filter(Boolean).join('/')};
+  }
+  const reference = referenceEntry(id,live,old,entries,aliases);
+  return {id,price:reference.price ?? current,current,previous,useReference:reference.price !== null,info:reference.info};
+}
+function statusOf(price, previous, useReference = false) {
   if (price === null) return ['(X)','missing'];
-  if (previous === null) return ['(비교없음)','unknown'];
+  if (useReference || previous === null) return ['(?)','unknown'];
   if (price > previous) return ['(▲)','up'];
   if (price < previous) return ['(▼)','down'];
   return ['(-)','flat'];
@@ -228,7 +237,7 @@ function exportWorkbook(regions, rows) {
       for (const items of cells) {
         const item = items[line];
         if (item) links.push({r:values.length,c:row.length,id:item.id});
-        row.push(item ? statusOf(item.price,item.previous)[0]+' '+item.info : null);
+        row.push(item ? statusOf(item.price,item.previous,item.useReference)[0]+' '+item.info : null);
       }
       values.push(row);
     }
@@ -308,10 +317,10 @@ document.addEventListener('DOMContentLoaded',() => {
       for (const items of cells) {
         const td = $('<td>').appendTo(tr);
         for (const item of items) {
-          const [mark,css] = statusOf(item.price,item.previous);
+          const [mark,css] = statusOf(item.price,item.previous,item.useReference);
           const line = $('<div>').appendTo(td);
           const url = complexUrl(item.id);
-          const detail = item.previous === null ? '' : '전월 '+numberFormat.format(item.previous)+'억';
+          const detail = item.useReference ? '목록 가격 '+numberFormat.format(item.price)+'억' : item.previous === null ? '' : '전월 '+numberFormat.format(item.previous)+'억';
           const link = $('<a>',{href:url,target:'_blank',rel:'noopener',title:detail}).appendTo(line);
           $('<span class="mark">').addClass(css).text(mark).appendTo(link);
           link.append(document.createTextNode(' '+item.info));
@@ -370,17 +379,13 @@ document.addEventListener('DOMContentLoaded',() => {
         const data = datasets.get(region.key);
         const entries = ref.value?.entries.get(region.name) || [];
         const aliases = known[region.name] || [];
-        return {...region,date:data.date,items:region.ids.map(id => {
-          const live=data.live.get(id), old=data.old.get(id);
-          return {id,price:live?.price ?? null,previous:old?.price ?? null,
-            info:live?.price != null ? [live.name,live.year,live.units].filter(Boolean).join('/')
-              : referenceInfo(id,live,old,entries,aliases)};
-        })};
+        return {...region,date:data.date,items:region.ids.map(id =>
+          observerItem(id,data.live.get(id),data.old.get(id),entries,aliases))};
       });
       const all = model.flatMap(region => region.items);
-      const priced = all.filter(item => item.price !== null);
+      const priced = all.filter(item => item.current !== null);
       $('#status').text(model.length+'개 지역 · 84㎡ 매매가 '+priced.length+'건 · 전월 비교 '+priced.filter(item => item.previous !== null).length
-        +'건 · 가격 없음 '+(all.length-priced.length)+'건'+(ref.value ? ' · 참조 '+ref.value.name : ''));
+        +'건 · 목록 가격 '+all.filter(item => item.useReference).length+'건 · 가격 없음 '+all.filter(item => item.price === null).length+'건'+(ref.value ? ' · 참조 '+ref.value.name : ''));
       $('#notes').text(notes.join(' · '));
       refreshFilters();
     } catch (error) {
