@@ -55,7 +55,7 @@ td{min-width:160px}td div+div{margin-top:4px}td a{color:inherit;text-decoration:
 <button type="reset">초기화</button>
 </form>
 </details>
-<label><input id="show-missing" type="checkbox" checked aria-label="가격 없는 행 표시"><span class="full-label">가격 없는 행 표시</span><span class="compact-label">가격 없음</span></label>
+<label><input id="show-missing" type="checkbox" aria-label="빈 가격 행 표시"><span>빈 가격 행 표시</span></label>
 <button id="download" type="button" aria-label="Excel 다운로드" disabled>Excel<span class="full-label"> 다운로드</span></button>
 <button id="reload" type="button">새로고침</button>
 </div>
@@ -137,8 +137,11 @@ function parseReference(workbook) {
   const sheet = workbook.Sheets['정찰기'];
   if (!sheet) throw Error('정찰기 시트 없음');
   const grid = XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',blankrows:true});
-  return new Map((grid[1] || []).map((value,i) => [clean(value),grid.slice(2).flatMap(row =>
-    clean(row[i]).split(/\r?\n/).map(clean).filter(Boolean).map(info => ({info,price:parsePrice(row[0])})))]).filter(([name]) => name));
+  const rows = grid.slice(2);
+  const entries = new Map((grid[1] || []).map((value,i) => [clean(value),rows.flatMap(row =>
+    clean(row[i]).split(/\r?\n/).map(clean).filter(Boolean).map(info => ({info,price:parsePrice(row[0])})))])
+    .filter(([name]) => name));
+  return {entries,priceRows:rows.map(row => parsePrice(row[0])).filter(price => price !== null)};
 }
 function nameFromEntry(entry) {
   return entry.replace(/\s*\/\s*\d.*$/,'');
@@ -183,7 +186,7 @@ async function latestReference() {
   const files = await $.ajax({url:API+'/contents/gain/observer?ref=main',dataType:'json',timeout:10000});
   const candidates = files.map(file => file.name).filter(name => /^list_\d{6}\.xlsx$/i.test(name)).sort().reverse();
   if (!candidates.length) throw Error('list_yymmdd.xlsx 없음');
-  return {name:candidates[0],entries:parseReference(await requestWorkbook(OBSERVER+candidates[0]))};
+  return {name:candidates[0],...parseReference(await requestWorkbook(OBSERVER+candidates[0]))};
 }
 async function archiveFor(month) {
   const year = +month.slice(0,4), index = +month.slice(4);
@@ -199,13 +202,15 @@ async function archiveFor(month) {
   return {base,files:trackingFiles(names)};
 }
 
-function matrixRows(regions, showMissing, {min = null, max = null} = {}) {
-  const prices = new Set();
+function matrixRows(regions, showEmpty, {min = null, max = null} = {}, referencePriceRows = []) {
+  if (!regions.length) return [];
+  const inRange = price => (min === null || price >= min) && (max === null || price <= max);
+  const prices = new Set(showEmpty ? referencePriceRows.filter(inRange) : []);
   const byPrice = regions.map(region => {
     const priced = new Map(), missing = [];
     for (const item of region.items) {
       if (item.price === null) { missing.push(item); continue; }
-      if ((min !== null && item.price < min) || (max !== null && item.price > max)) continue;
+      if (!inRange(item.price)) continue;
       prices.add(item.price);
       if (!priced.has(item.price)) priced.set(item.price,[]);
       priced.get(item.price).push(item);
@@ -215,10 +220,8 @@ function matrixRows(regions, showMissing, {min = null, max = null} = {}) {
   const rows = [...prices].sort((a,b) => b-a).map(price => ({
     price,cells:byPrice.map(region => region.priced.get(price) || [])
   }));
-  if (showMissing && byPrice.length) {
-    const count = Math.max(...byPrice.map(region => region.missing.length));
-    for (let i=0;i<count;i++) rows.push({price:null,cells:byPrice.map(region => region.missing.slice(i,i+1))});
-  }
+  const count = Math.max(...byPrice.map(region => region.missing.length));
+  for (let i=0;i<count;i++) rows.push({price:null,cells:byPrice.map(region => region.missing.slice(i,i+1))});
   return rows;
 }
 
@@ -257,6 +260,7 @@ document.addEventListener('DOMContentLoaded',() => {
   }
   const known = JSON.parse($('#reference-map').text());
   let model = [];
+  let referencePriceRows = [];
   const hiddenLevels = new Set(), hiddenRegions = new Set();
   let shown = {regions:[],rows:[]};
   let priceRange = {min:null,max:null};
@@ -296,7 +300,7 @@ document.addEventListener('DOMContentLoaded',() => {
   }
   function render() {
     const regions = eligibleRegions().filter(region => !hiddenRegions.has(regionKey(region)));
-    const matrix = matrixRows(regions,$('#show-missing').prop('checked'),priceRange);
+    const matrix = matrixRows(regions,$('#show-missing').prop('checked'),priceRange,referencePriceRows);
     shown = {regions,rows:matrix};
     $('#download').prop('disabled',!regions.length);
     const head = $('thead').empty(), body = $('tbody').empty();
@@ -375,6 +379,7 @@ document.addEventListener('DOMContentLoaded',() => {
         datasets.set(key,{date:today.status === 'fulfilled' ? newest?.date : null,
           live:today.value || new Map(),old:last.value || new Map()});
       });
+      referencePriceRows = ref.value?.priceRows || [];
       model = regions.map(region => {
         const data = datasets.get(region.key);
         const entries = ref.value?.entries.get(region.name) || [];
