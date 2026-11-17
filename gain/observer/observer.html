@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>정찰기 · 84㎡ 매매가 순위</title>
+<script defer src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{color-scheme:light;--ink:#172839;--muted:#506174;--line:#dce4ec;--card:#fff;--blue:#ecf4fb}
+*{box-sizing:border-box}body{background:#f4f7fa;color:var(--ink);font:15px/1.5 "Malgun Gothic",system-ui,sans-serif;margin:0}
+main{padding:14px clamp(10px,2vw,28px);margin:auto;max-width:1920px}
+h1{font-size:20px;line-height:1.35;margin:0}p{margin:4px 0;color:var(--muted)}
+.toolbar{display:flex;gap:6px;align-items:center;position:relative;margin:8px 0 5px;font-size:13px;white-space:nowrap}
+.toolbar>label{display:inline-flex;align-items:center;gap:3px}
+.toolbar input{margin:0}
+button,.filters summary{font:inherit;padding:4px 8px;border:1px solid #becbd7;border-radius:6px;background:white;color:inherit}
+button{cursor:pointer}button:disabled{cursor:wait;opacity:.62}button:focus-visible,summary:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid #16568b;outline-offset:3px}
+.filters summary{cursor:pointer;font-weight:600}
+.checks{position:absolute;top:calc(100% + 5px);left:0;z-index:5;display:flex;flex-wrap:wrap;gap:7px 14px;width:min(100%,760px);max-height:210px;overflow:auto;padding:10px 12px;background:white;border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 18px #17283920}
+.filters:not([open]) .checks{display:none}
+.compact-label{display:none}
+@media(max-width:520px){
+  .toolbar{gap:4px;font-size:12px}
+  button,.filters summary{padding:4px}
+  .full-label{display:none}.compact-label{display:inline}
+}
+.price-form{align-items:center}
+.price-form input{width:72px;font:inherit;padding:4px;border:1px solid #becbd7;border-radius:5px}
+@media(max-width:370px){.toolbar{gap:3px}.toolbar summary span{display:none}}
+.checks label{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;cursor:pointer}
+#status,.legend,#notes{font-size:12px}#notes:empty{display:none}
+.frame{max-height:71vh;overflow:auto;background:white;border:1px solid var(--line);border-radius:10px}
+table{border-spacing:0;min-width:100%;width:max-content;font-size:13px}
+th,td{padding:7px 12px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:left;white-space:nowrap;vertical-align:top}
+thead th{position:sticky;background:var(--blue);z-index:2;height:38px}
+thead tr:first-child th{top:0}thead tr:nth-child(2) th{top:38px}thead th small{font-weight:normal;color:var(--muted);margin-left:6px}
+tbody th,.corner{position:sticky;left:0;background:#f0f5f9;z-index:1;text-align:right;font-variant-numeric:tabular-nums}.corner{z-index:3}
+td{min-width:160px}td div+div{margin-top:4px}td a{color:inherit;text-decoration:none}td a:hover{text-decoration:underline}
+.up{color:#a52c28}.down{color:#1f5597}.flat,.unknown,.missing{color:#536374}.mark{font-weight:700;margin-right:5px}
+</style>
+</head>
+<body>
+<main>
+<h1>정찰기 · 84㎡ 매매가 순위</h1>
+<div class="toolbar">
+<details class="filters" name="observer-filters"><summary>급지 <span id="level-count"></span></summary><div class="checks" id="level" role="group" aria-label="급지"></div></details>
+<details class="filters" name="observer-filters"><summary>지역 <span id="region-count"></span></summary><div class="checks" id="region" role="group" aria-label="지역"></div></details>
+<details class="filters" id="price-filter" name="observer-filters">
+<summary>가격 <span id="price-range">(전체)</span></summary>
+<form class="checks price-form" id="price-form">
+<label>최소 <input id="min-price" type="number" min="0" step="any" placeholder="제한 없음" aria-label="최소 매매가 (억)"> 억</label>
+<label>최대 <input id="max-price" type="number" min="0" step="any" placeholder="제한 없음" aria-label="최대 매매가 (억)"> 억</label>
+<button type="submit">적용</button>
+<button type="reset">초기화</button>
+</form>
+</details>
+<label><input id="show-missing" type="checkbox" checked aria-label="가격 없는 행 표시"><span class="full-label">가격 없는 행 표시</span><span class="compact-label">가격 없음</span></label>
+<button id="download" type="button" aria-label="Excel 다운로드" disabled>Excel<span class="full-label"> 다운로드</span></button>
+<button id="reload" type="button">새로고침</button>
+</div>
+<p id="status" role="status">자료를 불러오는 중…</p>
+<p class="legend">단지별 전용 84㎡ 최저 매매가 기준 · (▲) 전월 대비 상승 · (▼) 하락 · (-) 변동 없음 · (X) 현재 가격 없음 · (비교없음) 전월 가격 없음</p>
+<p id="notes"></p>
+<div class="frame" tabindex="0" aria-label="지역별 84㎡ 매매가 표"><table><thead></thead><tbody></tbody></table></div>
+</main>
+<script id="reference-map" type="application/json">
+{"강남구":[["182057","청담르엘/2025/1261"],["127477","래미안라클래시/2021/679"],["180280","래미안대치팰리스/2015/1608"],["1081","청담자이/2011/708"],["742","미성2차/1987/911"],["128527","개포자이프레지던스/2023/3375"],["127482","강남센트럴아이파크/2022/499"],["11698","도곡렉슬/2006/3002"],["134062","디에이치퍼스티어아이파크/2023/6702"],["668","삼익/1992/645"],["394","래미안그레이튼3차/2009/476"],["113680","강남자곡아이파크/2014/716"],["983","푸른마을/1994/930"],["103578","세곡푸르지오/2012/912"]],"송파구":[["184857","잠실르엘/2026/1865"],["22675","파크리오/2008/6864"],["22746","리센츠/2008/6653"],["22627","잠실엘스/2008/5678"],["115046","잠실올림픽공원아이파크/2019/697"],["111515","헬리오시티/2018/9510"],["104126","송파위례24단지꿈에그린/2013/1810"],["594","가락금호/1997/915"],["107544","송파파크하비오푸르지오/2016/999"],["26106","송파파인타운7단지/2007/537"],["119875","e편한세상송파파크센트럴/2021/1199"],["633","현대백조/1997/438"]],"광진구":[["160239","롯데캐슬이스트폴/2025/1063"],["100514","광장힐스테이트/2012/453"],["135887","롯데캐슬리버파크시그니처/2023/878"],["75","광장현대5단지/1989/581"],["27366","이튼타워리버5차/2009/279"],["125105","e편한세상광진그랜드파크/2021/730"],["84","현대프라임/1997/1592"]],"성동구":[["108405","트리마제/2017/688"],["27424","서울숲힐스테이트/2009/445"],["564","옥수하이츠/1998/774"],["111258","서울숲리버뷰자이/2018/1034"],["100692","래미안옥수리버젠/2012/1511"],["110938","e편한세상옥수파크힐스/2016/1976"],["18541","서울숲푸르지오1차/2007/888"],["109910","센트라스/2016/2529"],["110936","e편한세상금호파크힐스/2019/1193"],["8103","성수아이파크/2003/653"],["575","서울숲삼부/1998/498"],["950","행당대림/2000/3404"],["3532","금호베스트빌/2001/458"]],"양천구":[["106189","목동센트럴푸르지오/2015/248"],["108438","목동힐스테이트/2016/1081"],["121979","래미안목동아델리체/2021/1497"],["24406","목동e-편한세상/2006/276"],["113008","목동롯데캐슬마에스트로/2019/410"],["11926","목동금호어울림/2004/371"],["117329","목동센트럴아이파크위브/2020/3045"]],"분당구":[["27570","봇들7단지엔파트/2009/585"],["27578","백현마을5단지/2009/584"],["3621","파크뷰/2004/1829"],["2645","상록우성/1994/1762"],["3084","파크타운/1993/3028"],["1879","한양/1991/2419"],["2484","이매동신9단지/1992/458"],["1353","까치신원/1995/882"],["8297","분당두산위브(주상복합)/2003/656"],["2217","장미1단지코오롱/1993/1082"],["1705","무지개2단지LG/1995/888"]],"동작구":[["113292","아크로리버하임/2019/1073"],["100694","래미안트윈파크/2011/523"],["109124","상도파크자이/2016/471"],["113097","e편한세상상도노빌리티/2018/893"],["133962","상도역롯데캐슬파크엘/2021/950"],["10129","상도브라운스톤/2007/415"],["22491","힐스테이트상도센트럴파크/2012/1559"],["26310","쌍용예가/2010/299"],["364","대방대림/1993/1628"],["9194","래미안상도3차/2004/1656"],["3280","신동아리버파크/2001/1696"],["391","우성1차/1988/1335"]],"영등포구":[["121987","당산센트럴아이파크/2020/802"],["2981","당산삼성래미안/2003/1391"],["109205","아크로타워스퀘어/2017/1221"],["3450","문래힐스테이트/2003/776"],["3452","문래자이/2001/1302"],["109434","래미안에스티움/2017/1722"],["121758","영등포중흥S-클래스/2021/308"],["22788","인왕산현대아이파크/2008/810"],["3457","영등포푸르지오/2002/2462"],["120522","e편한세상영등포아델포레/2020/859"],["698","현대3차/1997/1662"]],"중구/종로구":[["109379","경희궁자이2단지/2017/1148"],["109250","서울력센트럴자이/2017/1341"],["100310","청구e편한세상/2011/895"],["27820","래미안하이베르/2011/784"],["3833","남산타운/2002/5150"],["24845","롯데캐슬베네치아(주상복합/2008/1870"],["24938","종로청계힐스테이트/2009/288"]],"성북구":[["134843","길음역롯데캐슬트윈골드(주상복합)/2024/395"],["111330","래미안길음센터피스/2019/2352"],["160539","장위자이레디언트/2025/2840"],["122863","꿈의숲아이파크/2022/1711"],["26160","길음뉴타운9단지래미안/2010/1012"],["26834","래미안라센트/2011/1025"],["9348","돈암브라운스톤/2004/1074"],["17700","래미안월곡/2006/1372"],["25782","길음역e편한세상/2009/529"],["3006","래미안크리시엘/2004/1168"],["1191","종암SK/1999/1318"]],"관악구":[["148337","힐스테이트뉴포레/2022/1143"],["114809","e편한세상서울대입구/2019/1531"],["170442","힐스테이트관악센트씨엘/2025/997"],["3034","두산/2000/2001"],["2987","관악드림타운/2003/3544"],["2986","벽산블루밍1차/2005/2105"],["8877","신림푸르지오1차/2005/1456"]],"동대문구":[["174562","이문아이파크자이(3-BL)/2025/4169"],["127331","청량리역롯데캐슬SKY-L65(주상복합)/2023/1425"],["110935","힐스테이트청계/2018/764"],["103797","래미안크레시티/2014/2397"],["104202","래미안위브/2014/2652"],["113059","답십리파크자이/2019/802"],["8199","이문e-편한세상/2003/1378"],["22636","장안힐스테이트/2007/859"],["3376","장안현대홈타운1차/2003/2182"],["3276","전농SK/2000/1830"],["346","전농우성/1992/1234"]],"서대문구":[["110209","e편한세상신촌/2018/1910"],["110092","신촌푸르지오/2015/940"],["127428","서대문푸르지오센트럴파크/2023/832"],["108064","DMC파크뷰자이/2015/4300"],["101160","DMC래미안e편한세상/2012/3293"],["112357","홍제센트럴아이파크/2020/906"],["941","독립문극동/1998/1300"],["423","신촌럭키/1999/855"],["11567","천연뜨란채/2006/1008"],["26841","홍제원현대(홍제원힐스테이트)/2000/939"],["945","인왕산현대(인왕산힐스테이트)/2000/700"]],"은평구":[["124651","DMCSK뷰/2023/753"],["119275","녹번역e편한세상캐슬/2021/2569"],["186117","힐스테이트메디알레/2026/2451"],["111964","힐스테이트녹번/2019/952"],["156291","센트레빌아스테리움시그니처/2024/752"],["26897","북한산힐스테이트7차/2011/882"],["114378","은평스카이뷰자이(주상복합)/2019/361"],["26869","은평뉴타운박석고개힐스테이트1단지/2009/947"],["116158","백련산SK뷰아이파크/2020/1305"]],"중랑구":[["153402","리버센SK뷰롯데캐슬/2025/1055"],["119588","사가정센트럴아이파크/2020/1505"],["110153","e편한세상화랑대/2017/719"],["119155","한양수자인사가정파크/2019/497"],["3468","묵동아이파크/2002/601"],["125357","신내역금강펜테리움센트럴파크/2021/490"],["9644","건영캐스빌/2006/467"],["100653","데시앙/2010/1325"]],"구로구":[["3356","신도림4차e-편한세상/2003/851"],["25853","고척파크푸르지오/2009/662"],["3354","신도림대림1,2차(e편한세상)/1999/2298"],["3351","벽산블루밍/2003/886"],["17538","개봉아이파크/2006/684"],["10309","삼환로즈빌/2004/600"],["18914","구로두산위브/2006/660"],["107065","천왕연지타운1단지/2013/571"]],"금천구":[["107929","롯데캐슬골드파크1차/2016/1743"],["104347","남서울힐스테이트/2014/1764"],["159","두산위브/1998/1495"],["3359","벽산5단지/2004/2810"]],"광명시":[["154299","철산자이더헤리티지/2025/3804"],["112522","유-플래닛광명역데시앙(주상복합)/2019/1500"],["1612","주공13단지/1986/2460"],["163177","광명센트럴아이파크/2025/1957"],["133083","광명푸르지오포레나/2023/1187"],["25937","e편한세상센트레빌/2010/2815"],["27344","휴먼시아5단지/2009/731"]],"수정/증원구":[["110632","위례역푸르지오/2017/620"],["118771","산성역포레스티아/2020/4089"],["137596","산성역자이푸르지오1단지/2024/1852"],["126145","신흥역하늘채랜더스원1단지/2022/1267"],["126153","e편한세상금빛그랑메종1단지/2023/1135"],["27291","푸르지오/2012/1015"],["113013","가천대역두산위브/2018/503"],["17848","래미안금광/2006/1098"]],"수지구":[["111555","성복역롯데캐슬골드타운(주상복합)/2019/2356"],["102536","광교자이더클래스/2012/1035"],["11231","신정7단지상록/2000/670"],["107215","래미안수지이스트파크/2015/845"],["8484","정자뜰마을태영데시앙1차/2004/648"],["26758","한빛마을래미안이스트팰리스2단지/2010/428"],["3701","만현마을1단지롯데캐슬/22002/992"],["8727","꽃메마을현대홈타운4차3단지/2004/770"],["8292","내대지마을건영캐스빌/2004/1254"]],"동탄구":[["119652","동탄역롯데캐슬(주상복합)/2021/940"],["106558","동탄역시범더샵센트럴시티/2015/874"],["105405","동탄역시범우남퍼스트빌/2015/1442"],["111352","동탄역반도유보라아이비파크8.0(주상복합)/2018/671"],["110026","동탄역센트럴예미지/2017/451"],["113538","동탄더레이크팰리스/2018/706"],["19204","동탄시범한빛마을동탄아이파크/2007/748"],["114379","호수공원역센트럴시티/2019/1080"],["19200","동탄시범다은마을포스코더샵/2007/514"]],"영통구":[["101273","자연앤힐스테이트/2012/1764"],["138183","광교센트럴뷰/2013/701"],["109412","힐스테이트영통/2017/2140"],["115708","영통아이파크캐슬1단지/2019/1783"],["120759","광교호반베르디움트라엘/2017/446"],["1804","영통에듀파크/1997/1242"],["103518","래미안영통마크원2단지/2013/963"],["2490","건영1차/1999/502"],["22911","매탄위브하늘채/208/3391"]],"기흥구":[["162257","e편한세상구성역플랫폼시티/2024/999"],["12103","죽현마을동원로얄듀크/2006/706"],["8441","연원마을엘지/1999/396"],["109996","힐스테이트기흥/2018/976"],["101600","호반써밋레이크파크/2009/527"],["9631","도현마을현대(아이파크)/2001/568"],["109211","힐스테이트서천/2016/754"],["3690","파크시엘/2004/923"],["8428","장미마을삼성래미안2차/2003/1219"],["122235","용인동백두산위브더제니스/2021/1187"],["14036","백현동일하이빌/2006/743"],["14041","동백역벽산블루밍/2006/533"],["3685","상갈메트로파크/2001/742"]],"구리시":[["121008","e편한세상인창어반포레/2021/632"],["161759","구리역롯데캐슬시그니처/2026/1180"],["118638","다산자이아이비플레이스(주거복합)/2021/967"],["3577","신명/2001/434"],["115538","다산펜테리움리버테라스Ⅰ/2018/944"],["4565","성원2차/2000/461"],["11044","원일가대라곡/2005/533"],["26480","힐스테이트황금산/2017/1008"],["3017","플루리움4,5단지/2000/2042"]],"부천시":[["122109","힐스테이트중동(주상복합)/2022/999"],["3610","푸른창보밀레시티/2002/330"],["145661","힐스테이트소사역/2025/629"],["3615","진달래효성/2002/708"],["175757","송내역푸르지오센트비엔/2026/1045"],["102622","역곡역e편한세상/2011/445"],["110681","옥길호반베르디움/2017/1420"],["1420","미리내동성/1993/970"]],"군포시":[["121277","힐스테이트금정역(주상복합)/2022/843"],["101283","래미안하이어스/2010/2644"],["18607","e편한세상금정역에코센트럴/2007/677"],["3864","세종주공6단지/1994/1827"],["3584","산본이편한세상센트럴파크/2002/525"]],"동안구":[["154917","평촌센텀퍼스트/2023/2886"],["1482","향촌현대5차/1993/780"],["107579","평촌더샵센트럴시티/2016/1459"],["8626","귀인마을현대홈타운/2002/967"],["2505","인덕원마을삼성/19981314"],["1467","은하수(벽산)/1992/620"],["124780","평촌자이아이파크/2021/2737"]],"만안구":[["147880","안양역푸르지오더샵/2026/2736"],["112054","래미안안양메가트리아/2016/4250"],["147085","안양어반포레자연앤e편한세상/2025/2329"],["8483","석수두산위브/2010/742"],["127667","두산위브더아티움/2023/558"]],"진구":[["152746","양정자이더샵SK뷰/2025/2276"],["127003","가야롯데캐슬골드아너/2022/935"],["126473","래미안어반파크/2022/2616"],["127321","e편한세상시민공원1단지/2023/1286"],["147999","시민공원비스타동원/2025/440"],["127969","e편한세상서면더센트럴/2022/998"],["134851","롯데캐슬라센트/2025/2195"],["108971","개금역금강펜테리움더스퀘어(주상복합)/2018/620"]],"연수구":[["144109","송도더샵파크애비뉴/2018/668"],["105037","송도센트럴파크푸르지오(주상복합)/2015/551"],["146304","더샵송도아크베이(주상복합)/2025/775"],["139289","송도자이크리스탈오션/2024/1503"],["115791","송도아메리칸타운아이파크(주상복합)/2018/830"],["25373","송도더샵퍼스트월드(주상복합/2009/1596"],["101410","글로벌캠퍼스푸르지오(주상복합)/2013/1703"],["113302","송도SK뷰/2019/2100"],["2295","현대1차/1993/1040"]],"부평구":[["151242","e편한세상부평역센트럴파크/2024/1500"],["132386","부평SKVIEW해모로/2023/1559"],["10415","삼산타운7단지주공/2004/1314"],["147824","더샵부평센트럴시티/2022/5678"],["139343","e편한세상부평그랑힐스/2024/5050"],["104629","래미안부평/2014/1145"],["2330","부평동아1단지/1986/2475"]],"서구":[["5986","크로바/1992/1632"],["175179","둔산자이아이파크/2025/1974"],["153344","둔산더샵엘리프/2025/2763"],["182279","e편한세상둔산/2020/776"],["122931","트리풀시티레이크포레/2021/1762"],["103924","도안18단지린풀하우스/2015/1691"],["5866","무지개/1994/600"],["111290","관저더샵/2018/954"]],"유성구":[["101298","스마트시티2단지(주상복합)/208/357"],["153818","갑천2트리풀시티엘리프/2025/936"],["103846","베르디움/2014/970"],["109036","문지효성해링턴플레이스/2017/1142"],["24865","대덕테크노밸리10단지꿈에그린/2008/1001"],["103949","도안신도시5블록트리풀시티/2014/1220"],["8475","열매9단지금성백조/2002/646"]],"북구":[["175177","운암자이포레나퍼스티체2단지/2026/1484"],["135362","S-클래스더제니스(주거복합)/2024/2240"],["125192","임동중흥에스클래스센텀파크/2021/654"],["127006","제일풍경채센트럴파크1단지/2022/1070"],["104895","제일풍경채리버파크/2014/613"],["132124","더샵광주포레스트(주상복합)/20023/790"],["147331","프라임시티서희스타힐스/2024/414"],["109369","교대금호어울림/2017/960"],["119614","힐스테이트연제/2020/1196"]],"청주시":[["104637","두산위브지웰시티2차(주상복합)/2015/1956"],["114461","청주가경아이파크/2019/905"],["127720","청주테크노폴리스지웰푸르지오/2022/1148"],["119337","시티프라디움2단지/3030/610"],["102720","대원칸타빌1차/2013/903"],["111666","청주센트럴자이/2018/1500"],["26189","금호어울림1단지/2009/648"],["110558","우미린에듀파크2단지/2018/901"]],"천안시":[["108766","천안불당지웰더샵/2016/685"],["109377","불당호반써밋플레이스센터시티/2017/815"],["165723","힐스테이트두정역/2025/997"],["26890","파크밸리동일하이빌/2011/964"],["117453","두정역효성해링턴플레이스/2020/2586"],["134767","행정타운센트럴두산위브/2023/655"],["25557","불당아이파크/2004/1046"],["143364","아산한라비발디스마트밸리/2023/998"],["26134","백석마을아이파크/2009/1040"]],"전주시":[["160018","에코시티한양수자인디에스틴(주상복합)/2026/268"],["115356","에코시티더샵2차/2018/702"],["121052","서신아이파크e편한세상/2020/1390"],["104250","전북혁신도시호반베르디움(B-11BL)/2013/808"],["113478","e편한세상우아/2018/750"],["122137","더샵인후센트럴/2020/478"],["103671","전주송천한라비발디1단지/2013/585"]],"포항-북구":[["146228","포항자이애서턴/2026/1433"],["149099","힐스테이트환호공원2단지/2025/1404"],["117341","두호SK뷰푸르지오2단지/2020/569"],["137987","양학신원아침도시퀘렌시아/2023/659"],["138786","포항역삼구트리니엔/2024/1156"],["117936","장성푸르지오/2020/1500"],["102827","두산위브더제니스/2010/1713"]]}</script>
+<script>
+'use strict';
+const SITE = 'https://roy-fild.github.io/';
+const SOURCE = SITE + 'tracking/result/';
+const OBSERVER = SITE + 'gain/observer/';
+const REPO = 'roy-fild/roy-fild.github.io';
+const API = 'https://api.github.com/repos/' + REPO;
+const RAW = 'https://raw.githubusercontent.com/' + REPO + '/';
+const LEVELS = {1:'1군',2:'2군',3:'3군',4:'4군',5:'5군',L:'수도권외곽',G:'광역시',S:'중소도시'};
+const numberFormat = new Intl.NumberFormat('ko-KR',{minimumFractionDigits:1,maximumFractionDigits:6});
+const clean = value => String(value ?? '').trim();
+const normalizedName = value => clean(value).normalize('NFKC').toLowerCase()
+  .replace(/\([^)]*\)|\([^)]*$/g,'').replace(/[^가-힣a-z0-9]/g,'').replaceAll('이편한세상','e편한세상');
+const complexId = value => /^\d+$/.test(clean(value)) ? clean(value) : '';
+const is84 = value => /^84(?:\.\d+)?(?:\s*[A-Z][A-Z0-9-]*)?(?:\s*(?:㎡|m²|m2))?$/i.test(clean(value));
+const dateLabel = value => value ? value.replace(/^(\d{4})(\d{2})(\d{2})$/,'$1-$2-$3') : '자료 없음';
+
+function parsePrice(value) {
+  const raw = clean(value).replaceAll(',','').replace(/\s*억$/,'');
+  if (!/^\+?(?:\d+(?:\.\d+)?|\.\d+)$/.test(raw) || !Number.isFinite(Number(raw)) || Number(raw) <= 0) return null;
+  return Number(Number(raw).toFixed(6));
+}
+function trackingFiles(names) {
+  if (!Array.isArray(names)) throw Error('tracking 파일 목록 형식 오류');
+  return names.flatMap(name => {
+    const match = /^([a-z0-9-]+)_(\d{8})\.xlsx$/i.exec(name);
+    return match ? [{name,key:match[1],date:match[2]}] : [];
+  }).sort((a,b) => b.date.localeCompare(a.date));
+}
+function previousMonth(date) {
+  const d = new Date(Date.UTC(+date.slice(0,4), +date.slice(4,6)-1, 0));
+  return d.toISOString().slice(0,7).replace('-','');
+}
+function parseCsv(text) {
+  const workbook = XLSX.read(text.replace(/^\uFEFF/,''),{type:'string',FS:',',raw:true});
+  const [header = [], ...rows] = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]],{header:1,raw:true,defval:''});
+  if (header.slice(0,4).map(clean).join(',') !== 'name,file,lv,id') throw Error('observer_list.csv의 열 이름을 확인하세요.');
+  const regions = rows.map(([name,key,level,...ids]) => ({
+    name:clean(name),key:clean(key),level:clean(level),
+    ids:[...new Set(ids.flatMap(value => clean(value).split(',')).map(complexId).filter(Boolean))]
+  })).filter(region => region.name);
+  if (!regions.length || regions.some(region => !/^[a-z0-9-]+$/.test(region.key))) throw Error('observer_list.csv의 지역 파일 이름을 확인하세요.');
+  return regions;
+}
+function parseTracking(workbook) {
+  const index = new Map();
+  let usable = false;
+  for (const sheet of Object.values(workbook.Sheets)) {
+    const [header = [], ...rows] = XLSX.utils.sheet_to_json(sheet,{header:1,defval:''});
+    const labels = header.map(value => clean(value).replace(/\s/g,'').toLowerCase());
+    const col = (...names) => labels.findIndex(label => names.includes(label));
+    const id = col('id'), name = col('단지','단지명','아파트명'), area = col('타입','전용면적'), sale = col('매매가','매매');
+    if ([id,name,area,sale].includes(-1)) continue;
+    usable = true;
+    const year = col('연식','준공'), units = col('세대','세대수');
+    for (const row of rows) {
+      const key = complexId(row[id]), title = clean(row[name]);
+      if (!key || !title || title.toLowerCase() === 'description') continue;
+      const item = index.get(key) || {name:title,year:clean(row[year]),units:clean(row[units]),price:null};
+      const price = is84(row[area]) ? parsePrice(row[sale]) : null;
+      if (price !== null && (item.price === null || price < item.price)) item.price = price;
+      index.set(key,item);
+    }
+  }
+  if (!usable) throw Error('tracking 필수 열을 찾을 수 없습니다.');
+  return index;
+}
+function parseReference(workbook) {
+  const sheet = workbook.Sheets['정찰기'];
+  if (!sheet) throw Error('정찰기 시트 없음');
+  const grid = XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',blankrows:true});
+  return new Map((grid[1] || []).map((value,i) => [clean(value),grid.slice(2).flatMap(row =>
+    clean(row[i]).split(/\r?\n/).map(clean).filter(Boolean))]).filter(([name]) => name));
+}
+function nameFromEntry(entry) {
+  return entry.replace(/\s*\/\s*\d.*$/,'');
+}
+function referenceInfo(id, live, old, entries, known) {
+  const saved = known.find(([key]) => key === id)?.[1];
+  for (const name of [live?.name,old?.name,saved && nameFromEntry(saved)].filter(Boolean)) {
+    const matches = entries.filter(entry => normalizedName(nameFromEntry(entry)) === normalizedName(name));
+    if (matches.length === 1) return matches[0];
+  }
+  const item = live || old;
+  return item ? [item.name,item.year,item.units].filter(Boolean).join('/') : saved || '단지 ID ' + id;
+}
+function statusOf(price, previous) {
+  if (price === null) return ['(X)','missing'];
+  if (previous === null) return ['(비교없음)','unknown'];
+  if (price > previous) return ['(▲)','up'];
+  if (price < previous) return ['(▼)','down'];
+  return ['(-)','flat'];
+}
+
+async function requestWorkbook(url) {
+  const blob = await $.ajax({url,cache:false,timeout:18000,xhrFields:{responseType:'blob'}});
+  return XLSX.read(await blob.arrayBuffer(),{type:'array'});
+}
+async function pool(keys, fn) {
+  let pos = 0;
+  await Promise.all(Array.from({length:Math.min(6,keys.length)},async () => {
+    while (pos < keys.length) await fn(keys[pos++]);
+  }));
+}
+async function latestReference() {
+  const files = await $.ajax({url:API+'/contents/gain/observer?ref=main',dataType:'json',timeout:10000});
+  const candidates = files.map(file => file.name).filter(name => /^list_\d{6}\.xlsx$/i.test(name)).sort().reverse();
+  if (!candidates.length) throw Error('list_yymmdd.xlsx 없음');
+  return {name:candidates[0],entries:parseReference(await requestWorkbook(OBSERVER+candidates[0]))};
+}
+async function archiveFor(month) {
+  const year = +month.slice(0,4), index = +month.slice(4);
+  const from = new Date(Date.UTC(year,index-1,1,0,0,0)-9*3600000).toISOString();
+  const until = new Date(Date.UTC(year,index,1,0,0,0)-9*3600000-1000).toISOString();
+  const commits = await $.ajax({url:API+'/commits',data:{
+    path:'tracking/result/fileList.json',since:from,until,per_page:1
+  },dataType:'json',timeout:12000});
+  const sha = commits[0]?.sha;
+  if (!sha) return null;
+  const base = RAW+sha+'/tracking/result/';
+  const names = await $.ajax({url:base+'fileList.json',dataType:'json',timeout:12000});
+  return {base,files:trackingFiles(names)};
+}
+
+function matrixRows(regions, showMissing, {min = null, max = null} = {}) {
+  const prices = new Set();
+  const byPrice = regions.map(region => {
+    const priced = new Map(), missing = [];
+    for (const item of region.items) {
+      if (item.price === null) { missing.push(item); continue; }
+      if ((min !== null && item.price < min) || (max !== null && item.price > max)) continue;
+      prices.add(item.price);
+      if (!priced.has(item.price)) priced.set(item.price,[]);
+      priced.get(item.price).push(item);
+    }
+    return {priced,missing};
+  });
+  const rows = [...prices].sort((a,b) => b-a).map(price => ({
+    price,cells:byPrice.map(region => region.priced.get(price) || [])
+  }));
+  if (showMissing && byPrice.length) {
+    const count = Math.max(...byPrice.map(region => region.missing.length));
+    for (let i=0;i<count;i++) rows.push({price:null,cells:byPrice.map(region => region.missing.slice(i,i+1))});
+  }
+  return rows;
+}
+
+const complexUrl = id => 'https://new.land.naver.com/complexes/'+encodeURIComponent(id);
+
+function exportWorkbook(regions, rows) {
+  const values = [
+    ['급지', ...regions.map(region => LEVELS[region.level] || region.level)],
+    ['매매가 (억)', ...regions.map(region => region.name+' '+dateLabel(region.date))]
+  ];
+  const links = [];
+  for (const {price,cells} of rows) {
+    const lines = Math.max(1,...cells.map(items => items.length));
+    for (let line=0;line<lines;line++) {
+      const row = [price ?? '—'];
+      for (const items of cells) {
+        const item = items[line];
+        if (item) links.push({r:values.length,c:row.length,id:item.id});
+        row.push(item ? statusOf(item.price,item.previous)[0]+' '+item.info : null);
+      }
+      values.push(row);
+    }
+  }
+  const workbook = XLSX.utils.book_new();
+  const sheet = XLSX.utils.aoa_to_sheet(values);
+  for (const {r,c,id} of links) sheet[XLSX.utils.encode_cell({r,c})].l = {Target:complexUrl(id)};
+  sheet['!cols'] = [{wch:14}, ...regions.map(() => ({wch:42}))];
+  XLSX.utils.book_append_sheet(workbook,sheet,'정찰기 84㎡');
+  return workbook;
+}
+
+document.addEventListener('DOMContentLoaded',() => {
+  if (!window.jQuery || !window.XLSX) {
+    document.getElementById('status').textContent = 'jQuery 또는 SheetJS를 불러오지 못했습니다. 인터넷 연결을 확인하세요.';
+    return;
+  }
+  const known = JSON.parse($('#reference-map').text());
+  let model = [];
+  const hiddenLevels = new Set(), hiddenRegions = new Set();
+  let shown = {regions:[],rows:[]};
+  let priceRange = {min:null,max:null};
+  const eligibleRegions = () => model.filter(region => !hiddenLevels.has(region.level));
+  const regionKey = region => JSON.stringify([region.name,region.key]);
+  function makeChecks(id, options, excluded, onChange) {
+    const group = $('#'+id).empty();
+    const selectedCount = options.filter(({key}) => !excluded.has(key)).length;
+    const allSelected = options.length > 0 && selectedCount === options.length;
+    $('#'+id+'-count').text(allSelected ? '(전체)' : '('+selectedCount+'/'+options.length+')');
+    function appendCheck(label, checked, change) {
+      const input = $('<input type="checkbox">').prop('checked',checked).on('change',event => change(event.target.checked));
+      $('<label>').append(input,document.createTextNode(' '+label)).appendTo(group);
+      return input;
+    }
+    appendCheck('전체',allSelected,checked => {
+      for (const {key} of options) checked ? excluded.delete(key) : excluded.add(key);
+      onChange();
+    }).prop({indeterminate:selectedCount > 0 && !allSelected,disabled:!options.length});
+    for (const {key,label} of options) {
+      appendCheck(label,!excluded.has(key),checked => {
+        checked ? excluded.delete(key) : excluded.add(key);
+        onChange(key);
+      });
+    }
+  }
+  function refreshFilters(focusId, focusKey) {
+    const levels = [...new Set(model.map(region => region.level))];
+    makeChecks('level',levels.map(key => ({key,label:LEVELS[key] || key})),hiddenLevels,key => refreshFilters('level',key));
+    const regions = eligibleRegions();
+    makeChecks('region',regions.map(region => ({key:regionKey(region),label:region.name})),hiddenRegions,key => refreshFilters('region',key));
+    if (focusId) {
+      const keys = focusId === 'level' ? levels : regions.map(regionKey);
+      $('#'+focusId+' input').eq(focusKey === undefined ? 0 : keys.indexOf(focusKey)+1).trigger('focus');
+    }
+    render();
+  }
+  function render() {
+    const regions = eligibleRegions().filter(region => !hiddenRegions.has(regionKey(region)));
+    const matrix = matrixRows(regions,$('#show-missing').prop('checked'),priceRange);
+    shown = {regions,rows:matrix};
+    $('#download').prop('disabled',!regions.length);
+    const head = $('thead').empty(), body = $('tbody').empty();
+    if (!regions.length) {
+      $('<tr>').append($('<td>').text('표시할 지역을 선택하세요.')).appendTo(body);
+      return;
+    }
+    const top = $('<tr>').appendTo(head), bottom = $('<tr>').appendTo(head);
+    $('<th class="corner">').text('급지').appendTo(top);
+    $('<th class="corner">').text('매매가 (억)').appendTo(bottom);
+    for (const region of regions) {
+      $('<th>').text(LEVELS[region.level] || region.level).appendTo(top);
+      $('<th scope="col">').text(region.name).append($('<small>').text(dateLabel(region.date))).appendTo(bottom);
+    }
+    function addRow(label, cells) {
+      const tr = $('<tr>').appendTo(body);
+      $('<th scope="row">').text(label).appendTo(tr);
+      for (const items of cells) {
+        const td = $('<td>').appendTo(tr);
+        for (const item of items) {
+          const [mark,css] = statusOf(item.price,item.previous);
+          const line = $('<div>').appendTo(td);
+          const url = complexUrl(item.id);
+          const detail = item.previous === null ? '' : '전월 '+numberFormat.format(item.previous)+'억';
+          const link = $('<a>',{href:url,target:'_blank',rel:'noopener',title:detail}).appendTo(line);
+          $('<span class="mark">').addClass(css).text(mark).appendTo(link);
+          link.append(document.createTextNode(' '+item.info));
+        }
+      }
+    }
+    for (const {price,cells} of matrix) addRow(price === null ? '—' : numberFormat.format(price),cells);
+    if (!body.children().length) $('<tr>').append($('<td>').attr('colspan',regions.length+1).text('표시할 84㎡ 매매가가 없습니다.')).appendTo(body);
+  }
+  async function load() {
+    $('#reload').prop('disabled',true);
+    $('#status').text('최신 tracking 및 비교 자료를 불러오는 중…');
+    $('#notes').empty();
+    try {
+      const notes = [];
+      const [csv,manifest,ref] = await Promise.allSettled([
+        $.ajax({url:OBSERVER+'observer_list.csv',dataType:'text',cache:false,timeout:15000}),
+        $.ajax({url:SOURCE+'fileList.json',dataType:'json',cache:false,timeout:15000}),
+        latestReference()
+      ]);
+      if (csv.status === 'rejected') throw Error('observer_list.csv를 불러오지 못했습니다.');
+      const regions = parseCsv(csv.value);
+      const files = manifest.status === 'fulfilled' ? trackingFiles(manifest.value) : [];
+      if (manifest.status === 'rejected') notes.push('최신 tracking 목록 조회 실패');
+      if (ref.status === 'rejected') notes.push('최신 참조 목록 조회 실패 · 내장 단지 정보 사용');
+      const keys = [...new Set(regions.map(region => region.key))];
+      const current = new Map(keys.map(key => [key,files.find(file => file.key === key)]));
+      const months = [...new Set([...current.values()].filter(Boolean).map(file => previousMonth(file.date)))];
+      const archives = new Map();
+      await Promise.all(months.map(async month => {
+        try { archives.set(month,await archiveFor(month)); }
+        catch { notes.push(month.slice(0,4)+'-'+month.slice(4)+' 전월 이력 조회 실패'); }
+      }));
+      const datasets = new Map();
+      async function read(base,file) {
+        return file ? parseTracking(await requestWorkbook(base+file.name)) : new Map();
+      }
+      await pool(keys,async key => {
+        const newest = current.get(key);
+        const month = newest && previousMonth(newest.date);
+        const archive = archives.get(month);
+        const available = [...files.filter(file => file.key === key && file.date.startsWith(month)).map(file => ({base:SOURCE,file})),
+          ...(archive?.files || []).filter(file => file.key === key && file.date.startsWith(month)).map(file => ({base:archive.base,file}))];
+        available.sort((a,b) => b.file.date.localeCompare(a.file.date));
+        const prior = available[0];
+        const [today,last] = await Promise.allSettled([
+          read(SOURCE,newest),
+          prior ? read(prior.base,prior.file) : Promise.resolve(new Map())
+        ]);
+        if (!newest || today.status === 'rejected') notes.push(key+' 현재 파일 조회 불가');
+        if (last.status === 'rejected') notes.push(key+' 전월 파일 조회 실패');
+        datasets.set(key,{date:today.status === 'fulfilled' ? newest?.date : null,
+          live:today.value || new Map(),old:last.value || new Map()});
+      });
+      model = regions.map(region => {
+        const data = datasets.get(region.key);
+        const entries = ref.value?.entries.get(region.name) || [];
+        const aliases = known[region.name] || [];
+        return {...region,date:data.date,items:region.ids.map(id => {
+          const live=data.live.get(id), old=data.old.get(id);
+          return {id,price:live?.price ?? null,previous:old?.price ?? null,
+            info:live?.price != null ? [live.name,live.year,live.units].filter(Boolean).join('/')
+              : referenceInfo(id,live,old,entries,aliases)};
+        })};
+      });
+      const all = model.flatMap(region => region.items);
+      const priced = all.filter(item => item.price !== null);
+      $('#status').text(model.length+'개 지역 · 84㎡ 매매가 '+priced.length+'건 · 전월 비교 '+priced.filter(item => item.previous !== null).length
+        +'건 · 가격 없음 '+(all.length-priced.length)+'건'+(ref.value ? ' · 참조 '+ref.value.name : ''));
+      $('#notes').text(notes.join(' · '));
+      refreshFilters();
+    } catch (error) {
+      $('#status').text(error.message || '자료 조회 실패');
+    } finally { $('#reload').prop('disabled',false); }
+  }
+  $(document).on('pointerdown',event => {
+    if (!$(event.target).closest('.filters').length) $('.filters[open]').prop('open',false);
+  }).on('keydown',event => {
+    if (event.key !== 'Escape') return;
+    const open = $('.filters[open]');
+    if (open.length) open.prop('open',false).find('summary').trigger('focus');
+  });
+  const minInput = $('#min-price')[0], maxInput = $('#max-price')[0];
+  function applyRange(min,max) {
+    priceRange = {min,max};
+    const minLabel = min === null ? '' : numberFormat.format(min)+'억';
+    const maxLabel = max === null ? '' : numberFormat.format(max)+'억';
+    $('#price-range').text(minLabel || maxLabel ? '('+minLabel+'~'+maxLabel+')' : '(전체)');
+    $('#price-filter').prop('open',false).find('summary').trigger('focus');
+    render();
+  }
+  $('#price-form').on('submit',event => {
+    event.preventDefault();
+    const min = minInput.value === '' ? null : minInput.valueAsNumber;
+    const max = maxInput.value === '' ? null : maxInput.valueAsNumber;
+    if (min !== null && max !== null && min > max) {
+      maxInput.setCustomValidity('최대 매매가는 최소 매매가 이상이어야 합니다.');
+      maxInput.reportValidity();
+      return;
+    }
+    applyRange(min,max);
+  }).on('reset',() => {
+    maxInput.setCustomValidity('');
+    applyRange(null,null);
+  });
+  $('#min-price, #max-price').on('input',() => maxInput.setCustomValidity(''));
+  $('#show-missing').on('change',render);
+  $('#download').on('click',() => {
+    if (!shown.regions.length) return;
+    XLSX.writeFile(exportWorkbook(shown.regions,shown.rows),'observer_84.xlsx');
+  });
+  $('#reload').on('click',load);
+  load();
+});
+</script>
+</body>
+</html>
