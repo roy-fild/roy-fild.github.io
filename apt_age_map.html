@@ -346,7 +346,9 @@ const popNorm=x=>txt(x).replace(/\s+/g,'').replace(/특별자치도|특별자치
 function popSidoMatches(a,b){return popNorm(a)===popNorm(b) || popNorm(canonicalSido(a))===popNorm(canonicalSido(b));}
 // 행정동 명칭 통일: CSV의 '상도제1동/노량진제2동'과 경계의 '상도1동/노량진2동'을 같은 동으로 처리.
 // 동작구뿐 아니라 용산구(청파제1동 등), 부천·용인 등의 숫자형 동에도 공통 적용.
-function popDongName(d){return popNorm(d)
+function popDongName(d){return popNorm(txt(d).normalize('NFC'))
+ .replace(/[·.\-]/g,'')
+ .replace(/[０-９]/g,c=>String(c.charCodeAt(0)-65296))
  .replace(/^(?:만세구|효행구|병점구|동탄구)/,'')
  .replace(/제(?=[0-9０-９]+(?:동|가동))/g,'')
  .replace(/([0-9０-９]+)가제(?=[0-9０-９]+동)/g,'$1가');} 
@@ -400,7 +402,6 @@ function populationAreaRows(source,district,dong=''){
  for(const r of source){
   if(!popSidoMatches(r.sido,sd))continue;
   const gu=compact(r.gu), rawDong=cleanDong(r.dong);
-  const joined=gu+rawDong;
   let matched=false, localDong=rawDong;
   if(cityGu){
    const city=compact(cityGu[1]),part=compact(cityGu[2]);
@@ -416,7 +417,7 @@ function populationAreaRows(source,district,dong=''){
   if(dong){
    // '동작구 상도1동'처럼 접두사가 읍면동 칼럼에 다시 붙는 경우까지 허용.
    if(localDong!==wantedDong && !localDong.endsWith(wantedDong))continue;
-  }else if(!localDong)continue; // 합계행 이중계산 방지
+  }else if(!localDong || localDong===compact(target))continue; // 합계행 이중계산 방지
   rows.push(r);
  }
  if(rows.length)return rows;
@@ -483,7 +484,7 @@ function drawPopulation(){
  const bounds=map.getBounds();
  // 평균 모집단은 선택된 행정단위의 전체 지역 (현재 지도 화면에 보이는 부분만이 아님).
  // 법정동 전환 시에도 행정동 기준 통계·평균을 유지한다.
- const fs=(adminFeatures.length?adminFeatures:regionFeatures()).filter(matchRegion).filter(f=>!dong||shortDong(f)===dong);
+ const fs=adminFeatures.filter(matchRegion);
  let groups=[];
  if(!gu||selectedCity()){
   const byDistrict=new Map();
@@ -515,6 +516,7 @@ function drawPopulation(){
  const means={};for(const type of AGE_TYPES)means[type.key]=entries.reduce((n,g)=>n+g.shares[type.key],0)/entries.length;
  let drawn=0;
  for(const g of entries){
+  if(dong&&mode==='admin'&&g.dong&&popDongName(g.dong)!==popDongName(dong))continue;
   if(!featureIntersectsBounds(g.paths,bounds)||drawn>=180)continue;
   const above=AGE_TYPES.filter(t=>g.shares[t.key]>=means[t.key]);
   if(!above.length)continue;
@@ -708,7 +710,7 @@ function bindMeasurement(){
   $id('cadastralToggle').textContent='▦ 지적편집도 '+(cadastralOn?'ON':'OFF');
  });
 }
-function events(){$('#showPopulation').on('change',async()=>{if(!$id('showPopulation').checked){clearLayer(populationLayers);return}try{status('인구 통계 불러오는 중…');await loadPopulation();await loadHouseholds();drawPopulation();status('연령대별 평균 이상 아이콘 + 인구/세대/세대당 인구 TOP 5 · 2026년 5월 통계')}catch(e){console.error(e);$id('showPopulation').checked=false;clearLayer(populationLayers);status('인구 데이터 불러오기 실패: '+e.message,true)}});$('#sido').on('change',()=>{refreshDistricts();updateFilters();fitFiltered()});$('#sigungu').on('change',()=>{refreshDongs();updateFilters();fitFiltered()});$('#dong').on('change',()=>{updateFilters();if($id('dong').value){let f=regionFeatures().find(f=>matchRegion(f)&&shortDong(f)===$id('dong').value);if(f){const paths=geoPolys(f);let b=new kakao.maps.LatLngBounds();for(const poly of paths)for(const ring of poly)for(const p of ring)b.extend(p);map.setBounds(b)}}});$('#decade,input[name="units"],#showPolygons,#showMissing,#showBoundary,#showLabels').on('change',updateFilters);$('#shadeOutside,#shadeStrength').on('change',drawOutsideShade);$('#query').on('input',()=>{clearTimeout(redrawTimer);redrawTimer=setTimeout(updateFilters,300)});$('#searchBtn').on('click',()=>{updateFilters();fitFiltered()});$('#fit').on('click',fitFiltered);$('#resetBtn').on('click',()=>{const seoul=[...$id('sido').options].find(o=>canonicalSido(o.value)==='서울');$id('sido').value=seoul?seoul.value:'';refreshDistricts();$id('decade').value='';$id('query').value='';$('input[name="units"][value="0"]').prop('checked',true);updateFilters();fitFiltered()});$('.mode button').on('click',async function(){
+function events(){$('#showPopulation').on('change',async()=>{if(!$id('showPopulation').checked){clearLayer(populationLayers);return}try{status('인구 통계 불러오는 중…');await loadPopulation();await loadHouseholds();status('연령대별 평균 이상 아이콘 + 인구/세대/세대당 인구 TOP 5 · 2026년 5월 통계');drawPopulation()}catch(e){console.error(e);$id('showPopulation').checked=false;clearLayer(populationLayers);status('인구 데이터 불러오기 실패: '+e.message,true)}});$('#sido').on('change',()=>{refreshDistricts();updateFilters();fitFiltered()});$('#sigungu').on('change',()=>{refreshDongs();updateFilters();fitFiltered()});$('#dong').on('change',()=>{updateFilters();if($id('dong').value){let f=regionFeatures().find(f=>matchRegion(f)&&shortDong(f)===$id('dong').value);if(f){const paths=geoPolys(f);let b=new kakao.maps.LatLngBounds();for(const poly of paths)for(const ring of poly)for(const p of ring)b.extend(p);map.setBounds(b)}}});$('#decade,input[name="units"],#showPolygons,#showMissing,#showBoundary,#showLabels').on('change',updateFilters);$('#shadeOutside,#shadeStrength').on('change',drawOutsideShade);$('#query').on('input',()=>{clearTimeout(redrawTimer);redrawTimer=setTimeout(updateFilters,300)});$('#searchBtn').on('click',()=>{updateFilters();fitFiltered()});$('#fit').on('click',fitFiltered);$('#resetBtn').on('click',()=>{const seoul=[...$id('sido').options].find(o=>canonicalSido(o.value)==='서울');$id('sido').value=seoul?seoul.value:'';refreshDistricts();$id('decade').value='';$id('query').value='';$('input[name="units"][value="0"]').prop('checked',true);updateFilters();fitFiltered()});$('.mode button').on('click',async function(){
  const next=this.dataset.mode;
  if(mode===next)return;
  mode=next;
