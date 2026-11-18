@@ -38,6 +38,12 @@ thead tr:first-child th{top:0}thead tr:nth-child(2) th{top:38px}thead th small{f
 tbody th,.corner{position:sticky;left:0;background:#f0f5f9;z-index:1;text-align:right;font-variant-numeric:tabular-nums}.corner{z-index:3}
 td{min-width:160px}td div+div{margin-top:4px}td a{color:inherit;text-decoration:none}td a:hover{text-decoration:underline}
 .up{color:#a52c28}.down{color:#1f5597}.flat,.unknown,.missing{color:#536374}.mark{font-weight:700;margin-right:5px}
+.row-price{padding:0}
+.price-select{display:block;width:100%;padding:7px 10px;border:0;border-radius:0;background:transparent;color:inherit;font:inherit;text-align:right;cursor:pointer}
+.price-select:hover{background:#dbe9fa}
+.price-select:focus-visible{outline:2px solid #315c9a;outline-offset:-3px}
+tr.price-highlight>td{background:#fff1b8}
+tr.price-highlight>.row-price{background:#ffe38a;color:#503500}
 </style>
 </head>
 <body>
@@ -220,6 +226,21 @@ document.addEventListener('DOMContentLoaded',() => {
   }
   let model = [];
   const hiddenLevels = new Set(), hiddenRegions = new Set();
+  const highlightedPrices = new Set();
+  const table = $('table');
+  table.on('click','.price-select',function () {
+    const price = Number(this.dataset.price);
+    const highlighted = !highlightedPrices.has(price);
+    if (highlighted) highlightedPrices.add(price);
+    else highlightedPrices.delete(price);
+    $(this).attr('aria-pressed',String(highlighted)).closest('tr').toggleClass('price-highlight',highlighted);
+  });
+  table.on('click','th,td',function (event) {
+    if ($(event.target).closest('.price-select').length || !highlightedPrices.size) return;
+    highlightedPrices.clear();
+    table.find('.price-highlight').removeClass('price-highlight');
+    table.find('.price-select[aria-pressed="true"]').attr('aria-pressed','false');
+  });
   let shown = {regions:[],rows:[]};
   let priceRange = {min:null,max:null};
   const eligibleRegions = () => model.filter(region => !hiddenLevels.has(region.level));
@@ -273,9 +294,19 @@ document.addEventListener('DOMContentLoaded',() => {
       $('<th>').text(LEVELS[region.level] || region.level).appendTo(top);
       $('<th scope="col">').text(region.name).append($('<small>').text(dateLabel(region.date))).appendTo(bottom);
     }
-    function addRow(label, cells) {
+    function addRow(price, cells) {
       const tr = $('<tr>').appendTo(body);
-      $('<th scope="row">').text(label).appendTo(tr);
+      const heading = $('<th scope="row">').appendTo(tr);
+      if (price === null) heading.text('—');
+      else {
+        const highlighted = highlightedPrices.has(price);
+        const amount = numberFormat.format(price);
+        tr.toggleClass('price-highlight',highlighted);
+        heading.addClass('row-price').append($('<button>',{
+          type:'button',class:'price-select','data-price':price,'aria-pressed':String(highlighted),
+          'aria-label':amount+'억 행 강조'
+        }).text(amount));
+      }
       for (const items of cells) {
         const td = $('<td>').appendTo(tr);
         for (const item of items) {
@@ -289,7 +320,7 @@ document.addEventListener('DOMContentLoaded',() => {
         }
       }
     }
-    for (const {price,cells} of matrix) addRow(price === null ? '—' : numberFormat.format(price),cells);
+    for (const {price,cells} of matrix) addRow(price,cells);
     if (!body.children().length) $('<tr>').append($('<td>').attr('colspan',regions.length+1).text('표시할 84㎡ 매매가가 없습니다.')).appendTo(body);
   }
   async function load() {
