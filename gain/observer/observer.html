@@ -6,6 +6,7 @@
 <title>정찰기 · 84㎡ 매매가 순위</title>
 <script defer src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
 <style>
 :root{color-scheme:light;--ink:#172839;--muted:#506174;--line:#dce4ec;--card:#fff;--blue:#ecf4fb}
 *{box-sizing:border-box}body{background:#f4f7fa;color:var(--ink);font:15px/1.5 "Malgun Gothic",system-ui,sans-serif;margin:0}
@@ -44,6 +45,17 @@ td{min-width:160px}td div+div{margin-top:4px}td a{color:inherit;text-decoration:
 .price-select:focus-visible{outline:2px solid #315c9a;outline-offset:-3px}
 tr.price-highlight>td{background:#fff1b8}
 tr.price-highlight>.row-price{background:#ffe38a;color:#503500}
+.trend-symbol{border:0;background:transparent;padding:0 4px 0 0;font:inherit;font-weight:700;cursor:pointer}
+#trend-dialog{inset:auto 0 0;width:min(100%,1050px);max-width:100%;max-height:75vh;margin:0 auto;padding:18px;border:1px solid var(--line);border-radius:16px 16px 0 0;color:var(--ink);animation:slide-up .2s ease-out}
+#trend-dialog::backdrop{background:#17283955}
+.trend-header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+#trend-title{font-size:17px;margin:0}
+.trend-canvas{height:300px;max-height:42vh;position:relative}
+#trend-table{margin-top:10px;width:100%;min-width:0;font-size:12px}
+#trend-table th,#trend-table td{min-width:0;padding:4px 8px;position:static;white-space:normal}
+#trend-dialog details{max-height:120px;overflow:auto}
+@keyframes slide-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){#trend-dialog{animation:none}}
 </style>
 </head>
 <body>
@@ -70,6 +82,12 @@ tr.price-highlight>.row-price{background:#ffe38a;color:#503500}
 <p id="notes"></p>
 <div class="frame" tabindex="0" aria-label="지역별 84㎡ 매매가 표"><table><thead></thead><tbody></tbody></table></div>
 </main>
+<dialog id="trend-dialog" aria-labelledby="trend-title">
+<div class="trend-header"><h2 id="trend-title"></h2><button type="button" id="trend-close">닫기</button></div>
+<p id="trend-status" role="status"></p>
+<div class="trend-canvas"><canvas id="trend-chart" role="img" aria-label="84㎡ 최저 매매가 추이"></canvas></div>
+<details><summary>날짜별 가격 보기</summary><table id="trend-table"><thead><tr><th>기준일</th><th>매매가 (억)</th></tr></thead><tbody></tbody></table></details>
+</dialog>
 <script>
 'use strict';
 const REPO = 'roy-fild/roy-fild.github.io';
@@ -219,6 +237,79 @@ document.addEventListener('DOMContentLoaded',() => {
     return;
   }
   let model = [];
+  let historyFiles = [];
+  const snapshotCache = new Map();
+  let chart = null, trendRequest = 0, trendTrigger = null;
+  const dialog = $('#trend-dialog')[0];
+  function cachedSnapshot(file) {
+    if (!snapshotCache.has(file.name)) {
+      const promise = readSnapshot(file).catch(error => { snapshotCache.delete(file.name); throw error; });
+      snapshotCache.set(file.name,promise);
+    }
+    return snapshotCache.get(file.name);
+  }
+  async function showTrend(id, info, trigger) {
+    const requestId = ++trendRequest;
+    trendTrigger = trigger;
+    if (chart) { chart.destroy(); chart = null; }
+    $('#trend-title').text(info+' · 84㎡ 매매가 추이');
+    $('#trend-status').text('저장된 날짜별 가격을 불러오는 중…');
+    $('#trend-table tbody').empty();
+    dialog.showModal();
+    $('#trend-close').trigger('focus');
+    const files = [...historyFiles].reverse();
+    const points = new Array(files.length);
+    let cursor = 0, failed = 0;
+    await Promise.all(Array.from({length:Math.min(4,files.length)},async () => {
+      while (cursor < files.length && requestId === trendRequest) {
+        const index = cursor++, file = files[index];
+        try {
+          const snapshot = await cachedSnapshot(file);
+          points[index] = {date:file.date,price:snapshot.get(id)?.price ?? null};
+        } catch {
+          failed++;
+          points[index] = {date:file.date,price:null,failed:true};
+        }
+      }
+    }));
+    if (requestId !== trendRequest || !dialog.open) return;
+    const count = points.filter(point => point.price !== null).length;
+    $('#trend-status').text(files.length+'개 저장일 · 가격 '+count+'건'
+      +(failed ? ' · 파일 조회 실패 '+failed+'건' : '')
+      +(count === 1 ? ' · 가격이 1건이라 점으로 표시됩니다.' : '')
+      +(count === 0 ? ' · 확인 가능한 84㎡ 매매가가 없습니다.' : ''));
+    for (const point of points) {
+      $('<tr>').append($('<td>').text(dateLabel(point.date)),
+        $('<td>').text(point.failed ? '조회 실패' : point.price === null ? '가격 없음' : numberFormat.format(point.price)))
+        .appendTo('#trend-table tbody');
+    }
+    if (!window.Chart) {
+      $('#trend-status').append(document.createTextNode(' · 차트 로딩 실패. 날짜별 가격 보기에서 확인하세요.'));
+      return;
+    }
+    chart = new Chart($('#trend-chart')[0],{
+      type:'line',
+      data:{labels:points.map(point => dateLabel(point.date)),datasets:[{
+        label:'84㎡ 최저 매매가 (억)',data:points.map(point => point.price),
+        borderColor:'#2563a6',backgroundColor:'#2563a6',pointRadius:4,pointHoverRadius:7,
+        borderWidth:2,tension:0,spanGaps:false
+      }]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:context => numberFormat.format(context.parsed.y)+'억'}}},
+        scales:{y:{title:{display:true,text:'매매가 (억)'}},x:{ticks:{maxRotation:45,autoSkip:true,maxTicksLimit:12}}}}
+    });
+  }
+  $('#trend-close').on('click',() => dialog.close());
+  dialog.addEventListener('click',event => {
+    const box = dialog.getBoundingClientRect();
+    if (event.target === dialog && (event.clientX < box.left || event.clientX > box.right ||
+        event.clientY < box.top || event.clientY > box.bottom)) dialog.close();
+  });
+  dialog.addEventListener('close',() => {
+    trendRequest++;
+    if (chart) { chart.destroy(); chart = null; }
+    if (trendTrigger?.isConnected) trendTrigger.focus();
+  });
   const hiddenLevels = new Set(), hiddenRegions = new Set();
   const highlightedPrices = new Set();
   const table = $('table');
@@ -230,7 +321,7 @@ document.addEventListener('DOMContentLoaded',() => {
     $(this).attr('aria-pressed',String(highlighted)).closest('tr').toggleClass('price-highlight',highlighted);
   });
   table.on('click','th,td',function (event) {
-    if ($(event.target).closest('.price-select').length || !highlightedPrices.size) return;
+    if ($(event.target).closest('.price-select, .trend-symbol').length || !highlightedPrices.size) return;
     highlightedPrices.clear();
     table.find('.price-highlight').removeClass('price-highlight');
     table.find('.price-select[aria-pressed="true"]').attr('aria-pressed','false');
@@ -308,9 +399,10 @@ document.addEventListener('DOMContentLoaded',() => {
           const line = $('<div>').appendTo(td);
           const url = complexUrl(item.id);
           const detail = item.previous === null ? '' : '이전 저장일 '+numberFormat.format(item.previous)+'억';
-          const link = $('<a>',{href:url,target:'_blank',rel:'noopener',title:detail}).appendTo(line);
-          $('<span class="mark">').addClass(css).text(mark).appendTo(link);
-          link.append(document.createTextNode(' '+item.info));
+          $('<button>',{type:'button',class:'trend-symbol '+css,title:detail,
+            'aria-label':item.info+' 가격 추이 보기'}).text(mark)
+            .on('click',function () { showTrend(item.id,item.info,this); }).appendTo(line);
+          $('<a>',{href:url,target:'_blank',rel:'noopener',title:detail}).text(item.info).appendTo(line);
         }
       }
     }
@@ -329,10 +421,12 @@ document.addEventListener('DOMContentLoaded',() => {
       const watchlist = parseWatchlist(watchlistText);
       const files = snapshotFiles(listing);
       if (!files.length) throw Error('gain/observer/csv 폴더에 observer_YYYYMMDD.csv를 올려주세요.');
+      historyFiles = files;
+      snapshotCache.clear();
       const latest = files[0];
       const priorFile = files[1];
       const [live,prior] = await Promise.allSettled([
-        readSnapshot(latest), priorFile ? readSnapshot(priorFile) : Promise.resolve(new Map())
+        cachedSnapshot(latest), priorFile ? cachedSnapshot(priorFile) : Promise.resolve(new Map())
       ]);
       if (live.status === 'rejected') throw Error(latest.name+' 조회 실패'+(live.reason?.message ? ' · '+live.reason.message : ''));
       const previous = prior.status === 'fulfilled' ? prior.value : new Map();
