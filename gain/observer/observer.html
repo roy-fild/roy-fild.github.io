@@ -73,7 +73,7 @@ tr.price-highlight>.row-price{background:#ffe38a;color:#503500}
 <script>
 'use strict';
 const REPO = 'roy-fild/roy-fild.github.io';
-const DIRECTORY = 'gain/observer';
+const DIRECTORY = 'gain/observer/csv';
 const API = 'https://api.github.com/repos/' + REPO + '/contents/' + DIRECTORY + '?ref=main';
 const RAW = 'https://raw.githubusercontent.com/' + REPO + '/main/' + DIRECTORY + '/';
 const LEVELS = {1:'1군',2:'2군',3:'3군',4:'4군',5:'5군',L:'수도권외곽',G:'광역시',S:'중소도시'};
@@ -334,7 +334,7 @@ document.addEventListener('DOMContentLoaded',() => {
       ]);
       const watchlist = parseWatchlist(watchlistText);
       const files = snapshotFiles(listing);
-      if (!files.length) throw Error('gain/observer 폴더에 observer_YYYYMMDD.csv를 올려주세요.');
+      if (!files.length) throw Error('gain/observer/csv 폴더에 observer_YYYYMMDD.csv를 올려주세요.');
       const latest = files[0];
       const priorFile = files.find(file => file.date === previousDay(latest.date));
       const [live,prior] = await Promise.allSettled([
